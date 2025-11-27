@@ -1,0 +1,50 @@
+/* core/static/css/forms.css */
+
+/* The Container for inputs to ensure they take full width */
+.cra-input-group {
+    margin-bottom: 1.5rem;
+}
+
+/* THE GEMINI GLOW INPUT */
+.cra-input {
+    width: 100%;
+    background-color: #09090b; /* Deep Black/Zinc-950 */
+    border: 1px solid #27272a; /* Zinc-800 - Subtle default border */
+    color: #f4f4f5;            /* White text */
+    font-family: 'Inter', sans-serif; /* Clean font for text */
+    font-size: 0.875rem;       /* 14px */
+    padding: 0.75rem 1rem;     /* Comfortable padding */
+    border-radius: 0.5rem;     /* 8px radius */
+    
+    /* Smooth Physics */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Placeholder styling */
+.cra-input::placeholder {
+    color: #52525b; /* Zinc-600 */
+}
+
+/* Hover State */
+.cra-input:hover {
+    border-color: #3f3f46; /* Zinc-700 */
+    background-color: #0c0c0e;
+}
+
+/* FOCUS STATE - The White Outer Glow */
+.cra-input:focus {
+    outline: none;
+    background-color: #000000;
+    border-color: #ffffff; /* Pure White Border */
+    
+    /* The Glow Effect */
+    box-shadow: 
+        0 0 0 1px rgba(255, 255, 255, 1), /* Sharp inner ring */
+        0 0 12px rgba(255, 255, 255, 0.3); /* Soft outer glow */
+}
+
+/* Textarea specific tweaks */
+textarea.cra-input {
+    line-height: 1.5;
+    min-height: 100px;
+}

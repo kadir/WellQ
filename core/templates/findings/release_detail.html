@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<a href="{% url 'product_detail' release.product.id %}" class="hover:text-white">{{ release.product.name|lower }}</a>
+<span class="text-gray-600">/</span>
+<span class="text-emerald-400">{{ release.name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <div class="grid grid-cols-4 gap-4 mb-8">
+        <div class="bg-red-500/5 border border-red-500/20 p-4 rounded-lg">
+            <div class="text-red-500 text-[10px] uppercase font-bold tracking-widest mb-1">Critical</div>
+            <div class="text-3xl font-bold text-white">{{ stats.critical }}</div>
+        </div>
+        <div class="bg-orange-500/5 border border-orange-500/20 p-4 rounded-lg">
+            <div class="text-orange-500 text-[10px] uppercase font-bold tracking-widest mb-1">High</div>
+            <div class="text-3xl font-bold text-white">{{ stats.high }}</div>
+        </div>
+        <div class="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-lg">
+            <div class="text-yellow-500 text-[10px] uppercase font-bold tracking-widest mb-1">Medium</div>
+            <div class="text-3xl font-bold text-white">{{ stats.medium }}</div>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-lg flex flex-col justify-center">
+             <div class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-1">Scan Date</div>
+             <div class="text-sm text-white font-mono">{{ release.created_at|date:"Y-m-d H:i" }}</div>
+        </div>
+    </div>
+
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-[#27272a] flex justify-between items-center bg-zinc-900/30">
+            <h3 class="text-sm font-bold text-white">Security Findings</h3>
+            <span class="text-xs font-mono text-gray-500">{{ stats.total }} ISSUES</span>
+        </div>
+        
+        <table class="w-full text-left text-sm text-gray-400">
+            <thead class="bg-black text-[10px] uppercase font-mono text-gray-500 tracking-wider">
+                <tr>
+                    <th class="px-6 py-3 w-32">Severity</th>
+                    <th class="px-6 py-3 w-48">CVE ID</th>
+                    <th class="px-6 py-3">Package / Component</th>
+                    <th class="px-6 py-3 w-48">Fix Version</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-800">
+                {% for finding in findings %}
+                <tr class="hover:bg-zinc-900/50 transition-colors group">
+                    <td class="px-6 py-3">
+                        {% if finding.severity == 'CRITICAL' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">CRITICAL</span>
+                        {% elif finding.severity == 'HIGH' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20">HIGH</span>
+                        {% elif finding.severity == 'MEDIUM' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">MEDIUM</span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">{{ finding.severity }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-3">
+                        <span class="text-white font-mono group-hover:text-emerald-400 transition-colors">{{ finding.cve_id }}</span>
+                    </td>
+                    <td class="px-6 py-3">
+                        <div class="text-gray-300">{{ finding.package_name }}</div>
+                        <div class="text-[10px] text-gray-600 font-mono">{{ finding.package_version }}</div>
+                    </td>
+                    <td class="px-6 py-3 font-mono text-emerald-500">
+                        {{ finding.fixed_version|default:"-" }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-6 py-12 text-center">
+                        <p class="text-gray-500">No vulnerabilities found. Good job!</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

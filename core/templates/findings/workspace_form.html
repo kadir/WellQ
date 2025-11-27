@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<a href="{% url 'workspace_list' %}" class="hover:text-white">workspaces</a>
+<span class="text-gray-600">/</span>
+<span class="text-white">{{ title|lower }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto mt-10">
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-8 shadow-2xl">
+        
+        <h1 class="text-xl font-bold text-white mb-6">{{ title }}</h1>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Workspace Name</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.name.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Description</label>
+                {{ form.description }}
+            </div>
+
+            <div class="pt-4 flex gap-3">
+                <button type="submit" class="flex-1 bg-white text-black font-bold py-2.5 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider text-xs">
+                    Save Workspace
+                </button>
+                <a href="{% url 'workspace_list' %}" class="px-4 py-2.5 rounded border border-zinc-700 text-gray-400 hover:text-white hover:border-zinc-500 text-xs uppercase font-bold transition-all">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

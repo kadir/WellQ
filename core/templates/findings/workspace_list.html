@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<span class="text-white">workspaces</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    
+    <div class="flex justify-between items-end mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">Workspaces</h1>
+            <p class="text-sm text-gray-500 font-mono mt-1">Manage teams and business units.</p>
+        </div>
+        <a href="{% url 'workspace_create' %}" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+            + Create Workspace
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for workspace in workspaces %}
+        <a href="{% url 'workspace_detail' workspace.id %}" class="group bg-[#09090b] border border-[#27272a] rounded-lg p-6 hover:border-emerald-500/50 transition-all relative block">
+            
+            <div class="flex justify-between items-start mb-4">
+                <div class="h-10 w-10 bg-zinc-900 rounded flex items-center justify-center text-white border border-zinc-800 font-bold text-lg">
+                    {{ workspace.name|first|upper }}
+                </div>
+                <object class="z-10">
+                    <a href="{% url 'workspace_edit' workspace.id %}" class="text-gray-600 hover:text-white transition-colors p-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </a>
+                </object>
+            </div>
+
+            <h3 class="text-lg font-bold text-white mb-1 group-hover:text-emerald-400 transition-colors">{{ workspace.name }}</h3>
+            <p class="text-sm text-gray-500 h-10 overflow-hidden text-ellipsis line-clamp-2">{{ workspace.description|default:"No description provided." }}</p>
+            
+            <div class="mt-6 pt-4 border-t border-zinc-800">
+                <div class="flex items-center justify-between text-[10px] font-mono mb-2 text-gray-400">
+                    <span class="uppercase tracking-widest">Vuln. Exposure</span>
+                    <span>Total: {{ workspace.crit_count|add:workspace.high_count|add:workspace.med_count|add:workspace.low_count }}</span>
+                </div>
+                
+                <div class="grid grid-cols-4 gap-1 text-center">
+                    <div class="bg-red-500/10 border border-red-500/20 rounded py-1">
+                        <span class="text-red-500 font-bold block">{{ workspace.crit_count }}</span>
+                        <span class="text-[9px] text-red-500/70 uppercase">Crit</span>
+                    </div>
+                    <div class="bg-orange-500/10 border border-orange-500/20 rounded py-1">
+                        <span class="text-orange-500 font-bold block">{{ workspace.high_count }}</span>
+                        <span class="text-[9px] text-orange-500/70 uppercase">High</span>
+                    </div>
+                    <div class="bg-yellow-500/10 border border-yellow-500/20 rounded py-1">
+                        <span class="text-yellow-500 font-bold block">{{ workspace.med_count }}</span>
+                        <span class="text-[9px] text-yellow-500/70 uppercase">Med</span>
+                    </div>
+                    <div class="bg-blue-500/10 border border-blue-500/20 rounded py-1">
+                        <span class="text-blue-500 font-bold block">{{ workspace.low_count }}</span>
+                        <span class="text-[9px] text-blue-500/70 uppercase">Low</span>
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% empty %}
+        <div class="col-span-3 text-center py-20 border border-dashed border-zinc-800 rounded-lg">
+            <p class="text-gray-500 mb-4">No workspaces configured.</p>
+            <a href="{% url 'workspace_create' %}" class="text-emerald-400 underline">Create one now</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

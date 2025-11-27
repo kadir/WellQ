@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from core.findings import views as finding_views
 from core import views
 from django.contrib.auth import views as auth_views
 
@@ -30,6 +31,14 @@ urlpatterns = [
 
     # Dashboard URL
     path('dashboard/', views.dashboard, name='dashboard'),
+
+    # WORKSPACES
+    path('workspaces/', finding_views.workspace_list, name='workspace_list'),
+    path('workspaces/create/', finding_views.workspace_create, name='workspace_create'),
+    path('workspaces/<uuid:workspace_id>/', finding_views.workspace_detail, name='workspace_detail'),
+    path('workspaces/<uuid:workspace_id>/edit/', finding_views.workspace_edit, name='workspace_edit'),
+    path('products/<uuid:product_id>/', finding_views.product_detail, name='product_detail'),
+    path('releases/<uuid:release_id>/', finding_views.release_detail, name='release_detail'),
 
     # Logout (Redirects back to login page)
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),

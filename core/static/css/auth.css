@@ -1,0 +1,61 @@
+/* WELLQ Industrial Theme 
+   Context: EU CRA Compliance Suite
+*/
+
+/* 1. Engineering Grid Background */
+.cra-grid-bg {
+    background-color: #09090b; /* Zinc-950 */
+    background-size: 40px 40px;
+    background-image:
+        linear-gradient(to right, #27272a 1px, transparent 1px),
+        linear-gradient(to bottom, #27272a 1px, transparent 1px);
+    /* Mask creates a spotlight effect */
+    mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 100%);
+    position: absolute;
+    inset: 0;
+    opacity: 0.25;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* 2. Compliance Status Indicator (Blinking Dot) */
+.status-dot {
+    height: 6px;
+    width: 6px;
+    border-radius: 50%;
+    background-color: #10b981; /* Emerald-500 */
+    display: inline-block;
+    animation: blink-status 2s infinite ease-in-out;
+}
+
+@keyframes blink-status {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.9); }
+}
+
+/* 3. Input Field Focus State (The "Laser" Focus) */
+.cra-input {
+    background-color: #09090b;
+    border: 1px solid #27272a; /* Zinc-800 */
+    color: #f4f4f5;
+    font-family: 'Fira Code', monospace;
+    transition: all 0.2s ease;
+}
+
+.cra-input:focus {
+    outline: none;
+    border-color: #f4f4f5; /* Zinc-100 */
+    box-shadow: 0 0 0 1px #f4f4f5; /* Subtle white ring */
+}
+
+/* 4. The "Submit" Button */
+.cra-button {
+    background-color: #f4f4f5;
+    color: #09090b;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+.cra-button:hover {
+    background-color: #e4e4e7; /* Zinc-200 */
+}

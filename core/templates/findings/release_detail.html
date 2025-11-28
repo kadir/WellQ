@@ -33,9 +33,15 @@
             Vulnerabilities
             <span class="ml-2 bg-zinc-800 text-gray-400 px-1.5 py-0.5 rounded text-[10px]">{{ vuln_stats.total }}</span>
         </button>
+        
         <button onclick="switchTab('sbom')" id="btn-sbom" class="pb-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors">
             SBOM & Compliance
             <span class="ml-2 bg-zinc-800 text-gray-400 px-1.5 py-0.5 rounded text-[10px]">{{ total_components }}</span>
+        </button>
+
+        <button onclick="switchTab('scans')" id="btn-scans" class="pb-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors">
+            Scan History
+            <span class="ml-2 bg-zinc-800 text-gray-400 px-1.5 py-0.5 rounded text-[10px]">{{ scans.count }}</span>
         </button>
     </div>
 
@@ -64,31 +70,12 @@
             </div>
         </div>
 
-        <div class="mb-8">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Audit Trail</h3>
-            <div class="space-y-2">
-                {% for scan in scans %}
-                <div class="bg-[#09090b] border border-[#27272a] rounded px-4 py-3 flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
-                        <span class="text-sm font-bold text-white">{{ scan.scanner_name }}</span>
-                        <span class="text-xs text-gray-500 font-mono">{{ scan.started_at|date:"Y-m-d H:i" }}</span>
-                    </div>
-                    <span class="text-xs text-gray-400 font-mono">{{ scan.findings.count }} findings</span>
-                </div>
-                {% empty %}
-                <div class="text-center py-4 border border-dashed border-zinc-800 rounded text-gray-600 text-xs">
-                    No scans executed.
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
         <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
             <table class="w-full text-left text-sm text-gray-400">
                 <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
                     <tr>
-                        <th class="px-6 py-3 w-32">Severity</th>
+                        <th class="px-6 py-3 w-32">Status / Sev</th>
+                        <th class="px-6 py-3 w-32">EPSS / Risk</th>
                         <th class="px-6 py-3 w-48">CVE ID</th>
                         <th class="px-6 py-3">Package / Component</th>
                         <th class="px-6 py-3 w-48">Fix Version</th>
@@ -96,29 +83,62 @@
                 </thead>
                 <tbody class="divide-y divide-zinc-800">
                     {% for finding in findings %}
-                    <tr class="hover:bg-zinc-900/50 transition-colors group">
+                    <tr class="hover:bg-zinc-900/50 transition-colors group {% if finding.status == 'FIXED' %}opacity-60 bg-zinc-900/20{% endif %}">
+                        
                         <td class="px-6 py-3">
-                            {% if finding.severity == 'CRITICAL' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">CRITICAL</span>
-                            {% elif finding.severity == 'HIGH' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20">HIGH</span>
-                            {% elif finding.severity == 'MEDIUM' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">MEDIUM</span>
-                            {% elif finding.severity == 'LOW' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">LOW</span>
-                            {% else %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20">INFO</span>
-                            {% endif %}
+                            <div class="flex flex-col gap-1">
+                                {% if finding.status == 'FIXED' %}
+                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">✓ FIXED</span>
+                                {% elif finding.status == 'FALSE_POSITIVE' %}
+                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">∅ FALSE POSITIVE</span>
+                                {% elif finding.status == 'RISK_ACCEPTED' %}
+                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 w-fit">⚠ ACCEPTED</span>
+                                {% else %}
+                                    {% if finding.severity == 'CRITICAL' %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 w-fit">CRITICAL</span>
+                                    {% elif finding.severity == 'HIGH' %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20 w-fit">HIGH</span>
+                                    {% elif finding.severity == 'MEDIUM' %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 w-fit">MEDIUM</span>
+                                    {% elif finding.severity == 'LOW' %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20 w-fit">LOW</span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">INFO</span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
                         </td>
+
+                        <td class="px-6 py-3">
+                            <div class="flex flex-col gap-1.5 w-full max-w-[120px]">
+                                {% if finding.epss_score > 0 %}
+                                <div class="flex items-center gap-2" title="Exploit Probability: {{ finding.epss_score }}">
+                                    <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                                        <div class="h-full {% if finding.epss_score > 0.5 %}bg-red-500{% else %}bg-blue-500{% endif %}" style="width: {% widthratio finding.epss_score 1 100 %}%"></div> 
+                                    </div>
+                                    <span class="text-[9px] font-mono text-gray-400">{{ finding.epss_score|floatformat:3 }}</span>
+                                </div>
+                                {% endif %}
+
+                                {% if finding.kev_status %}
+                                <div class="inline-flex">
+                                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-red-600 text-white border border-red-500 animate-pulse tracking-wider">KEV: EXPLOITED</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+
                         <td class="px-6 py-3 font-mono text-white group-hover:text-emerald-400">{{ finding.cve_id }}</td>
+
                         <td class="px-6 py-3">
                             <div class="text-gray-300">{{ finding.package_name }}</div>
                             <div class="text-[10px] text-gray-600 font-mono">{{ finding.package_version }}</div>
                         </td>
+
                         <td class="px-6 py-3 font-mono text-emerald-500">{{ finding.fixed_version|default:"-" }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="4" class="px-6 py-12 text-center text-gray-500">No vulnerabilities found.</td></tr>
+                    <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">No vulnerabilities found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -200,10 +220,8 @@
             </table>
 
             <div class="px-6 py-4 border-t border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
-                
                 <form method="get" id="paginationForm" class="flex items-center gap-2 text-xs text-gray-500">
                     <input type="hidden" name="tab" value="sbom"> 
-                    
                     <span>Show</span>
                     <select name="per_page" onchange="document.getElementById('paginationForm').submit()" class="bg-zinc-900 border border-zinc-700 text-white rounded px-2 py-1 outline-none focus:border-emerald-500">
                         <option value="20" {% if per_page == '20' %}selected{% endif %}>20</option>
@@ -215,21 +233,13 @@
 
                 <div class="flex items-center gap-2">
                     {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">
-                            Previous
-                        </a>
+                        <a href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">Previous</a>
                     {% else %}
                         <span class="px-3 py-1 bg-zinc-900 border border-zinc-800 text-gray-600 rounded text-xs cursor-not-allowed">Previous</span>
                     {% endif %}
-
-                    <span class="text-xs text-gray-500 font-mono">
-                        Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
-                    </span>
-
+                    <span class="text-xs text-gray-500 font-mono">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">
-                            Next
-                        </a>
+                        <a href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">Next</a>
                     {% else %}
                         <span class="px-3 py-1 bg-zinc-900 border border-zinc-800 text-gray-600 rounded text-xs cursor-not-allowed">Next</span>
                     {% endif %}
@@ -238,38 +248,98 @@
         </div>
     </div>
 
+    <div id="tab-scans" class="hidden animate-fade-in">
+        
+        <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+            <div class="px-6 py-3 border-b border-[#27272a] bg-zinc-900/30 flex justify-between items-center">
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider">Executed Scans</h3>
+            </div>
+
+            <table class="w-full text-left text-sm text-gray-400">
+                <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
+                    <tr>
+                        <th class="px-6 py-3 w-48">Scanner Source</th>
+                        <th class="px-6 py-3 w-48">Executed At</th>
+                        <th class="px-6 py-3 w-32">Findings Detected</th>
+                        <th class="px-6 py-3 w-32 text-center">Status</th>
+                        <th class="px-6 py-3 text-right">Context</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-800">
+                    {% for scan in scans %}
+                    <tr class="hover:bg-zinc-900/50 transition-colors">
+                        
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="h-8 w-8 bg-zinc-900 rounded flex items-center justify-center border border-zinc-800 text-white">
+                                    {% if 'Trivy' in scan.scanner_name %}
+                                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    {% else %}
+                                        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+                                    {% endif %}
+                                </div>
+                                <span class="font-bold text-white">{{ scan.scanner_name }}</span>
+                            </div>
+                        </td>
+
+                        <td class="px-6 py-4 font-mono text-xs">
+                            {{ scan.started_at|date:"Y-m-d H:i" }}
+                        </td>
+
+                        <td class="px-6 py-4">
+                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-zinc-800 text-white border border-zinc-700">
+                                {{ scan.findings_count }}
+                            </span>
+                        </td>
+
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                COMPLETED
+                            </span>
+                        </td>
+                        
+                        <td class="px-6 py-4 text-right font-mono text-xs text-zinc-600">
+                            {{ scan.id|slice:":8" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">No scans executed.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
 
 <script>
     function switchTab(tabName) {
-        // 1. Reset Buttons Styles
+        // 1. Define Styles
         const inactiveClass = "pb-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors";
         const activeClass = "pb-3 text-sm font-bold border-b-2 transition-colors text-emerald-500 border-emerald-500";
+        const buttons = ['btn-vuln', 'btn-sbom', 'btn-scans'];
+        const tabs = ['tab-vuln', 'tab-sbom', 'tab-scans'];
 
-        document.getElementById('btn-vuln').className = inactiveClass;
-        document.getElementById('btn-sbom').className = inactiveClass;
-        
-        // 2. Hide All Content
-        document.getElementById('tab-vuln').classList.add('hidden');
-        document.getElementById('tab-sbom').classList.add('hidden');
+        // 2. Reset All
+        buttons.forEach(id => document.getElementById(id).className = inactiveClass);
+        tabs.forEach(id => document.getElementById(id).classList.add('hidden'));
 
         // 3. Activate Selected
         document.getElementById('btn-' + tabName).className = activeClass;
         document.getElementById('tab-' + tabName).classList.remove('hidden');
 
-        // 4. Update URL without reloading (so sharing the link opens the right tab)
+        // 4. Update URL
         const url = new URL(window.location);
         url.searchParams.set('tab', tabName);
         window.history.pushState({}, '', url);
     }
 
-    // Auto-run on page load (Fix for Pagination Reset)
+    // Auto-run on page load
     document.addEventListener("DOMContentLoaded", function() {
         const urlParams = new URLSearchParams(window.location.search);
         const activeTab = urlParams.get('tab');
-        
-        if (activeTab === 'sbom') {
-            switchTab('sbom');
+        if (activeTab && ['vuln', 'sbom', 'scans'].includes(activeTab)) {
+            switchTab(activeTab);
         }
     });
 </script>

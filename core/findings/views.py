@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Case, When, Value
 from .models import Workspace, Product, Release, Scan, Finding
-from .forms import WorkspaceForm
+from .forms import WorkspaceForm, ProductForm
 
 @login_required
 def workspace_create(request):
@@ -68,6 +68,12 @@ def workspace_detail(request, workspace_id):
     })
 
 @login_required
+def product_list(request):
+    # Fetches ALL products from ALL workspaces
+    products = Product.objects.all().select_related('workspace').order_by('-created_at')
+    return render(request, 'findings/product_list.html', {'products': products})
+
+@login_required
 def product_detail(request, product_id):
     """
     Shows a single Product and lists its Releases (Versions).
@@ -82,6 +88,39 @@ def product_detail(request, product_id):
     return render(request, 'findings/product_detail.html', {
         'product': product, 
         'releases': releases
+    })
+
+@login_required
+def product_create(request):
+    """Explicitly create a new product."""
+    if request.method == 'POST':
+        form = ProductForm(request.POST)
+        if form.is_valid():
+            product = form.save()
+            # Redirect to the detail page of the new product
+            return redirect('product_detail', product_id=product.id)
+    else:
+        form = ProductForm()
+    
+    return render(request, 'findings/product_form.html', {'form': form})
+
+@login_required
+def product_edit(request, product_id):
+    """Edit an existing product."""
+    product = get_object_or_404(Product, id=product_id)
+    
+    if request.method == 'POST':
+        form = ProductForm(request.POST, instance=product)
+        if form.is_valid():
+            form.save()
+            # Redirect back to the details page
+            return redirect('product_detail', product_id=product.id)
+    else:
+        form = ProductForm(instance=product)
+    
+    return render(request, 'findings/product_form.html', {
+        'form': form, 
+        'title': f'Edit {product.name}'
     })
 
 @login_required

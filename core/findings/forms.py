@@ -1,5 +1,5 @@
 from django import forms
-from .models import Workspace
+from .models import Workspace, Product
 
 class WorkspaceForm(forms.ModelForm):
     class Meta:
@@ -52,3 +52,18 @@ class ScanIngestForm(forms.Form):
             'class': 'block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-zinc-100 file:text-zinc-900 hover:file:bg-white cursor-pointer'
         })
     )
+
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ['workspace', 'name', 'description', 'product_type', 'criticality'] # Added product_type
+        widgets = {
+            'workspace': forms.Select(attrs={'class': 'cra-input'}),
+            'name': forms.TextInput(attrs={'class': 'cra-input', 'placeholder': 'e.g. Payment-Gateway'}),
+            'description': forms.Textarea(attrs={'class': 'cra-input', 'rows': 4}),
+            
+            # NEW: Dropdown for Icon Type
+            'product_type': forms.Select(attrs={'class': 'cra-input'}),
+            
+            'criticality': forms.Select(attrs={'class': 'cra-input'}),
+        }

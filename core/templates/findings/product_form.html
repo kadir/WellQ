@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<a href="{% url 'product_list' %}" class="hover:text-white">products</a>
+<span class="text-gray-600">/</span>
+<span class="text-white">{{ title|default:"create" }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto mt-10">
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-8 shadow-2xl">
+        
+        <div class="mb-6">
+            <h1 class="text-xl font-bold text-white">{{ title|default:"Register New Product" }}</h1>
+            <p class="text-xs text-gray-500 font-mono mt-1">Define asset governance levels.</p>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Owning Workspace</label>
+                {{ form.workspace }}
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Product Name</label>
+                    {{ form.name }}
+                </div>
+                
+                <div>
+                    <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Asset Type</label>
+                    {{ form.product_type }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Description</label>
+                {{ form.description }}
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Business Criticality</label>
+                {{ form.criticality }}
+                <p class="text-[10px] text-gray-600 mt-2 leading-relaxed">
+                    <strong class="text-red-500">Critical:</strong> Core Revenue / PII Data.<br>
+                    <strong class="text-orange-500">High:</strong> Internal Business Logic.<br>
+                    <strong class="text-yellow-500">Medium:</strong> Support Tools.<br>
+                    <strong class="text-blue-500">Low:</strong> Experimental / Sandbox.
+                </p>
+            </div>
+
+            <div class="pt-4 flex gap-3">
+                <button type="submit" class="flex-1 bg-white text-black font-bold py-2.5 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider text-xs">
+                    Save Product
+                </button>
+                <a href="{% url 'product_list' %}" class="px-4 py-2.5 rounded border border-zinc-700 text-gray-400 hover:text-white hover:border-zinc-500 text-xs uppercase font-bold transition-all">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -21,20 +21,33 @@ class Workspace(models.Model):
 
 # 2. PRODUCT (The Repo/Asset)
 class Product(models.Model):
+    # The specific types you requested
     PRODUCT_TYPES = [
         ('WEB', 'Web Application'),
-        ('API', 'API Service'),
-        ('MOBILE', 'Mobile App'),
-        ('LIBRARY', 'Software Library'),
-        ('IOT', 'IoT Device Firmware'),
+        ('REPO', 'Code Repository'),
+        ('IMAGE', 'Docker Image'),
+        ('ANDROID', 'Android App'),
+        ('IOS', 'iOS App'),
+        ('BINARY', 'Binary Executable'),
+    ]
+
+    IMPACT_CHOICES = [
+        ('CRITICAL', 'Critical (Tier 1)'),
+        ('HIGH', 'High (Tier 2)'),
+        ('MEDIUM', 'Medium (Tier 3)'),
+        ('LOW', 'Low (Tier 4)'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    # RELATED_NAME='products' is critical for the dashboard query!
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='products')
     
     name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    
+    # Updated field with choices
     product_type = models.CharField(max_length=20, choices=PRODUCT_TYPES, default='WEB')
+    
+    criticality = models.CharField(max_length=20, choices=IMPACT_CHOICES, default='MEDIUM')
     tags = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -2,39 +2,19 @@
 
 {% block breadcrumbs %}
 <span class="text-gray-600">/</span>
-<a href="{% url 'workspace_list' %}" class="hover:text-white">workspaces</a>
-<span class="text-gray-600">/</span>
-<span class="text-white">{{ workspace.name|lower }}</span>
+<span class="text-white">products</span>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
     
-    <div class="mb-8 border-b border-zinc-800 pb-8 flex justify-between items-start">
+    <div class="flex justify-between items-end mb-8">
         <div>
-            <h1 class="text-3xl font-bold text-white mb-2">{{ workspace.name }}</h1>
-            <p class="text-gray-400 max-w-2xl text-sm">{{ workspace.description|default:"No description provided." }}</p>
-            <div class="flex gap-3 mt-4">
-                 <a href="{% url 'workspace_edit' workspace.id %}" class="text-xs text-gray-500 hover:text-white underline decoration-zinc-700 underline-offset-4">
-                    Edit Configuration
-                </a>
-            </div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">Products</h1>
+            <p class="text-sm text-gray-500 font-mono mt-1">Global asset inventory.</p>
         </div>
-        
-        <div class="text-right">
-            <div class="text-3xl font-bold text-white">{{ products.count }}</div>
-            <div class="text-[10px] text-gray-500 font-mono uppercase tracking-widest">Active Products</div>
-        </div>
-    </div>
-
-    <div class="flex justify-between items-center mb-4">
-        <div class="relative w-64">
-            <input type="text" placeholder="Filter products..." class="w-full bg-black border border-zinc-800 text-xs text-white rounded px-3 py-2 pl-8 focus:border-white outline-none transition-colors">
-            <svg class="w-3 h-3 text-gray-500 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-        </div>
-
-        <a href="{% url 'product_create' %}?workspace={{ workspace.id }}" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider flex items-center gap-2">
-            <span>+ Add Product</span>
+        <a href="{% url 'product_create' %}" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+            + Create Product
         </a>
     </div>
 
@@ -44,9 +24,10 @@
                 <tr class="bg-zinc-900/50 border-b border-zinc-800 text-[10px] uppercase font-mono text-gray-500 tracking-wider">
                     <th class="px-6 py-3 font-medium">Product Name</th>
                     <th class="px-6 py-3 font-medium w-32">Criticality</th>
+                    <th class="px-6 py-3 font-medium w-48">Workspace</th>
                     <th class="px-6 py-3 font-medium w-32">Type</th>
-                    <th class="px-6 py-3 font-medium w-32">Releases</th>
-                    <th class="px-6 py-3 font-medium text-right">Last Updated</th>
+                    <th class="px-6 py-3 font-medium w-24">Releases</th>
+                    <th class="px-6 py-3 font-medium text-right w-32">Created</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-zinc-800">
@@ -72,6 +53,7 @@
                                     <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
                                 {% endif %}
                             </div>
+                            
                             <div>
                                 <div class="text-sm font-bold text-gray-200 group-hover:text-emerald-400 transition-colors">
                                     {{ product.name }}
@@ -95,39 +77,34 @@
                         {% endif %}
                     </td>
 
+                    <td class="px-6 py-4">
+                        <span class="text-xs text-gray-400 font-mono bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
+                            {{ product.workspace.name }}
+                        </span>
+                    </td>
+
                     <td class="px-6 py-4 text-xs text-gray-400 font-mono">
                         {{ product.product_type }}
                     </td>
 
                     <td class="px-6 py-4">
-                        <div class="flex items-center gap-2">
-                            <span class="text-white font-bold">{{ product.releases.count }}</span>
-                            <span class="text-[10px] text-gray-600 uppercase">Vers.</span>
-                        </div>
+                        <span class="text-white font-bold">{{ product.releases.count }}</span>
                     </td>
 
-                    <td class="px-6 py-4 text-right">
-                        <div class="flex items-center justify-end gap-4">
-                            <span class="text-xs text-gray-500 font-mono">{{ product.created_at|date:"M d" }}</span>
-                            <svg class="w-4 h-4 text-zinc-700 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        </div>
+                    <td class="px-6 py-4 text-right text-xs text-gray-500 font-mono">
+                        {{ product.created_at|date:"M d" }}
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="px-6 py-12 text-center">
-                        <div class="flex flex-col items-center justify-center">
-                            <div class="h-12 w-12 bg-zinc-900 rounded-full flex items-center justify-center mb-3">
-                                <svg class="w-6 h-6 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                            </div>
-                            <p class="text-gray-500 text-sm">No products in this workspace.</p>
-                            <a href="{% url 'product_create' %}" class="text-emerald-500 text-xs font-bold mt-2 hover:underline">Register your first asset</a>
-                        </div>
+                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                        No products found.
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+
 </div>
 {% endblock %}

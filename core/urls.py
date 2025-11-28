@@ -37,7 +37,10 @@ urlpatterns = [
     path('workspaces/create/', finding_views.workspace_create, name='workspace_create'),
     path('workspaces/<uuid:workspace_id>/', finding_views.workspace_detail, name='workspace_detail'),
     path('workspaces/<uuid:workspace_id>/edit/', finding_views.workspace_edit, name='workspace_edit'),
+    path('products/', finding_views.product_list, name='product_list'),
+    path('products/create/', finding_views.product_create, name='product_create'),
     path('products/<uuid:product_id>/', finding_views.product_detail, name='product_detail'),
+    path('products/<uuid:product_id>/edit/', finding_views.product_edit, name='product_edit'),
     path('releases/<uuid:release_id>/', finding_views.release_detail, name='release_detail'),
 
     # Logout (Redirects back to login page)

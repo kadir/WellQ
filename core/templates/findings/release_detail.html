@@ -10,74 +10,267 @@
 {% block content %}
 <div class="max-w-7xl mx-auto">
 
-    <div class="grid grid-cols-4 gap-4 mb-8">
-        <div class="bg-red-500/5 border border-red-500/20 p-4 rounded-lg">
-            <div class="text-red-500 text-[10px] uppercase font-bold tracking-widest mb-1">Critical</div>
-            <div class="text-3xl font-bold text-white">{{ stats.critical }}</div>
-        </div>
-        <div class="bg-orange-500/5 border border-orange-500/20 p-4 rounded-lg">
-            <div class="text-orange-500 text-[10px] uppercase font-bold tracking-widest mb-1">High</div>
-            <div class="text-3xl font-bold text-white">{{ stats.high }}</div>
-        </div>
-        <div class="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-lg">
-            <div class="text-yellow-500 text-[10px] uppercase font-bold tracking-widest mb-1">Medium</div>
-            <div class="text-3xl font-bold text-white">{{ stats.medium }}</div>
-        </div>
-        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-lg flex flex-col justify-center">
-             <div class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-1">Scan Date</div>
-             <div class="text-sm text-white font-mono">{{ release.created_at|date:"Y-m-d H:i" }}</div>
+    <div class="mb-6 border-b border-zinc-800 pb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-1">{{ release.name }}</h1>
+                <div class="flex items-center gap-4 text-xs font-mono text-gray-500">
+                    <span class="bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
+                        SHA: {{ release.commit_hash|default:"HEAD" }}
+                    </span>
+                    <span>Created {{ release.created_at|date:"M d, Y H:i" }}</span>
+                </div>
+            </div>
+            
+            <a href="{% url 'upload_scan' %}?release_id={{ release.id }}" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+                + Add Scan
+            </a>
         </div>
     </div>
 
-    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-[#27272a] flex justify-between items-center bg-zinc-900/30">
-            <h3 class="text-sm font-bold text-white">Security Findings</h3>
-            <span class="text-xs font-mono text-gray-500">{{ stats.total }} ISSUES</span>
-        </div>
-        
-        <table class="w-full text-left text-sm text-gray-400">
-            <thead class="bg-black text-[10px] uppercase font-mono text-gray-500 tracking-wider">
-                <tr>
-                    <th class="px-6 py-3 w-32">Severity</th>
-                    <th class="px-6 py-3 w-48">CVE ID</th>
-                    <th class="px-6 py-3">Package / Component</th>
-                    <th class="px-6 py-3 w-48">Fix Version</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-800">
-                {% for finding in findings %}
-                <tr class="hover:bg-zinc-900/50 transition-colors group">
-                    <td class="px-6 py-3">
-                        {% if finding.severity == 'CRITICAL' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">CRITICAL</span>
-                        {% elif finding.severity == 'HIGH' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20">HIGH</span>
-                        {% elif finding.severity == 'MEDIUM' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">MEDIUM</span>
-                        {% else %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">{{ finding.severity }}</span>
-                        {% endif %}
-                    </td>
-                    <td class="px-6 py-3">
-                        <span class="text-white font-mono group-hover:text-emerald-400 transition-colors">{{ finding.cve_id }}</span>
-                    </td>
-                    <td class="px-6 py-3">
-                        <div class="text-gray-300">{{ finding.package_name }}</div>
-                        <div class="text-[10px] text-gray-600 font-mono">{{ finding.package_version }}</div>
-                    </td>
-                    <td class="px-6 py-3 font-mono text-emerald-500">
-                        {{ finding.fixed_version|default:"-" }}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="px-6 py-12 text-center">
-                        <p class="text-gray-500">No vulnerabilities found. Good job!</p>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="flex items-center gap-6 border-b border-zinc-800 mb-8">
+        <button onclick="switchTab('vuln')" id="btn-vuln" class="pb-3 text-sm font-bold border-b-2 transition-colors text-emerald-500 border-emerald-500">
+            Vulnerabilities
+            <span class="ml-2 bg-zinc-800 text-gray-400 px-1.5 py-0.5 rounded text-[10px]">{{ vuln_stats.total }}</span>
+        </button>
+        <button onclick="switchTab('sbom')" id="btn-sbom" class="pb-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors">
+            SBOM & Compliance
+            <span class="ml-2 bg-zinc-800 text-gray-400 px-1.5 py-0.5 rounded text-[10px]">{{ total_components }}</span>
+        </button>
     </div>
+
+    <div id="tab-vuln" class="block animate-fade-in">
+        
+        <div class="grid grid-cols-5 gap-4 mb-8">
+            <div class="bg-red-500/5 border border-red-500/20 p-4 rounded-lg">
+                <div class="text-red-500 text-[10px] uppercase font-bold tracking-widest mb-1">Critical</div>
+                <div class="text-2xl font-bold text-white">{{ vuln_stats.critical }}</div>
+            </div>
+            <div class="bg-orange-500/5 border border-orange-500/20 p-4 rounded-lg">
+                <div class="text-orange-500 text-[10px] uppercase font-bold tracking-widest mb-1">High</div>
+                <div class="text-2xl font-bold text-white">{{ vuln_stats.high }}</div>
+            </div>
+            <div class="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-lg">
+                <div class="text-yellow-500 text-[10px] uppercase font-bold tracking-widest mb-1">Medium</div>
+                <div class="text-2xl font-bold text-white">{{ vuln_stats.medium }}</div>
+            </div>
+            <div class="bg-blue-500/5 border border-blue-500/20 p-4 rounded-lg">
+                <div class="text-blue-500 text-[10px] uppercase font-bold tracking-widest mb-1">Low</div>
+                <div class="text-2xl font-bold text-white">{{ vuln_stats.low }}</div>
+            </div>
+             <div class="bg-gray-500/5 border border-gray-500/20 p-4 rounded-lg">
+                <div class="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">Info</div>
+                <div class="text-2xl font-bold text-white">{{ vuln_stats.info }}</div>
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Audit Trail</h3>
+            <div class="space-y-2">
+                {% for scan in scans %}
+                <div class="bg-[#09090b] border border-[#27272a] rounded px-4 py-3 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
+                        <span class="text-sm font-bold text-white">{{ scan.scanner_name }}</span>
+                        <span class="text-xs text-gray-500 font-mono">{{ scan.started_at|date:"Y-m-d H:i" }}</span>
+                    </div>
+                    <span class="text-xs text-gray-400 font-mono">{{ scan.findings.count }} findings</span>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 border border-dashed border-zinc-800 rounded text-gray-600 text-xs">
+                    No scans executed.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+            <table class="w-full text-left text-sm text-gray-400">
+                <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
+                    <tr>
+                        <th class="px-6 py-3 w-32">Severity</th>
+                        <th class="px-6 py-3 w-48">CVE ID</th>
+                        <th class="px-6 py-3">Package / Component</th>
+                        <th class="px-6 py-3 w-48">Fix Version</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-800">
+                    {% for finding in findings %}
+                    <tr class="hover:bg-zinc-900/50 transition-colors group">
+                        <td class="px-6 py-3">
+                            {% if finding.severity == 'CRITICAL' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">CRITICAL</span>
+                            {% elif finding.severity == 'HIGH' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20">HIGH</span>
+                            {% elif finding.severity == 'MEDIUM' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">MEDIUM</span>
+                            {% elif finding.severity == 'LOW' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">LOW</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20">INFO</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-3 font-mono text-white group-hover:text-emerald-400">{{ finding.cve_id }}</td>
+                        <td class="px-6 py-3">
+                            <div class="text-gray-300">{{ finding.package_name }}</div>
+                            <div class="text-[10px] text-gray-600 font-mono">{{ finding.package_version }}</div>
+                        </td>
+                        <td class="px-6 py-3 font-mono text-emerald-500">{{ finding.fixed_version|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="px-6 py-12 text-center text-gray-500">No vulnerabilities found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-sbom" class="hidden animate-fade-in">
+        
+        <div class="grid grid-cols-3 gap-6 mb-8">
+            <div class="bg-[#09090b] border border-[#27272a] p-5 rounded-lg">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-emerald-500 text-[10px] uppercase font-bold tracking-widest">FOSS</div>
+                        <div class="text-2xl font-bold text-white mt-1">{{ lic_stats.foss }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Open Source</div>
+                    </div>
+                    <svg class="w-5 h-5 text-emerald-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </div>
+            </div>
+            <div class="bg-[#09090b] border border-[#27272a] p-5 rounded-lg">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-purple-500 text-[10px] uppercase font-bold tracking-widest">COSS</div>
+                        <div class="text-2xl font-bold text-white mt-1">{{ lic_stats.coss }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Commercial / Proprietary</div>
+                    </div>
+                    <svg class="w-5 h-5 text-purple-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+            </div>
+            <div class="bg-[#09090b] border border-[#27272a] p-5 rounded-lg">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Unidentified</div>
+                        <div class="text-2xl font-bold text-white mt-1">{{ lic_stats.unidentified }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Missing / Unknown</div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end mb-4">
+             <a href="{% url 'release_sbom_export' release.id %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded border border-zinc-700 hover:bg-zinc-700 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Download CycloneDX
+            </a>
+        </div>
+
+        <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+            <table class="w-full text-left text-xs text-gray-400">
+                <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
+                    <tr>
+                        <th class="px-6 py-3">Component</th>
+                        <th class="px-6 py-3">Version</th>
+                        <th class="px-6 py-3">Type</th>
+                        <th class="px-6 py-3">License</th>
+                        <th class="px-6 py-3">PURL</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-800">
+                    {% for comp in page_obj %}
+                    <tr>
+                        <td class="px-6 py-3 font-bold text-white">{{ comp.name }}</td>
+                        <td class="px-6 py-3 font-mono text-emerald-500">{{ comp.version }}</td>
+                        <td class="px-6 py-3">{{ comp.type }}</td>
+                        <td class="px-6 py-3">
+                            {% if comp.license == 'Unknown' or not comp.license %}
+                                <span class="text-gray-600 italic">Unknown</span>
+                            {% else %}
+                                <span class="bg-zinc-900 px-2 py-1 rounded border border-zinc-800">{{ comp.license }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-3 font-mono text-[9px] text-gray-600 truncate max-w-[150px]">{{ comp.purl }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="px-6 py-12 text-center">No components found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="px-6 py-4 border-t border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
+                
+                <form method="get" id="paginationForm" class="flex items-center gap-2 text-xs text-gray-500">
+                    <input type="hidden" name="tab" value="sbom"> 
+                    
+                    <span>Show</span>
+                    <select name="per_page" onchange="document.getElementById('paginationForm').submit()" class="bg-zinc-900 border border-zinc-700 text-white rounded px-2 py-1 outline-none focus:border-emerald-500">
+                        <option value="20" {% if per_page == '20' %}selected{% endif %}>20</option>
+                        <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
+                        <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
+                    </select>
+                    <span>of {{ page_obj.paginator.count }} items</span>
+                </form>
+
+                <div class="flex items-center gap-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">
+                            Previous
+                        </a>
+                    {% else %}
+                        <span class="px-3 py-1 bg-zinc-900 border border-zinc-800 text-gray-600 rounded text-xs cursor-not-allowed">Previous</span>
+                    {% endif %}
+
+                    <span class="text-xs text-gray-500 font-mono">
+                        Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">
+                            Next
+                        </a>
+                    {% else %}
+                        <span class="px-3 py-1 bg-zinc-900 border border-zinc-800 text-gray-600 rounded text-xs cursor-not-allowed">Next</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+<script>
+    function switchTab(tabName) {
+        // 1. Reset Buttons Styles
+        const inactiveClass = "pb-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors";
+        const activeClass = "pb-3 text-sm font-bold border-b-2 transition-colors text-emerald-500 border-emerald-500";
+
+        document.getElementById('btn-vuln').className = inactiveClass;
+        document.getElementById('btn-sbom').className = inactiveClass;
+        
+        // 2. Hide All Content
+        document.getElementById('tab-vuln').classList.add('hidden');
+        document.getElementById('tab-sbom').classList.add('hidden');
+
+        // 3. Activate Selected
+        document.getElementById('btn-' + tabName).className = activeClass;
+        document.getElementById('tab-' + tabName).classList.remove('hidden');
+
+        // 4. Update URL without reloading (so sharing the link opens the right tab)
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabName);
+        window.history.pushState({}, '', url);
+    }
+
+    // Auto-run on page load (Fix for Pagination Reset)
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab');
+        
+        if (activeTab === 'sbom') {
+            switchTab('sbom');
+        }
+    });
+</script>
 {% endblock %}

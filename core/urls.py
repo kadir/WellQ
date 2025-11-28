@@ -42,6 +42,9 @@ urlpatterns = [
     path('products/<uuid:product_id>/', finding_views.product_detail, name='product_detail'),
     path('products/<uuid:product_id>/edit/', finding_views.product_edit, name='product_edit'),
     path('releases/<uuid:release_id>/', finding_views.release_detail, name='release_detail'),
+    path('products/<uuid:product_id>/releases/create/', finding_views.release_create, name='release_create'),
+    path('releases/<uuid:release_id>/export-sbom/', finding_views.release_sbom_export, name='release_sbom_export'),
+    path('upload/', finding_views.upload_scan, name='upload_scan'),
 
     # Logout (Redirects back to login page)
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),

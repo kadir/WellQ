@@ -56,19 +56,55 @@ class Product(models.Model):
 
 # 3. RELEASE (The Version - v1.0)
 class Release(models.Model):
+    """
+    Represents a specific version of a Product (e.g. v1.2.0).
+    Logic: 1 Release has 1 SBOM file.
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='releases')
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='releases')
     
-    name = models.CharField(max_length=100) # e.g. "v1.0.4"
-    commit_hash = models.CharField(max_length=64, blank=True)
+    name = models.CharField(max_length=100) # e.g. "v1.2.0"
+    commit_hash = models.CharField(max_length=64, blank=True) # Git SHA
+    
+    # The Raw SBOM File (Evidence)
     sbom_file = models.FileField(upload_to='sboms/', blank=True, null=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('product', 'name')
+        unique_together = ('product', 'name') # Prevent duplicate v1.0.0
 
     def __str__(self):
         return f"{self.product.name} @ {self.name}"
+
+
+class Component(models.Model):
+    """
+    The ingredients extracted from the SBOM.
+    Used for searching: "Where is log4j used?"
+    """
+    COMPONENT_TYPES = [
+        ('LIBRARY', 'Library'),
+        ('FRAMEWORK', 'Framework'),
+        ('CONTAINER', 'Container'),
+        ('OS', 'Operating System'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    release = models.ForeignKey(Release, on_delete=models.CASCADE, related_name='components')
+    
+    name = models.CharField(max_length=200)       # e.g. "requests"
+    version = models.CharField(max_length=100)    # e.g. "2.28.1"
+    type = models.CharField(max_length=20, choices=COMPONENT_TYPES, default='LIBRARY')
+    
+    # PURL (Package URL) - The industry standard ID
+    purl = models.CharField(max_length=300, blank=True) 
+    license = models.CharField(max_length=100, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} v{self.version}"
 
 # 4. SCAN (The Event)
 class Scan(models.Model):

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<a href="{% url 'product_list' %}" class="hover:text-white">products</a>
+<span class="text-gray-600">/</span>
+<a href="{% url 'product_detail' product.id %}" class="hover:text-white">{{ product.name|lower }}</a>
+<span class="text-gray-600">/</span>
+<span class="text-white">new release</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto mt-10">
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-8 shadow-2xl">
+        
+        <div class="mb-6 border-b border-zinc-800 pb-4">
+            <h1 class="text-xl font-bold text-white">Register Release</h1>
+            <p class="text-xs text-gray-500 font-mono mt-1">
+                Product: <span class="text-emerald-400">{{ product.name }}</span>
+            </p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Version Tag</label>
+                    {{ form.name }}
+                </div>
+                <div>
+                    <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Git SHA</label>
+                    {{ form.commit_hash }}
+                </div>
+            </div>
+
+            <div class="bg-zinc-900/50 p-4 rounded border border-dashed border-zinc-800">
+                <div class="flex items-center gap-2 mb-3">
+                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span class="text-xs font-bold text-gray-300 uppercase">Software Bill of Materials</span>
+                </div>
+                
+                <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Upload CycloneDX JSON</label>
+                {{ form.sbom_file }}
+            </div>
+
+            <button type="submit" class="w-full bg-white text-black font-bold py-3 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider text-xs">
+                Create & Digest
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

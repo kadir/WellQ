@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile Settings{% endblock %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<span class="text-emerald-400">profile</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+
+    <div class="mb-6 border-b border-zinc-800 pb-6">
+        <h1 class="text-3xl font-bold text-white mb-1">Profile Settings</h1>
+        <div class="text-xs font-mono text-gray-500 mt-2">
+            Manage your personal information and API tokens
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+        <div class="mb-4 p-4 rounded-lg {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/20 text-red-400{% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- New Token Display (if just created) -->
+    {% if request.session.new_token %}
+    <div class="mb-6 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-6">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-yellow-400 mb-2">⚠️ New API Token Created</h3>
+                <p class="text-sm text-gray-400 mb-4">Copy this token now - you won't be able to see it again!</p>
+            </div>
+            <form method="post" action="{% url 'profile_settings' %}">
+                {% csrf_token %}
+                <input type="hidden" name="dismiss_token" value="1">
+                <button type="submit" class="text-gray-400 hover:text-white">✕</button>
+            </form>
+        </div>
+        <div class="bg-black border border-zinc-800 rounded p-4 mb-4">
+            <code class="text-emerald-400 font-mono text-sm break-all">{{ request.session.new_token }}</code>
+        </div>
+        <button onclick="copyToken()" class="bg-emerald-500 text-black text-xs font-bold px-4 py-2 rounded hover:bg-emerald-400 transition-colors uppercase tracking-wider">
+            Copy Token
+        </button>
+    </div>
+    {% endif %}
+
+    <div class="space-y-8">
+        
+        <!-- Personal Information Section -->
+        <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+            <h2 class="text-xl font-bold text-white mb-6">Personal Information</h2>
+            
+            <form method="post" action="{% url 'profile_settings' %}">
+                {% csrf_token %}
+                <input type="hidden" name="update_profile" value="1">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">Username</label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <div class="text-red-400 text-xs mt-1">{{ form.username.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">Email</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-red-400 text-xs mt-1">{{ form.email.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">First Name</label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <div class="text-red-400 text-xs mt-1">{{ form.first_name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">Last Name</label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <div class="text-red-400 text-xs mt-1">{{ form.last_name.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <button type="submit" class="bg-white text-black text-xs font-bold px-6 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+                        Update Profile
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Change Password Section -->
+        <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+            <h2 class="text-xl font-bold text-white mb-6">Change Password</h2>
+            
+            <form method="post" action="{% url 'profile_settings' %}">
+                {% csrf_token %}
+                <input type="hidden" name="change_password" value="1">
+                
+                <div class="space-y-4 max-w-md">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">Current Password</label>
+                        {{ password_form.old_password }}
+                        {% if password_form.old_password.errors %}
+                            <div class="text-red-400 text-xs mt-1">{{ password_form.old_password.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">New Password</label>
+                        {{ password_form.new_password1 }}
+                        {% if password_form.new_password1.errors %}
+                            <div class="text-red-400 text-xs mt-1">{{ password_form.new_password1.errors }}</div>
+                        {% endif %}
+                        {% if password_form.new_password1.help_text %}
+                            <div class="text-gray-500 text-xs mt-1">{{ password_form.new_password1.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">Confirm New Password</label>
+                        {{ password_form.new_password2 }}
+                        {% if password_form.new_password2.errors %}
+                            <div class="text-red-400 text-xs mt-1">{{ password_form.new_password2.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <button type="submit" class="bg-white text-black text-xs font-bold px-6 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+                        Change Password
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- API Tokens Section -->
+        <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white">API Tokens</h2>
+                <a href="{% url 'create_api_token' %}" class="bg-emerald-500 text-black text-xs font-bold px-4 py-2 rounded hover:bg-emerald-400 transition-colors uppercase tracking-wider">
+                    + Create Token
+                </a>
+            </div>
+            
+            {% if api_tokens %}
+            <div class="space-y-3">
+                {% for token in api_tokens %}
+                <div class="bg-black border border-zinc-800 rounded-lg p-4 flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <h3 class="text-white font-semibold">{{ token.name }}</h3>
+                            {% if not token.is_active %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">REVOKED</span>
+                            {% elif token.is_expired %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20">EXPIRED</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">ACTIVE</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-xs text-gray-500 font-mono space-y-1">
+                            <div>Preview: <span class="text-gray-400">wq_{{ token.token_preview }}...</span></div>
+                            <div>Created: {{ token.created_at|date:"M d, Y H:i" }}</div>
+                            {% if token.last_used_at %}
+                                <div>Last used: {{ token.last_used_at|date:"M d, Y H:i" }}</div>
+                            {% else %}
+                                <div>Last used: Never</div>
+                            {% endif %}
+                            {% if token.expires_at %}
+                                <div>Expires: {{ token.expires_at|date:"M d, Y H:i" }}</div>
+                            {% else %}
+                                <div>Expires: Never</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        {% if token.is_active %}
+                        <form method="post" action="{% url 'revoke_api_token' token.id %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" onclick="return confirm('Are you sure you want to revoke this token?')" 
+                                    class="bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold px-3 py-1.5 rounded hover:bg-red-500/20 transition-colors">
+                                Revoke
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <p class="mb-4">No API tokens created yet.</p>
+                <a href="{% url 'create_api_token' %}" class="text-emerald-400 hover:text-emerald-300 underline">
+                    Create your first API token
+                </a>
+            </div>
+            {% endif %}
+            
+            <div class="mt-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+                <h4 class="text-sm font-semibold text-white mb-2">How to use API tokens:</h4>
+                <div class="text-xs text-gray-400 font-mono space-y-1">
+                    <div>1. Copy your token after creation</div>
+                    <div>2. Include it in API requests:</div>
+                    <div class="ml-4 text-emerald-400">Authorization: Token &lt;your-token&gt;</div>
+                    <div class="mt-2">Example with curl:</div>
+                    <div class="ml-4 bg-black p-2 rounded text-emerald-400">
+                        curl -H "Authorization: Token wq_..." https://api.example.com/api/v1/...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+function copyToken() {
+    const token = '{{ request.session.new_token }}';
+    navigator.clipboard.writeText(token).then(() => {
+        alert('Token copied to clipboard!');
+    });
+}
+</script>
+{% endblock %}
+

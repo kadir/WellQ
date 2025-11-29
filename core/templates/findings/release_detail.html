@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load scanners %}
 
 {% block breadcrumbs %}
 <span class="text-gray-600">/</span>
@@ -9,6 +10,16 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
+
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="{% if message.tags == 'error' %}bg-red-500/10 border-red-500/30 text-red-400{% elif message.tags == 'success' %}bg-green-500/10 border-green-500/30 text-green-400{% else %}bg-blue-500/10 border-blue-500/30 text-blue-400{% endif %} border rounded-lg px-4 py-3 text-sm">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <div class="mb-6 border-b border-zinc-800 pb-6">
         <div class="flex justify-between items-start">
@@ -47,7 +58,7 @@
 
     <div id="tab-vuln" class="block animate-fade-in">
         
-        <div class="grid grid-cols-5 gap-4 mb-8">
+        <div class="grid grid-cols-5 gap-4 mb-6">
             <div class="bg-red-500/5 border border-red-500/20 p-4 rounded-lg">
                 <div class="text-red-500 text-[10px] uppercase font-bold tracking-widest mb-1">Critical</div>
                 <div class="text-2xl font-bold text-white">{{ vuln_stats.critical }}</div>
@@ -70,41 +81,88 @@
             </div>
         </div>
 
+        <!-- Filters -->
+        <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-4 mb-6">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Status</label>
+                    <select name="status" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                        <option value="">All</option>
+                        <option value="ACTIVE" {% if filters.status == 'ACTIVE' or filters.status == 'OPEN' %}selected{% endif %}>Active</option>
+                        <option value="FIXED" {% if filters.status == 'FIXED' %}selected{% endif %}>Fixed</option>
+                        <option value="FALSE_POSITIVE" {% if filters.status == 'FALSE_POSITIVE' %}selected{% endif %}>False Positive</option>
+                        <option value="RISK_ACCEPTED" {% if filters.status == 'RISK_ACCEPTED' %}selected{% endif %}>Risk Accepted</option>
+                        <option value="DUPLICATE" {% if filters.status == 'DUPLICATE' %}selected{% endif %}>Duplicate</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Severity</label>
+                    <select name="severity" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                        <option value="">All</option>
+                        <option value="CRITICAL" {% if filters.severity == 'CRITICAL' %}selected{% endif %}>Critical</option>
+                        <option value="HIGH" {% if filters.severity == 'HIGH' %}selected{% endif %}>High</option>
+                        <option value="MEDIUM" {% if filters.severity == 'MEDIUM' %}selected{% endif %}>Medium</option>
+                        <option value="LOW" {% if filters.severity == 'LOW' %}selected{% endif %}>Low</option>
+                        <option value="INFO" {% if filters.severity == 'INFO' %}selected{% endif %}>Info</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">EPSS Score (Min)</label>
+                    <input type="number" name="epss" value="{{ filters.epss|default:'' }}" placeholder="0.0-1.0" step="0.01" min="0" max="1" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">KEV Status</label>
+                    <select name="kev" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                        <option value="">All</option>
+                        <option value="true" {% if filters.kev == 'true' or filters.kev == '1' %}selected{% endif %}>KEV Only</option>
+                        <option value="false" {% if filters.kev == 'false' or filters.kev == '0' %}selected{% endif %}>Non-KEV</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">CVE ID</label>
+                    <input type="text" name="cve_id" value="{{ filters.cve_id|default:'' }}" placeholder="CVE-2024-..." class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white font-mono">
+                </div>
+                <div class="md:col-span-3 lg:col-span-5 flex gap-2">
+                    <button type="submit" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+                        Apply Filters
+                    </button>
+                    <a href="{% url 'release_detail' release.id %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors uppercase tracking-wider">
+                        Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+
         <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
             <table class="w-full text-left text-sm text-gray-400">
                 <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
                     <tr>
-                        <th class="px-6 py-3 w-32">Status / Sev</th>
+                        <th class="px-6 py-3 w-32">Severity</th>
                         <th class="px-6 py-3 w-32">EPSS / Risk</th>
                         <th class="px-6 py-3 w-48">CVE ID</th>
                         <th class="px-6 py-3">Package / Component</th>
+                        <th class="px-6 py-3 w-32">Scan Type</th>
                         <th class="px-6 py-3 w-48">Fix Version</th>
+                        <th class="px-6 py-3 w-32">Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-800">
                     {% for finding in findings %}
-                    <tr class="hover:bg-zinc-900/50 transition-colors group {% if finding.status == 'FIXED' %}opacity-60 bg-zinc-900/20{% endif %}">
+                    <tr onclick="openVulnerabilityModal('{{ finding.id }}')" class="hover:bg-zinc-900/50 transition-colors group cursor-pointer {% if finding.status == 'FIXED' %}opacity-60 bg-zinc-900/20{% endif %}">
                         
+                        <!-- Severity (First Column) -->
                         <td class="px-6 py-3">
                             <div class="flex flex-col gap-1">
-                                {% if finding.status == 'FIXED' %}
-                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">✓ FIXED</span>
-                                {% elif finding.status == 'FALSE_POSITIVE' %}
-                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">∅ FALSE POSITIVE</span>
-                                {% elif finding.status == 'RISK_ACCEPTED' %}
-                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 w-fit">⚠ ACCEPTED</span>
+                                {% if finding.severity == 'CRITICAL' %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 w-fit">CRITICAL</span>
+                                {% elif finding.severity == 'HIGH' %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20 w-fit">HIGH</span>
+                                {% elif finding.severity == 'MEDIUM' %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 w-fit">MEDIUM</span>
+                                {% elif finding.severity == 'LOW' %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20 w-fit">LOW</span>
                                 {% else %}
-                                    {% if finding.severity == 'CRITICAL' %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 w-fit">CRITICAL</span>
-                                    {% elif finding.severity == 'HIGH' %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20 w-fit">HIGH</span>
-                                    {% elif finding.severity == 'MEDIUM' %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 w-fit">MEDIUM</span>
-                                    {% elif finding.severity == 'LOW' %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20 w-fit">LOW</span>
-                                    {% else %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">INFO</span>
-                                    {% endif %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">INFO</span>
                                 {% endif %}
                             </div>
                         </td>
@@ -135,10 +193,37 @@
                             <div class="text-[10px] text-gray-600 font-mono">{{ finding.package_version }}</div>
                         </td>
 
+                        <!-- Scan Type -->
+                        <td class="px-6 py-3">
+                            {% load scanners %}
+                            <span class="text-xs text-gray-400 font-mono">
+                                {{ finding.scan.scanner_name|get_scanner_type }}
+                            </span>
+                        </td>
+
                         <td class="px-6 py-3 font-mono text-emerald-500">{{ finding.fixed_version|default:"-" }}</td>
+
+                        <!-- Status (Last Column) -->
+                        <td class="px-6 py-3">
+                            <div class="flex flex-col gap-1">
+                                {% if finding.status == 'FIXED' %}
+                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">✓ FIXED</span>
+                                {% elif finding.status == 'FALSE_POSITIVE' %}
+                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">∅ FALSE POSITIVE</span>
+                                {% elif finding.status == 'RISK_ACCEPTED' %}
+                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 w-fit">⚠ ACCEPTED</span>
+                                {% elif finding.status == 'DUPLICATE' %}
+                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 w-fit">↻ DUPLICATE</span>
+                                {% elif finding.status == 'ACTIVE' or finding.status == 'OPEN' %}
+                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 w-fit">● ACTIVE</span>
+                                {% else %}
+                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">{{ finding.status }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">No vulnerabilities found.</td></tr>
+                    <tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">No vulnerabilities found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -180,12 +265,36 @@
             </div>
         </div>
 
-        <div class="flex justify-end mb-4">
-             <a href="{% url 'release_sbom_export' release.id %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded border border-zinc-700 hover:bg-zinc-700 transition-colors flex items-center gap-2">
+        <div class="flex justify-between items-center mb-4">
+            <form method="post" action="{% url 'release_sbom_upload' release.id %}" enctype="multipart/form-data" id="sbomUploadForm" class="flex items-center gap-2">
+                {% csrf_token %}
+                <input type="file" name="sbom_file" id="sbomFileInput" accept=".json" required class="hidden">
+                <button type="button" onclick="document.getElementById('sbomFileInput').click()" class="bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-600 transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    Upload SBOM
+                </button>
+                <span id="sbomFileName" class="text-xs text-gray-400 hidden"></span>
+            </form>
+            <a href="{% url 'release_sbom_export' release.id %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded border border-zinc-700 hover:bg-zinc-700 transition-colors flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                 Download CycloneDX
             </a>
         </div>
+        
+        <script>
+            document.getElementById('sbomFileInput').addEventListener('change', function(e) {
+                const fileName = e.target.files[0]?.name;
+                const fileNameSpan = document.getElementById('sbomFileName');
+                if (fileName) {
+                    fileNameSpan.textContent = fileName;
+                    fileNameSpan.classList.remove('hidden');
+                    // Auto-submit form when file is selected
+                    document.getElementById('sbomUploadForm').submit();
+                } else {
+                    fileNameSpan.classList.add('hidden');
+                }
+            });
+        </script>
 
         <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
             <table class="w-full text-left text-xs text-gray-400">
@@ -196,6 +305,7 @@
                         <th class="px-6 py-3">Type</th>
                         <th class="px-6 py-3">License</th>
                         <th class="px-6 py-3">PURL</th>
+                        <th class="px-6 py-3">Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-800">
@@ -212,9 +322,18 @@
                             {% endif %}
                         </td>
                         <td class="px-6 py-3 font-mono text-[9px] text-gray-600 truncate max-w-[150px]">{{ comp.purl }}</td>
+                        <td class="px-6 py-3">
+                            {% if comp.status == 'NEW' %}
+                                <span class="bg-green-500/20 text-green-400 text-[10px] font-bold px-2 py-1 rounded border border-green-500/30 uppercase">New</span>
+                            {% elif comp.status == 'REMOVED' %}
+                                <span class="bg-red-500/20 text-red-400 text-[10px] font-bold px-2 py-1 rounded border border-red-500/30 uppercase">Removed</span>
+                            {% else %}
+                                <span class="text-gray-500 text-[10px]">—</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="5" class="px-6 py-12 text-center">No components found.</td></tr>
+                    <tr><td colspan="6" class="px-6 py-12 text-center">No components found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -343,4 +462,7 @@
         }
     });
 </script>
+
+<!-- Include vulnerability modal (same as vulnerabilities_list) -->
+{% include 'findings/vulnerability_modal.html' %}
 {% endblock %}

@@ -1,0 +1,184 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wellq.fullname" . }}-web
+  labels:
+    {{- include "wellq.labels" . | nindent 4 }}
+    component: web
+spec:
+  replicas: {{ .Values.replicaCount.web }}
+  selector:
+    matchLabels:
+      {{- include "wellq.selectorLabels" . | nindent 6 }}
+      component: web
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "wellq.selectorLabels" . | nindent 8 }}
+        component: web
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "wellq.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        {{- if .Values.initContainers }}
+        {{- toYaml .Values.initContainers | nindent 8 }}
+        {{- end }}
+        - name: wait-for-db
+          image: busybox:1.35
+          command: ['sh', '-c', 'until nc -z {{ if .Values.database.external.enabled }}{{ .Values.database.external.host }}{{ else }}{{ printf "%s-postgresql" (include "wellq.fullname" .) }}{{ end }} {{ if .Values.database.external.enabled }}{{ .Values.database.external.port }}{{ else }}5432{{ end }}; do echo waiting for db; sleep 2; done']
+        - name: wait-for-redis
+          image: busybox:1.35
+          command: ['sh', '-c', 'until nc -z {{ if .Values.redisExternal.enabled }}{{ .Values.redisExternal.host }}{{ else }}{{ printf "%s-redis-master" (include "wellq.fullname" .) }}{{ end }} {{ if .Values.redisExternal.enabled }}{{ .Values.redisExternal.port }}{{ else }}6379{{ end }}; do echo waiting for redis; sleep 2; done']
+        - name: migrate
+          image: {{ include "wellq.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ['python', 'manage.py', 'migrate', '--noinput']
+          envFrom:
+            - configMapRef:
+                name: {{ include "wellq.fullname" . }}-config
+            {{- if .Values.secrets.secretKey }}
+            - secretRef:
+                name: {{ include "wellq.fullname" . }}-secrets
+            {{- end }}
+          {{- if .Values.database.external.enabled }}
+          {{- if .Values.secrets.dbPassword }}
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wellq.fullname" . }}-secrets
+                  key: DB_PASSWORD
+          {{- end }}
+          {{- else }}
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-postgresql" (include "wellq.fullname" .) }}
+                  key: postgres-password
+          {{- end }}
+          volumeMounts:
+            - name: staticfiles
+              mountPath: /app/staticfiles
+        - name: collectstatic
+          image: {{ include "wellq.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ['python', 'manage.py', 'collectstatic', '--noinput']
+          envFrom:
+            - configMapRef:
+                name: {{ include "wellq.fullname" . }}-config
+          volumeMounts:
+            - name: staticfiles
+              mountPath: /app/staticfiles
+      containers:
+        - name: web
+          image: {{ include "wellq.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          command: ['gunicorn', 'core.wsgi:application', '--bind', '0.0.0.0:8000', '--workers', '3', '--timeout', '120', '--access-logfile', '-', '--error-logfile', '-']
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "wellq.fullname" . }}-config
+            {{- if .Values.secrets.secretKey }}
+            - secretRef:
+                name: {{ include "wellq.fullname" . }}-secrets
+            {{- end }}
+          env:
+            {{- if .Values.database.external.enabled }}
+            {{- if .Values.secrets.dbPassword }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wellq.fullname" . }}-secrets
+                  key: DB_PASSWORD
+            {{- end }}
+            {{- else }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-postgresql" (include "wellq.fullname" .) }}
+                  key: postgres-password
+            {{- end }}
+            {{- if .Values.redisExternal.enabled }}
+            {{- if .Values.secrets.redisPassword }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wellq.fullname" . }}-secrets
+                  key: REDIS_PASSWORD
+            {{- end }}
+            {{- else }}
+            {{- if .Values.redis.auth.enabled }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-redis" (include "wellq.fullname" .) }}
+                  key: redis-password
+            {{- end }}
+            {{- end }}
+            - name: CELERY_BROKER_URL
+              value: {{ include "wellq.redisUrl" . | quote }}
+            - name: CELERY_RESULT_BACKEND
+              value: {{ include "wellq.redisUrl" . | quote }}
+          {{- if .Values.healthCheck.enabled }}
+          livenessProbe:
+            {{- toYaml .Values.healthCheck.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.healthCheck.readinessProbe | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources.web | nindent 12 }}
+          volumeMounts:
+            - name: staticfiles
+              mountPath: /app/staticfiles
+            - name: media
+              mountPath: /app/media
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: staticfiles
+          {{- if .Values.storage.staticFiles.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "wellq.fullname" . }}-staticfiles
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: media
+          {{- if .Values.storage.media.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "wellq.fullname" . }}-media
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+

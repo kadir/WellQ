@@ -1,0 +1,24 @@
+version: '3.8'
+
+# Development override for docker-compose.yml
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  web:
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=True
+      - DB_ENGINE=postgresql
+
+  celery:
+    command: celery -A core worker --loglevel=debug --concurrency=2
+    volumes:
+      - .:/app
+
+  celery-beat:
+    command: celery -A core beat --loglevel=debug
+    volumes:
+      - .:/app
+

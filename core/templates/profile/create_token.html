@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Create API Token{% endblock %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<a href="{% url 'profile_settings' %}" class="hover:text-white">profile</a>
+<span class="text-gray-600">/</span>
+<span class="text-emerald-400">create-token</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+
+    <div class="mb-6 border-b border-zinc-800 pb-6">
+        <h1 class="text-3xl font-bold text-white mb-1">Create API Token</h1>
+        <div class="text-xs font-mono text-gray-500 mt-2">
+            Generate a secure token for API authentication
+        </div>
+    </div>
+
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">
+                        Token Name
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="text-red-400 text-xs mt-1">{{ form.name.errors }}</div>
+                    {% endif %}
+                    {% if form.name.help_text %}
+                        <div class="text-gray-500 text-xs mt-1">{{ form.name.help_text }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">
+                        Expiration Date (Optional)
+                    </label>
+                    {{ form.expires_at }}
+                    {% if form.expires_at.errors %}
+                        <div class="text-red-400 text-xs mt-1">{{ form.expires_at.errors }}</div>
+                    {% endif %}
+                    {% if form.expires_at.help_text %}
+                        <div class="text-gray-500 text-xs mt-1">{{ form.expires_at.help_text }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mt-8 flex gap-4">
+                <button type="submit" class="bg-emerald-500 text-black text-xs font-bold px-6 py-2 rounded hover:bg-emerald-400 transition-colors uppercase tracking-wider">
+                    Create Token
+                </button>
+                <a href="{% url 'profile_settings' %}" class="bg-zinc-800 text-white text-xs font-bold px-6 py-2 rounded hover:bg-zinc-700 transition-colors uppercase tracking-wider">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+        <h4 class="text-sm font-semibold text-yellow-400 mb-2">⚠️ Important</h4>
+        <div class="text-xs text-gray-400 space-y-1">
+            <div>• You will only see the token once after creation</div>
+            <div>• Store it securely - it cannot be recovered if lost</div>
+            <div>• Revoke tokens immediately if compromised</div>
+            <div>• Use descriptive names to identify token purpose</div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+

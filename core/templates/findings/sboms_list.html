@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<span class="text-emerald-400">SBOMs</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    
+    <div class="mb-6 border-b border-zinc-800 pb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-1">SBOMs</h1>
+                <p class="text-sm text-gray-400 mt-2">Software Bill of Materials for all Product-Release combinations</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+        <div class="px-6 py-3 border-b border-[#27272a] bg-zinc-900/30 flex justify-between items-center">
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Product-Release SBOMs</h3>
+            <span class="text-[10px] font-mono text-gray-500">{{ total_count }} SBOMs</span>
+        </div>
+        
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-zinc-900/50 border-b border-zinc-800 text-[10px] uppercase font-mono text-gray-500 tracking-wider">
+                    <th class="px-6 py-3 font-medium">Product</th>
+                    <th class="px-6 py-3 font-medium">Release Version</th>
+                    <th class="px-6 py-3 font-medium">Workspace</th>
+                    <th class="px-6 py-3 font-medium text-center">Components</th>
+                    <th class="px-6 py-3 font-medium text-right">Created</th>
+                    <th class="px-6 py-3 font-medium text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-800">
+                {% for release in releases %}
+                <tr class="group hover:bg-zinc-900/40 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="h-6 w-6 rounded bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 font-mono text-[10px]">
+                                P
+                            </div>
+                            <span class="text-sm font-bold text-gray-200 group-hover:text-blue-400 transition-colors">
+                                {{ release.product.name }}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm font-mono text-emerald-400">{{ release.name }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-xs text-gray-400">{{ release.product.workspace.name }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="bg-zinc-800 text-gray-400 px-2 py-1 rounded text-xs font-mono">{{ release.component_count }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <span class="text-xs text-gray-500">{{ release.created_at|date:"M d, Y" }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <a href="{% url 'release_detail' release.id %}" class="text-xs text-gray-400 hover:text-white transition-colors" title="View Release">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            </a>
+                            <a href="{% url 'release_sbom_export' release.id %}" class="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 text-xs font-bold px-3 py-1.5 rounded transition-colors flex items-center gap-1.5" title="Export SBOM">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Export
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                        <div class="flex flex-col items-center gap-2">
+                            <svg class="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <p class="text-sm">No SBOMs found</p>
+                            <p class="text-xs text-gray-600">Upload SBOMs to releases to see them here</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if releases.has_other_pages %}
+        <div class="px-6 py-4 border-t border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
+            <form method="get" class="flex items-center gap-2 text-xs text-gray-500">
+                <span>Show</span>
+                <select name="per_page" onchange="this.form.submit()" class="bg-zinc-900 border border-zinc-700 text-white rounded px-2 py-1 outline-none focus:border-emerald-500">
+                    <option value="20" {% if per_page == '20' %}selected{% endif %}>20</option>
+                    <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
+                </select>
+                <span>per page</span>
+            </form>
+            <div class="flex items-center gap-2">
+                {% if releases.has_previous %}
+                    <a href="?page={{ releases.previous_page_number }}&per_page={{ per_page }}" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">Previous</a>
+                {% endif %}
+                <span class="text-xs text-gray-400">
+                    Page {{ releases.number }} of {{ releases.paginator.num_pages }}
+                </span>
+                {% if releases.has_next %}
+                    <a href="?page={{ releases.next_page_number }}&per_page={{ per_page }}" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

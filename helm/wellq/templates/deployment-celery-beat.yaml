@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wellq.fullname" . }}-celery-beat
+  labels:
+    {{- include "wellq.labels" . | nindent 4 }}
+    component: celery-beat
+spec:
+  replicas: {{ .Values.replicaCount.celeryBeat }}
+  selector:
+    matchLabels:
+      {{- include "wellq.selectorLabels" . | nindent 6 }}
+      component: celery-beat
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "wellq.selectorLabels" . | nindent 8 }}
+        component: celery-beat
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "wellq.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.35
+          command: ['sh', '-c', 'until nc -z {{ if .Values.database.external.enabled }}{{ .Values.database.external.host }}{{ else }}{{ printf "%s-postgresql" (include "wellq.fullname" .) }}{{ end }} {{ if .Values.database.external.enabled }}{{ .Values.database.external.port }}{{ else }}5432{{ end }}; do echo waiting for db; sleep 2; done']
+        - name: wait-for-redis
+          image: busybox:1.35
+          command: ['sh', '-c', 'until nc -z {{ if .Values.redisExternal.enabled }}{{ .Values.redisExternal.host }}{{ else }}{{ printf "%s-redis-master" (include "wellq.fullname" .) }}{{ end }} {{ if .Values.redisExternal.enabled }}{{ .Values.redisExternal.port }}{{ else }}6379{{ end }}; do echo waiting for redis; sleep 2; done']
+      containers:
+        - name: celery-beat
+          image: {{ include "wellq.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          command: ['celery', '-A', 'core', 'beat', '--loglevel=info']
+          envFrom:
+            - configMapRef:
+                name: {{ include "wellq.fullname" . }}-config
+            {{- if .Values.secrets.secretKey }}
+            - secretRef:
+                name: {{ include "wellq.fullname" . }}-secrets
+            {{- end }}
+          env:
+            {{- if .Values.database.external.enabled }}
+            {{- if .Values.secrets.dbPassword }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wellq.fullname" . }}-secrets
+                  key: DB_PASSWORD
+            {{- end }}
+            {{- else }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-postgresql" (include "wellq.fullname" .) }}
+                  key: postgres-password
+            {{- end }}
+            {{- if .Values.redisExternal.enabled }}
+            {{- if .Values.secrets.redisPassword }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wellq.fullname" . }}-secrets
+                  key: REDIS_PASSWORD
+            {{- end }}
+            {{- else }}
+            {{- if .Values.redis.auth.enabled }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-redis" (include "wellq.fullname" .) }}
+                  key: redis-password
+            {{- end }}
+            {{- end }}
+            - name: CELERY_BROKER_URL
+              value: {{ include "wellq.redisUrl" . | quote }}
+            - name: CELERY_RESULT_BACKEND
+              value: {{ include "wellq.redisUrl" . | quote }}
+          resources:
+            {{- toYaml .Values.resources.celeryBeat | nindent 12 }}
+          volumeMounts:
+            - name: media
+              mountPath: /app/media
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: media
+          {{- if .Values.storage.media.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "wellq.fullname" . }}-media
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+

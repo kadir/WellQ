@@ -1,0 +1,26 @@
+apiVersion: v2
+name: wellq
+description: WellQ ASPM Platform - Open-source Application Security Posture Management platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - security
+  - aspm
+  - vulnerability-management
+  - sbom
+home: https://github.com/your-org/wellq
+sources:
+  - https://github.com/your-org/wellq
+maintainers:
+  - name: WellQ Team
+dependencies:
+  - name: postgresql
+    version: 12.1.2
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 17.15.5
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+

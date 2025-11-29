@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Overview{% endblock %}
+{% block title %}Dashboard{% endblock %}
 
 {% block breadcrumbs %}
 <span class="text-gray-600">/</span>
@@ -8,27 +9,473 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto">
-    <h1 class="text-2xl font-bold mb-6">Security Posture</h1>
+<div class="max-w-7xl mx-auto">
+    <h1 class="text-3xl font-bold text-white mb-6">Security Posture Dashboard</h1>
     
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Overview Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Open Vulnerabilities</div>
-            <div class="text-3xl font-bold text-white">0</div>
-            <div class="mt-2 text-xs text-gray-500 font-mono">System initialized</div>
+            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Total Active Vulnerabilities</div>
+            <div class="text-3xl font-bold text-white">{{ total_active }}</div>
+            <div class="mt-2 text-xs text-gray-500 font-mono">Requiring attention</div>
         </div>
         
         <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <div class="text-gray-500 text-xs font-mono uppercase mb-2">CRA Compliance</div>
-            <div class="text-3xl font-bold text-emerald-400">100%</div>
-            <div class="mt-2 text-xs text-emerald-600 font-mono">Passing Audit</div>
+            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Critical & High</div>
+            <div class="text-3xl font-bold text-red-400">{{ critical_high }}</div>
+            <div class="mt-2 text-xs text-gray-500 font-mono">High priority</div>
         </div>
 
         <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Active Workspaces</div>
-            <div class="text-3xl font-bold text-blue-400">{{ workspace_count }}</div>
-            <div class="mt-2 text-xs text-gray-500 font-mono">Teams Configured</div>
+            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Exploited (KEV)</div>
+            <div class="text-3xl font-bold text-orange-400">{{ kev_count }}</div>
+            <div class="mt-2 text-xs text-gray-500 font-mono">Actively exploited</div>
+        </div>
+
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <div class="text-gray-500 text-xs font-mono uppercase mb-2">High EPSS Score</div>
+            <div class="text-3xl font-bold text-yellow-400">{{ high_epss }}</div>
+            <div class="mt-2 text-xs text-gray-500 font-mono">EPSS ≥ 0.7</div>
+        </div>
+
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Fix Rate (30d)</div>
+            <div class="text-3xl font-bold text-emerald-400">{{ fix_rate }}%</div>
+            <div class="mt-2 text-xs text-gray-500 font-mono">Vulnerabilities fixed</div>
+        </div>
+
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Risk Accepted</div>
+            <div class="text-3xl font-bold text-blue-400">{{ risk_accepted }}</div>
+            <div class="mt-2 text-xs text-gray-500 font-mono">Accepted risks</div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Severity Distribution -->
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <h2 class="text-lg font-bold text-white mb-4">Severity Distribution</h2>
+            <div style="height: 250px; position: relative;">
+                <canvas id="severityChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Status Distribution -->
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <h2 class="text-lg font-bold text-white mb-4">Status Distribution</h2>
+            <div style="height: 250px; position: relative;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Vulnerability Trends -->
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <h2 class="text-lg font-bold text-white mb-4">Vulnerability Trends (Last 30 Days)</h2>
+            <div style="height: 250px; position: relative;">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- KEV Status -->
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <h2 class="text-lg font-bold text-white mb-4">Exploitation Status</h2>
+            <div style="height: 250px; position: relative;">
+                <canvas id="kevChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 3 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Top 10 CVEs -->
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <h2 class="text-lg font-bold text-white mb-4">Top 10 CVEs by Occurrence</h2>
+            <div style="height: 300px; position: relative;">
+                <canvas id="topCvesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- EPSS Distribution -->
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <h2 class="text-lg font-bold text-white mb-4">EPSS Score Distribution</h2>
+            <div style="height: 300px; position: relative;">
+                <canvas id="epssChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 4 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Vulnerabilities by Product -->
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <h2 class="text-lg font-bold text-white mb-4">Vulnerabilities by Product</h2>
+            <div style="height: 300px; position: relative;">
+                <canvas id="productChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Scanner Coverage -->
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <h2 class="text-lg font-bold text-white mb-4">Scanner Coverage</h2>
+            <div style="height: 300px; position: relative;">
+                <canvas id="scannerChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Component Stats & Recent Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Component Stats -->
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <h2 class="text-lg font-bold text-white mb-4">Component Inventory</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-zinc-900/50 p-4 rounded border border-zinc-800">
+                    <div class="text-gray-500 text-xs uppercase mb-1">Total Components</div>
+                    <div class="text-2xl font-bold text-white">{{ total_components }}</div>
+                </div>
+                <div class="bg-zinc-900/50 p-4 rounded border border-zinc-800">
+                    <div class="text-gray-500 text-xs uppercase mb-1">New (30d)</div>
+                    <div class="text-2xl font-bold text-emerald-400">{{ new_components }}</div>
+                </div>
+                <div class="bg-zinc-900/50 p-4 rounded border border-zinc-800">
+                    <div class="text-gray-500 text-xs uppercase mb-1">Removed (30d)</div>
+                    <div class="text-2xl font-bold text-red-400">{{ removed_components }}</div>
+                </div>
+                <div class="bg-zinc-900/50 p-4 rounded border border-zinc-800">
+                    <div class="text-gray-500 text-xs uppercase mb-1">With Vulnerabilities</div>
+                    <div class="text-2xl font-bold text-yellow-400">{{ components_with_vulns }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
+            <h2 class="text-lg font-bold text-white mb-4">Recent Scans</h2>
+            <div class="space-y-3">
+                {% for scan in recent_scans %}
+                <div class="bg-zinc-900/50 p-3 rounded border border-zinc-800">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-bold text-white">{{ scan.scanner_name }}</div>
+                            <div class="text-xs text-gray-500">{{ scan.release__product__name }} @ {{ scan.release__name }}</div>
+                        </div>
+                        <div class="text-xs text-gray-500">{{ scan.started_at|date:"M d, H:i" }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-gray-500 text-sm py-8">No recent scans</div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- JSON Data -->
+{{ severity_data|json_script:"severity-data" }}
+{{ status_data|json_script:"status-data" }}
+{{ trend_data|json_script:"trend-data" }}
+{{ kev_data|json_script:"kev-data" }}
+{{ top_cves|json_script:"top-cves-data" }}
+{{ epss_data|json_script:"epss-data" }}
+{{ product_vulns|json_script:"product-data" }}
+{{ scanner_data|json_script:"scanner-data" }}
+
+<script>
+// Helper function to safely parse JSON
+function safeParseJSON(elementId, defaultValue = []) {
+    try {
+        const element = document.getElementById(elementId);
+        if (!element || !element.textContent) {
+            return defaultValue;
+        }
+        const parsed = JSON.parse(element.textContent);
+        return Array.isArray(parsed) ? parsed : defaultValue;
+    } catch (e) {
+        console.error(`Error parsing ${elementId}:`, e);
+        return defaultValue;
+    }
+}
+
+// Chart colors
+const colors = {
+    critical: 'rgb(239, 68, 68)',
+    high: 'rgb(249, 115, 22)',
+    medium: 'rgb(234, 179, 8)',
+    low: 'rgb(59, 130, 246)',
+    info: 'rgb(107, 114, 128)',
+    active: 'rgb(239, 68, 68)',
+    fixed: 'rgb(34, 197, 94)',
+    false_positive: 'rgb(107, 114, 128)',
+    risk_accepted: 'rgb(59, 130, 246)',
+    duplicate: 'rgb(168, 85, 247)',
+};
+
+// Severity Distribution (Pie Chart)
+const severityData = safeParseJSON('severity-data', []);
+if (severityData.length > 0 && severityData.some(d => d && d.count > 0)) {
+    const severityLabels = severityData.map(d => d.severity);
+    const severityCounts = severityData.map(d => d.count);
+    const severityColors = severityLabels.map(s => {
+        const map = {CRITICAL: colors.critical, HIGH: colors.high, MEDIUM: colors.medium, LOW: colors.low, INFO: colors.info};
+        return map[s] || colors.info;
+    });
+
+    new Chart(document.getElementById('severityChart'), {
+        type: 'doughnut',
+        data: {
+            labels: severityLabels,
+            datasets: [{
+                data: severityCounts,
+                backgroundColor: severityColors,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } }
+            }
+        }
+    });
+} else {
+    document.getElementById('severityChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
+}
+
+// Status Distribution (Bar Chart)
+const statusData = safeParseJSON('status-data', []);
+if (statusData.length > 0 && statusData.some(d => d && d.count > 0)) {
+    const statusLabels = statusData.map(d => d.status.replace('_', ' '));
+    const statusCounts = statusData.map(d => d.count);
+    const statusColors = statusData.map(d => {
+        const map = {
+            'ACTIVE': colors.active,
+            'FIXED': colors.fixed,
+            'FALSE_POSITIVE': colors.false_positive,
+            'RISK_ACCEPTED': colors.risk_accepted,
+            'DUPLICATE': colors.duplicate
+        };
+        return map[d.status] || colors.info;
+    });
+
+    new Chart(document.getElementById('statusChart'), {
+        type: 'bar',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                label: 'Count',
+                data: statusCounts,
+                backgroundColor: statusColors,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } },
+                x: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } }
+            }
+        }
+    });
+} else {
+    document.getElementById('statusChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
+}
+
+// Vulnerability Trends (Line Chart)
+const trendData = safeParseJSON('trend-data', []);
+if (trendData.length > 0) {
+    const trendDates = trendData.map(d => d.date ? d.date.split('-')[2] : '');
+    const trendNew = trendData.map(d => d.new || 0);
+    const trendFixed = trendData.map(d => d.fixed || 0);
+    const trendActive = trendData.map(d => d.active || 0);
+
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: {
+            labels: trendDates,
+            datasets: [
+                { label: 'New', data: trendNew, borderColor: colors.critical, backgroundColor: colors.critical + '20', tension: 0.4 },
+                { label: 'Fixed', data: trendFixed, borderColor: colors.fixed, backgroundColor: colors.fixed + '20', tension: 0.4 },
+                { label: 'Active', data: trendActive, borderColor: colors.medium, backgroundColor: colors.medium + '20', tension: 0.4 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } },
+                x: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } }
+            }
+        }
+    });
+} else {
+    document.getElementById('trendChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
+}
+
+// KEV Status (Pie Chart)
+const kevData = safeParseJSON('kev-data', []);
+if (kevData.length > 0 && (kevData[0]?.count > 0 || kevData[1]?.count > 0)) {
+    new Chart(document.getElementById('kevChart'), {
+        type: 'doughnut',
+        data: {
+            labels: kevData.map(d => d.label),
+            datasets: [{
+                data: kevData.map(d => d.count),
+                backgroundColor: [colors.critical, colors.info],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } }
+            }
+        }
+    });
+} else {
+    document.getElementById('kevChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
+}
+
+// Top 10 CVEs (Horizontal Bar Chart)
+const topCvesData = safeParseJSON('top-cves-data', []);
+if (topCvesData.length > 0) {
+    const cveLabels = topCvesData.map(d => d.cve_id);
+    const cveCounts = topCvesData.map(d => d.count);
+    const cveColors = topCvesData.map(d => {
+        const map = {CRITICAL: colors.critical, HIGH: colors.high, MEDIUM: colors.medium, LOW: colors.low, INFO: colors.info};
+        return map[d.severity] || colors.info;
+    });
+
+    new Chart(document.getElementById('topCvesChart'), {
+        type: 'bar',
+        data: {
+            labels: cveLabels,
+            datasets: [{
+                label: 'Occurrences',
+                data: cveCounts,
+                backgroundColor: cveColors,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } },
+                y: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { display: false } }
+            }
+        }
+    });
+} else {
+    document.getElementById('topCvesChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
+}
+
+// EPSS Distribution (Bar Chart)
+const epssData = safeParseJSON('epss-data', []);
+if (epssData.length > 0 && epssData.some(d => d && d.count > 0)) {
+    new Chart(document.getElementById('epssChart'), {
+        type: 'bar',
+        data: {
+            labels: epssData.map(d => d.range),
+            datasets: [{
+                label: 'Count',
+                data: epssData.map(d => d.count),
+                backgroundColor: [colors.info, colors.low, colors.medium, colors.high, colors.critical],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } },
+                x: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } }
+            }
+        }
+    });
+} else {
+    document.getElementById('epssChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
+}
+
+// Vulnerabilities by Product (Bar Chart)
+const productData = safeParseJSON('product-data', []);
+if (productData.length > 0 && productData.some(d => d && d.vuln_count > 0)) {
+    new Chart(document.getElementById('productChart'), {
+        type: 'bar',
+        data: {
+            labels: productData.map(d => d.name),
+            datasets: [{
+                label: 'Vulnerabilities',
+                data: productData.map(d => d.vuln_count),
+                backgroundColor: colors.high,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } },
+                x: { ticks: { color: '#9ca3af', font: { size: 10 }, maxRotation: 45, minRotation: 45 }, grid: { display: false } }
+            }
+        }
+    });
+} else {
+    document.getElementById('productChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
+}
+
+// Scanner Coverage (Stacked Bar Chart)
+const scannerData = safeParseJSON('scanner-data', []);
+if (scannerData.length > 0 && scannerData.some(d => d && d.total > 0)) {
+    new Chart(document.getElementById('scannerChart'), {
+        type: 'bar',
+        data: {
+            labels: scannerData.map(d => d.scanner_name),
+            datasets: [
+                { label: 'Critical', data: scannerData.map(d => d.critical || 0), backgroundColor: colors.critical },
+                { label: 'High', data: scannerData.map(d => d.high || 0), backgroundColor: colors.high },
+                { label: 'Medium', data: scannerData.map(d => d.medium || 0), backgroundColor: colors.medium }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } }
+            },
+            scales: {
+                x: { stacked: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } },
+                y: { stacked: true, beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } }
+            }
+        }
+    });
+} else {
+    document.getElementById('scannerChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
+}
+</script>
 {% endblock %}

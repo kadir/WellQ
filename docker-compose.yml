@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: wellq-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-wellq}
+      POSTGRES_USER: ${DB_USER:-wellq}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-wellq_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-wellq}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wellq-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: wellq-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wellq-network
+
+  web:
+    build: .
+    container_name: wellq-web
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      - DB_ENGINE=postgresql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-wellq}
+      - DB_USER=${DB_USER:-wellq}
+      - DB_PASSWORD=${DB_PASSWORD:-wellq_password}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - wellq-network
+    restart: unless-stopped
+
+  celery:
+    build: .
+    container_name: wellq-celery
+    command: celery -A core worker --loglevel=info --concurrency=2
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - DB_ENGINE=postgresql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-wellq}
+      - DB_USER=${DB_USER:-wellq}
+      - DB_PASSWORD=${DB_PASSWORD:-wellq_password}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+      - web
+    networks:
+      - wellq-network
+    restart: unless-stopped
+
+  celery-beat:
+    build: .
+    container_name: wellq-celery-beat
+    command: celery -A core beat --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - DB_ENGINE=postgresql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-wellq}
+      - DB_USER=${DB_USER:-wellq}
+      - DB_PASSWORD=${DB_PASSWORD:-wellq_password}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+      - web
+    networks:
+      - wellq-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:
+
+networks:
+  wellq-network:
+    driver: bridge
+

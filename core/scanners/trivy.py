@@ -1,15 +1,16 @@
 import json
 import hashlib
 from django.utils import timezone
-from core.findings.models import Finding
+from core.models import Finding
+from core.utils.security import safe_json_load
 from .base import BaseScanner
 
 class TrivyScanner(BaseScanner):
     
     def parse(self, scan_instance, json_file):
         try:
-            json_file.seek(0)
-            data = json.load(json_file)
+            # Security: Use safe JSON loading with size limits (max 100MB for scan files)
+            data = safe_json_load(json_file, max_size_mb=100)
             results = data.get('Results', [])
             release = scan_instance.release
             now = timezone.now()
@@ -47,7 +48,7 @@ class TrivyScanner(BaseScanner):
                         needs_save = False
                         
                         if obj.status == 'FIXED':
-                            obj.status = 'OPEN' # Regression
+                            obj.status = 'ACTIVE' # Regression
                             needs_save = True
                         
                         # Always update metadata
@@ -68,7 +69,7 @@ class TrivyScanner(BaseScanner):
                             package_version=ver,
                             fixed_version=vuln.get('FixedVersion', ''),
                             hash_id=finding_hash,
-                            status='OPEN'
+                            status='ACTIVE'
                         ))
 
             # 2. BULK OPERATIONS (The Speed Boost)

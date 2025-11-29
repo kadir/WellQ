@@ -152,6 +152,30 @@ venv.bak/
 
 # Static files (Collected for production, not source)
 staticfiles/
+/staticfiles/
+
+# Media files (User uploads)
+media/
+/media/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+*.pot
+*.pyc
+*.pyo
+
+# Docker
+.docker/
+
+# Helm chart dependencies (downloaded charts)
+helm/wellq/charts/
+helm/wellq/Chart.lock
+
+# Test files (optional - uncomment if you want to exclude test SBOMs)
+# sboms/test_*.json
 
 # Spyder project settings
 .spyderproject

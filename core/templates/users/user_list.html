@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<span class="text-emerald-400">Roles</span>
+<span class="text-gray-600">/</span>
+<span class="text-emerald-400">User Management</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="{% if message.tags == 'error' %}bg-red-500/10 border-red-500/30 text-red-400{% elif message.tags == 'success' %}bg-green-500/10 border-green-500/30 text-green-400{% else %}bg-blue-500/10 border-blue-500/30 text-blue-400{% endif %} border rounded-lg px-4 py-3 text-sm">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="mb-6 border-b border-zinc-800 pb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-1">User Management</h1>
+                <p class="text-sm text-gray-400 mt-2">Manage users, roles, and permissions</p>
+            </div>
+            <a href="{% url 'user_create' %}" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Create User
+            </a>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-4 mb-6">
+        <form method="get" class="flex items-center gap-4">
+            <input type="text" name="search" value="{{ search_query|default:'' }}" placeholder="Search by username, email, or name..." class="flex-1 bg-black border border-zinc-800 rounded px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500">
+            <button type="submit" class="bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-600 transition-colors uppercase tracking-wider">
+                Search
+            </button>
+            {% if search_query %}
+            <a href="{% url 'user_list' %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors uppercase tracking-wider">
+                Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+        <div class="px-6 py-3 border-b border-[#27272a] bg-zinc-900/30 flex justify-between items-center">
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Users</h3>
+            <span class="text-[10px] font-mono text-gray-500">{{ total_count }} users</span>
+        </div>
+        
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-zinc-900/50 border-b border-zinc-800 text-[10px] uppercase font-mono text-gray-500 tracking-wider">
+                    <th class="px-6 py-3 font-medium">Username</th>
+                    <th class="px-6 py-3 font-medium">Email</th>
+                    <th class="px-6 py-3 font-medium">Full Name</th>
+                    <th class="px-6 py-3 font-medium">Roles</th>
+                    <th class="px-6 py-3 font-medium text-center">Staff</th>
+                    <th class="px-6 py-3 font-medium text-center">Active</th>
+                    <th class="px-6 py-3 font-medium text-right">Joined</th>
+                    <th class="px-6 py-3 font-medium text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-800">
+                {% for user in users %}
+                <tr class="group hover:bg-zinc-900/40 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-xs">
+                                {{ user.username|make_list|first|upper }}
+                            </div>
+                            <span class="text-sm font-bold text-gray-200">{{ user.username }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm text-gray-400">{{ user.email|default:"—" }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm text-gray-300">
+                            {% if user.first_name or user.last_name %}
+                                {{ user.first_name }} {{ user.last_name }}
+                            {% else %}
+                                <span class="text-gray-600">—</span>
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex flex-wrap gap-1">
+                            {% if user.profile.roles.all %}
+                                {% for role in user.profile.roles.all %}
+                                    <span class="bg-blue-500/20 text-blue-400 text-[9px] font-bold px-2 py-0.5 rounded border border-blue-500/30 uppercase">{{ role.get_name_display|truncatewords:1 }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-gray-600 text-xs">No roles</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% if user.is_staff %}
+                            <span class="bg-blue-500/20 text-blue-400 text-[10px] font-bold px-2 py-1 rounded border border-blue-500/30 uppercase">Yes</span>
+                        {% else %}
+                            <span class="text-gray-600 text-xs">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% if user.is_active %}
+                            <span class="bg-green-500/20 text-green-400 text-[10px] font-bold px-2 py-1 rounded border border-green-500/30 uppercase">Active</span>
+                        {% else %}
+                            <span class="bg-red-500/20 text-red-400 text-[10px] font-bold px-2 py-1 rounded border border-red-500/30 uppercase">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <span class="text-xs text-gray-500">{{ user.date_joined|date:"M d, Y" }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <a href="{% url 'user_edit' user.id %}" class="text-xs text-blue-400 hover:text-blue-300 transition-colors" title="Edit User">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </a>
+                            {% if user != request.user %}
+                            <a href="{% url 'user_delete' user.id %}" class="text-xs text-red-400 hover:text-red-300 transition-colors" title="Delete User" onclick="return confirm('Are you sure you want to delete user {{ user.username }}? This action cannot be undone.');">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </a>
+                            {% else %}
+                            <span class="text-xs text-gray-600 cursor-not-allowed" title="Cannot delete your own account">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                        <div class="flex flex-col items-center gap-2">
+                            <svg class="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                            <p class="text-sm">No users found</p>
+                            {% if search_query %}
+                            <p class="text-xs text-gray-600">Try a different search term</p>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if users.has_other_pages %}
+        <div class="px-6 py-4 border-t border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
+            <form method="get" class="flex items-center gap-2 text-xs text-gray-500">
+                {% if search_query %}<input type="hidden" name="search" value="{{ search_query }}">{% endif %}
+                <span>Show</span>
+                <select name="per_page" onchange="this.form.submit()" class="bg-zinc-900 border border-zinc-700 text-white rounded px-2 py-1 outline-none focus:border-emerald-500">
+                    <option value="20" {% if per_page == '20' %}selected{% endif %}>20</option>
+                    <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
+                </select>
+                <span>per page</span>
+            </form>
+            <div class="flex items-center gap-2">
+                {% if users.has_previous %}
+                    <a href="?page={{ users.previous_page_number }}&per_page={{ per_page }}{% if search_query %}&search={{ search_query }}{% endif %}" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">Previous</a>
+                {% endif %}
+                <span class="text-xs text-gray-400">
+                    Page {{ users.number }} of {{ users.paginator.num_pages }}
+                </span>
+                {% if users.has_next %}
+                    <a href="?page={{ users.next_page_number }}&per_page={{ per_page }}{% if search_query %}&search={{ search_query }}{% endif %}" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

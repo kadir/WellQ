@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load scanners %}
+
+{% block title %}Vulnerabilities{% endblock %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<span class="text-emerald-400">vulnerabilities</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <div class="mb-6 border-b border-zinc-800 pb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-1">All Vulnerabilities</h1>
+                <div class="text-xs font-mono text-gray-500 mt-2">
+                    Comprehensive view of all security findings across all products
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-5 gap-4 mb-8">
+        <div class="bg-red-500/5 border border-red-500/20 p-4 rounded-lg">
+            <div class="text-red-500 text-[10px] uppercase font-bold tracking-widest mb-1">Critical</div>
+            <div class="text-2xl font-bold text-white">{{ vuln_stats.critical }}</div>
+        </div>
+        <div class="bg-orange-500/5 border border-orange-500/20 p-4 rounded-lg">
+            <div class="text-orange-500 text-[10px] uppercase font-bold tracking-widest mb-1">High</div>
+            <div class="text-2xl font-bold text-white">{{ vuln_stats.high }}</div>
+        </div>
+        <div class="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-lg">
+            <div class="text-yellow-500 text-[10px] uppercase font-bold tracking-widest mb-1">Medium</div>
+            <div class="text-2xl font-bold text-white">{{ vuln_stats.medium }}</div>
+        </div>
+        <div class="bg-blue-500/5 border border-blue-500/20 p-4 rounded-lg">
+            <div class="text-blue-500 text-[10px] uppercase font-bold tracking-widest mb-1">Low</div>
+            <div class="text-2xl font-bold text-white">{{ vuln_stats.low }}</div>
+        </div>
+        <div class="bg-gray-500/5 border border-gray-500/20 p-4 rounded-lg">
+            <div class="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">Info</div>
+            <div class="text-2xl font-bold text-white">{{ vuln_stats.info }}</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-4 mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Status</label>
+                <select name="status" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                    <option value="">All</option>
+                    <option value="ACTIVE" {% if filters.status == 'ACTIVE' or filters.status == 'OPEN' %}selected{% endif %}>Active</option>
+                    <option value="FIXED" {% if filters.status == 'FIXED' %}selected{% endif %}>Fixed</option>
+                    <option value="FALSE_POSITIVE" {% if filters.status == 'FALSE_POSITIVE' %}selected{% endif %}>False Positive</option>
+                    <option value="RISK_ACCEPTED" {% if filters.status == 'RISK_ACCEPTED' %}selected{% endif %}>Risk Accepted</option>
+                    <option value="DUPLICATE" {% if filters.status == 'DUPLICATE' %}selected{% endif %}>Duplicate</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Severity</label>
+                <select name="severity" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                    <option value="">All</option>
+                    <option value="CRITICAL" {% if filters.severity == 'CRITICAL' %}selected{% endif %}>Critical</option>
+                    <option value="HIGH" {% if filters.severity == 'HIGH' %}selected{% endif %}>High</option>
+                    <option value="MEDIUM" {% if filters.severity == 'MEDIUM' %}selected{% endif %}>Medium</option>
+                    <option value="LOW" {% if filters.severity == 'LOW' %}selected{% endif %}>Low</option>
+                    <option value="INFO" {% if filters.severity == 'INFO' %}selected{% endif %}>Info</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">EPSS Score (Min)</label>
+                <input type="number" name="epss" value="{{ filters.epss|default:'' }}" placeholder="0.0-1.0" step="0.01" min="0" max="1" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white font-mono">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">KEV Status</label>
+                <select name="kev" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                    <option value="">All</option>
+                    <option value="true" {% if filters.kev == 'true' or filters.kev == '1' %}selected{% endif %}>KEV Only</option>
+                    <option value="false" {% if filters.kev == 'false' or filters.kev == '0' %}selected{% endif %}>Non-KEV</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">CVE ID</label>
+                <input type="text" name="cve_id" value="{{ filters.cve_id|default:'' }}" placeholder="CVE-2024-..." class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white font-mono">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Product</label>
+                <input type="text" name="product" value="{{ filters.product|default:'' }}" placeholder="Product name" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Workspace</label>
+                <input type="text" name="workspace" value="{{ filters.workspace|default:'' }}" placeholder="Workspace name" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+            </div>
+            <div class="md:col-span-4 lg:col-span-7 flex gap-2">
+                <button type="submit" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+                    Apply Filters
+                </button>
+                <a href="{% url 'vulnerabilities_list' %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors uppercase tracking-wider">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Vulnerabilities Table -->
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+        <table class="w-full text-left text-sm text-gray-400">
+            <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
+                <tr>
+                    <th class="px-6 py-3 w-32">Severity</th>
+                    <th class="px-6 py-3 w-32">EPSS / Risk</th>
+                    <th class="px-6 py-3 w-48">CVE ID</th>
+                    <th class="px-6 py-3">Package / Component</th>
+                    <th class="px-6 py-3 w-32">Scan Type</th>
+                    <th class="px-6 py-3 w-48">Product / Release</th>
+                    <th class="px-6 py-3 w-48">Fix Version</th>
+                    <th class="px-6 py-3 w-32">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-800">
+                {% for finding in findings %}
+                <tr onclick="openVulnerabilityModal('{{ finding.id }}')" class="hover:bg-zinc-900/50 transition-colors group cursor-pointer {% if finding.status == 'FIXED' %}opacity-60 bg-zinc-900/20{% endif %}">
+                    
+                    <!-- Severity (First Column) -->
+                    <td class="px-6 py-3">
+                        <div class="flex flex-col gap-1">
+                            {% if finding.severity == 'CRITICAL' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 w-fit">CRITICAL</span>
+                            {% elif finding.severity == 'HIGH' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20 w-fit">HIGH</span>
+                            {% elif finding.severity == 'MEDIUM' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 w-fit">MEDIUM</span>
+                            {% elif finding.severity == 'LOW' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20 w-fit">LOW</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">INFO</span>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    <td class="px-6 py-3">
+                        <div class="flex flex-col gap-1.5 w-full max-w-[120px]">
+                            {% if finding.epss_score > 0 %}
+                            <div class="flex items-center gap-2" title="Exploit Probability: {{ finding.epss_score }}">
+                                <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                                    <div class="h-full {% if finding.epss_score > 0.5 %}bg-red-500{% else %}bg-blue-500{% endif %}" style="width: {% widthratio finding.epss_score 1 100 %}%"></div> 
+                                </div>
+                                <span class="text-[9px] font-mono text-gray-400">{{ finding.epss_score|floatformat:3 }}</span>
+                            </div>
+                            {% endif %}
+
+                            {% if finding.kev_status %}
+                            <div class="inline-flex">
+                                <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-red-600 text-white border border-red-500 animate-pulse tracking-wider">KEV: EXPLOITED</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    <td class="px-6 py-3 font-mono text-white group-hover:text-emerald-400">
+                        <a href="https://nvd.nist.gov/vuln/detail/{{ finding.cve_id }}" target="_blank" class="hover:underline">
+                            {{ finding.cve_id }}
+                        </a>
+                    </td>
+
+                    <td class="px-6 py-3">
+                        <div class="text-gray-300">{{ finding.package_name }}</div>
+                        <div class="text-[10px] text-gray-600 font-mono">{{ finding.package_version }}</div>
+                    </td>
+
+                    <!-- Scan Type -->
+                    <td class="px-6 py-3">
+                        <span class="text-xs text-gray-400 font-mono">
+                            {{ finding.scan.scanner_name|get_scanner_type }}
+                        </span>
+                    </td>
+
+                    <td class="px-6 py-3">
+                        <div class="text-gray-300">
+                            <a href="{% url 'product_detail' finding.scan.release.product.id %}" class="hover:text-emerald-400 transition-colors">
+                                {{ finding.scan.release.product.name }}
+                            </a>
+                        </div>
+                        <div class="text-[10px] text-gray-600 font-mono">
+                            <a href="{% url 'release_detail' finding.scan.release.id %}" class="hover:text-emerald-400 transition-colors">
+                                {{ finding.scan.release.name }}
+                            </a>
+                        </div>
+                        <div class="text-[9px] text-gray-700 font-mono mt-1">
+                            {{ finding.scan.release.product.workspace.name }}
+                        </div>
+                    </td>
+
+                    <td class="px-6 py-3 font-mono text-emerald-500">{{ finding.fixed_version|default:"-" }}</td>
+
+                    <!-- Status (Last Column) -->
+                    <td class="px-6 py-3">
+                        <div class="flex flex-col gap-1">
+                            {% if finding.status == 'FIXED' %}
+                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">✓ FIXED</span>
+                            {% elif finding.status == 'FALSE_POSITIVE' %}
+                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">∅ FALSE POSITIVE</span>
+                            {% elif finding.status == 'RISK_ACCEPTED' %}
+                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 w-fit">⚠ ACCEPTED</span>
+                            {% elif finding.status == 'DUPLICATE' %}
+                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 w-fit">↻ DUPLICATE</span>
+                            {% elif finding.status == 'ACTIVE' or finding.status == 'OPEN' %}
+                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 w-fit">● ACTIVE</span>
+                            {% else %}
+                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">{{ finding.status }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                        No vulnerabilities found.
+                        {% if filters.status or filters.severity or filters.cve_id or filters.product or filters.workspace %}
+                            <a href="{% url 'vulnerabilities_list' %}" class="text-emerald-400 hover:underline ml-2">Clear filters</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if findings.has_other_pages %}
+    <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-500">
+            Showing {{ findings.start_index }} to {{ findings.end_index }} of {{ findings.paginator.count }} vulnerabilities
+        </div>
+        <div class="flex gap-2">
+            {% if findings.has_previous %}
+                <a href="?page={{ findings.previous_page_number }}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.severity %}&severity={{ filters.severity }}{% endif %}{% if filters.cve_id %}&cve_id={{ filters.cve_id }}{% endif %}{% if filters.product %}&product={{ filters.product }}{% endif %}{% if filters.workspace %}&workspace={{ filters.workspace }}{% endif %}&per_page={{ per_page }}" 
+                   class="bg-zinc-800 text-white px-4 py-2 rounded text-sm hover:bg-zinc-700 transition-colors">
+                    Previous
+                </a>
+            {% endif %}
+            {% if findings.has_next %}
+                <a href="?page={{ findings.next_page_number }}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.severity %}&severity={{ filters.severity }}{% endif %}{% if filters.cve_id %}&cve_id={{ filters.cve_id }}{% endif %}{% if filters.product %}&product={{ filters.product }}{% endif %}{% if filters.workspace %}&workspace={{ filters.workspace }}{% endif %}&per_page={{ per_page }}" 
+                   class="bg-zinc-800 text-white px-4 py-2 rounded text-sm hover:bg-zinc-700 transition-colors">
+                    Next
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Per Page Selector -->
+    <div class="mt-4 flex items-center gap-2 text-sm text-gray-500">
+        <span>Show:</span>
+        <a href="?{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.severity %}severity={{ filters.severity }}&{% endif %}{% if filters.cve_id %}cve_id={{ filters.cve_id }}&{% endif %}{% if filters.product %}product={{ filters.product }}&{% endif %}{% if filters.workspace %}workspace={{ filters.workspace }}&{% endif %}per_page=20" 
+           class="{% if per_page == '20' %}text-white font-bold{% else %}hover:text-white{% endif %}">20</a>
+        <span>|</span>
+        <a href="?{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.severity %}severity={{ filters.severity }}&{% endif %}{% if filters.cve_id %}cve_id={{ filters.cve_id }}&{% endif %}{% if filters.product %}product={{ filters.product }}&{% endif %}{% if filters.workspace %}workspace={{ filters.workspace }}&{% endif %}per_page=50" 
+           class="{% if per_page == '50' %}text-white font-bold{% else %}hover:text-white{% endif %}">50</a>
+        <span>|</span>
+        <a href="?{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.severity %}severity={{ filters.severity }}&{% endif %}{% if filters.cve_id %}cve_id={{ filters.cve_id }}&{% endif %}{% if filters.product %}product={{ filters.product }}&{% endif %}{% if filters.workspace %}workspace={{ filters.workspace }}&{% endif %}per_page=100" 
+           class="{% if per_page == '100' %}text-white font-bold{% else %}hover:text-white{% endif %}">100</a>
+    </div>
+
+</div>
+
+<!-- Include vulnerability modal -->
+{% include 'findings/vulnerability_modal.html' %}
+
+{% endblock %}

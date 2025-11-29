@@ -25,11 +25,44 @@ load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'default-insecure-key-for-dev')
+ENVIRONMENT = os.getenv('ENVIRONMENT', '').lower()
+
+# Critical: Raise error in production if SECRET_KEY is not set or using default
+if ENVIRONMENT == 'production':
+    if not SECRET_KEY or SECRET_KEY == 'default-insecure-key-for-dev':
+        raise ValueError(
+            "SECRET_KEY must be set in production! "
+            "Set SECRET_KEY environment variable to a secure random string."
+        )
+elif not SECRET_KEY or SECRET_KEY == 'default-insecure-key-for-dev':
+    import warnings
+    warnings.warn(
+        "SECRET_KEY is using default value. This is insecure for production! "
+        "Set SECRET_KEY environment variable.",
+        UserWarning
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG') == 'True'
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = []
+# Production safety check
+if DEBUG and os.getenv('ENVIRONMENT', '').lower() == 'production':
+    import warnings
+    warnings.warn(
+        "DEBUG is True in production environment! This is a security risk. "
+        "Set DEBUG=False for production.",
+        UserWarning
+    )
+
+# Security: ALLOWED_HOSTS must be set in production
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()]
+if not ALLOWED_HOSTS and not DEBUG:
+    import warnings
+    warnings.warn(
+        "ALLOWED_HOSTS is empty and DEBUG is False. This may cause issues. "
+        "Set ALLOWED_HOSTS environment variable.",
+        UserWarning
+    )
 
 
 # Application definition
@@ -41,8 +74,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Third-party apps
+    'rest_framework',
+    'drf_spectacular',
+    # Local apps
     'core',
-    'core.findings',
 ]
 
 MIDDLEWARE = [
@@ -54,6 +90,29 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Security Settings
+if not DEBUG:
+    # HTTPS Settings (only in production)
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    
+    # HSTS (HTTP Strict Transport Security)
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # Additional production security
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if os.getenv('USE_PROXY', 'False').lower() == 'true' else None
+
+# File Upload Security
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
 
 ROOT_URLCONF = 'core.urls'
 
@@ -78,12 +137,32 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Use PostgreSQL if DB_ENGINE is set, otherwise fall back to SQLite for development
+DB_ENGINE = os.getenv('DB_ENGINE', 'sqlite3').lower()
+
+if DB_ENGINE == 'postgresql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'wellq'),
+            'USER': os.getenv('DB_USER', 'wellq'),
+            'PASSWORD': os.getenv('DB_PASSWORD', ''),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'OPTIONS': {
+                'connect_timeout': 10,
+            },
+            'CONN_MAX_AGE': 600,  # Connection pooling
+        }
     }
-}
+else:
+    # SQLite for local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -121,7 +200,18 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / 'core' / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # For production - where collectstatic puts files
+
+if DEBUG:
+    # Development: use STATICFILES_DIRS
+    STATICFILES_DIRS = [BASE_DIR / 'core' / 'static']
+else:
+    # Production: only use STATIC_ROOT
+    STATICFILES_DIRS = []
+
+# Media files (user uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -136,3 +226,64 @@ LOGOUT_REDIRECT_URL = 'login'
 
 # Where to go if a non-logged-in user tries to access dashboard
 LOGIN_URL = 'login'
+
+# Django REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'core.authentication.APITokenAuthentication',  # Custom token authentication
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.FormParser',
+    ],
+    # Rate limiting to prevent DoS and brute force attacks
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',  # Anonymous users: 100 requests per hour
+        'user': '1000/hour',  # Authenticated users: 1000 requests per hour
+        'upload': '10/hour',  # File uploads: 10 per hour (more restrictive)
+    }
+}
+
+# drf-spectacular (Swagger/OpenAPI) Configuration
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'WellQ API',
+    'DESCRIPTION': 'Open-source ASPM platform API for aggregating, normalizing, and managing security scan results',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': '/api/v1/',
+}
+
+# Celery Configuration
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_ACKS_LATE = True
+
+# Celery Beat Schedule (for periodic tasks)
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'enrich-findings-daily': {
+        'task': 'core.tasks.enrich_findings_with_threat_intel',
+        'schedule': crontab(hour=2, minute=0),  # Run daily at 2 AM
+    },
+}

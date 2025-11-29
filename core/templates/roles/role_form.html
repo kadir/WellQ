@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<a href="{% url 'role_list' %}" class="hover:text-white">Roles</a>
+<span class="text-gray-600">/</span>
+<a href="{% url 'role_detail' role.id %}" class="hover:text-white">{{ role.get_name_display }}</a>
+<span class="text-gray-600">/</span>
+<span class="text-emerald-400">Edit</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="{% if message.tags == 'error' %}bg-red-500/10 border-red-500/30 text-red-400{% elif message.tags == 'success' %}bg-green-500/10 border-green-500/30 text-green-400{% else %}bg-blue-500/10 border-blue-500/30 text-blue-400{% endif %} border rounded-lg px-4 py-3 text-sm">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="mb-6 border-b border-zinc-800 pb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-1">{{ title }}</h1>
+                <p class="text-sm text-gray-400 mt-2">Configure permissions for {{ role.get_name_display }} role</p>
+            </div>
+            <a href="{% url 'role_detail' role.id %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors uppercase tracking-wider">
+                ← Back
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wider">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <p class="text-red-400 text-xs mt-1">{{ form.description.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="border-t border-zinc-800 pt-6">
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4">Permissions</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded border border-zinc-800">
+                            <div>
+                                <label for="{{ form.can_manage_users.id_for_label }}" class="text-sm font-bold text-gray-300 cursor-pointer">
+                                    Manage Users
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">Can create, edit, and delete users</p>
+                            </div>
+                            {{ form.can_manage_users }}
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded border border-zinc-800">
+                            <div>
+                                <label for="{{ form.can_manage_workspaces.id_for_label }}" class="text-sm font-bold text-gray-300 cursor-pointer">
+                                    Manage Workspaces
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">Can create, edit, and delete workspaces</p>
+                            </div>
+                            {{ form.can_manage_workspaces }}
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded border border-zinc-800">
+                            <div>
+                                <label for="{{ form.can_manage_products.id_for_label }}" class="text-sm font-bold text-gray-300 cursor-pointer">
+                                    Manage Products
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">Can create, edit, and delete products</p>
+                            </div>
+                            {{ form.can_manage_products }}
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded border border-zinc-800">
+                            <div>
+                                <label for="{{ form.can_upload_scans.id_for_label }}" class="text-sm font-bold text-gray-300 cursor-pointer">
+                                    Upload Scans
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">Can upload scan results via API or UI</p>
+                            </div>
+                            {{ form.can_upload_scans }}
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded border border-zinc-800">
+                            <div>
+                                <label for="{{ form.can_upload_sbom.id_for_label }}" class="text-sm font-bold text-gray-300 cursor-pointer">
+                                    Upload SBOM
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">Can upload SBOM files</p>
+                            </div>
+                            {{ form.can_upload_sbom }}
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded border border-zinc-800">
+                            <div>
+                                <label for="{{ form.can_triage_findings.id_for_label }}" class="text-sm font-bold text-gray-300 cursor-pointer">
+                                    Triage Findings
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">Can change vulnerability status (FP, Risk Accepted, etc.)</p>
+                            </div>
+                            {{ form.can_triage_findings }}
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded border border-zinc-800">
+                            <div>
+                                <label for="{{ form.can_view_all.id_for_label }}" class="text-sm font-bold text-gray-300 cursor-pointer">
+                                    View All
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">Can view all workspaces and products</p>
+                            </div>
+                            {{ form.can_view_all }}
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded border border-zinc-800">
+                            <div>
+                                <label for="{{ form.can_export_data.id_for_label }}" class="text-sm font-bold text-gray-300 cursor-pointer">
+                                    Export Data
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">Can export SBOMs and reports</p>
+                            </div>
+                            {{ form.can_export_data }}
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 bg-zinc-900/50 rounded border border-zinc-800">
+                            <div>
+                                <label for="{{ form.can_manage_roles.id_for_label }}" class="text-sm font-bold text-gray-300 cursor-pointer">
+                                    Manage Roles
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">Can manage roles and permissions</p>
+                            </div>
+                            {{ form.can_manage_roles }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-8 pt-6 border-t border-zinc-800">
+                <a href="{% url 'role_detail' role.id %}" class="bg-zinc-800 text-white text-xs font-bold px-6 py-2 rounded hover:bg-zinc-700 transition-colors uppercase tracking-wider">
+                    Cancel
+                </a>
+                <button type="submit" class="bg-white text-black text-xs font-bold px-6 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+                    {{ action }} Role
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

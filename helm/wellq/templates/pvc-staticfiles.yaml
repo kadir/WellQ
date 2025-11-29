@@ -1,0 +1,18 @@
+{{- if .Values.storage.staticFiles.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "wellq.fullname" . }}-staticfiles
+  labels:
+    {{- include "wellq.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  {{- if .Values.storage.staticFiles.storageClass }}
+  storageClassName: {{ .Values.storage.staticFiles.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.staticFiles.size }}
+{{- end }}
+

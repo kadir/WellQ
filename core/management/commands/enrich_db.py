@@ -6,31 +6,52 @@ import io
 from datetime import datetime
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from core.findings.models import Finding
+from core.models import Finding, PlatformSettings
 
-# CONSTANTS
-EPSS_URL = "https://epss.empiricalsecurity.com/epss_scores-current.csv.gz"
-KEV_URL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+# Get URLs from settings
+def get_epss_url():
+    """Get EPSS URL from platform settings"""
+    try:
+        settings = PlatformSettings.get_settings()
+        return settings.epss_url
+    except:
+        return "https://epss.empiricalsecurity.com/epss_scores-current.csv.gz"
+
+def get_kev_url():
+    """Get KEV URL from platform settings"""
+    try:
+        settings = PlatformSettings.get_settings()
+        return settings.kev_url
+    except:
+        return "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
 
 class Command(BaseCommand):
     help = 'Downloads EPSS/KEV databases and updates all findings'
 
     def handle(self, *args, **kwargs):
+        epss_url = get_epss_url()
+        kev_url = get_kev_url()
+        
+        self.stdout.write(f"Using EPSS URL: {epss_url}")
+        self.stdout.write(f"Using KEV URL: {kev_url}")
+        
         self.stdout.write("1. Downloading & Parsing KEV (CISA)...")
-        kev_dict = self.fetch_kev()
+        kev_dict = self.fetch_kev(kev_url)
         
         self.stdout.write("2. Downloading & Parsing EPSS (First.org)...")
-        epss_dict = self.fetch_epss()
+        epss_dict = self.fetch_epss(epss_url)
 
         self.stdout.write("3. Updating Findings (Batch Process)...")
         self.update_findings(kev_dict, epss_dict)
         
         self.stdout.write(self.style.SUCCESS("Enrichment Complete!"))
 
-    def fetch_kev(self):
+    def fetch_kev(self, kev_url=None):
         """Returns dict: {'CVE-2023-1234': '2023-05-12'}"""
+        if kev_url is None:
+            kev_url = get_kev_url()
         try:
-            r = requests.get(KEV_URL)
+            r = requests.get(kev_url)
             data = r.json()
             kev_map = {}
             for vul in data.get('vulnerabilities', []):
@@ -42,10 +63,12 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"Failed to fetch KEV: {e}"))
             return {}
 
-    def fetch_epss(self):
+    def fetch_epss(self, epss_url=None):
         """Returns dict: {'CVE-2023-1234': {'score': 0.9, 'percentile': 0.95}}"""
+        if epss_url is None:
+            epss_url = get_epss_url()
         try:
-            r = requests.get(EPSS_URL)
+            r = requests.get(epss_url)
             # Decompress GZIP in memory
             with gzip.open(io.BytesIO(r.content), 'rt') as f:
                 # Skip header comments (lines starting with #)

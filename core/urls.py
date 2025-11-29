@@ -1,51 +1,69 @@
-"""
-URL configuration for core project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from django.urls import path
-from core.findings import views as finding_views
-from core import views
+from django.urls import path, include
 from django.contrib.auth import views as auth_views
+
+# Import from the new views package
+from core.views import inventory, findings, ingestion, profile, users, roles, settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # API routes
+    path('api/', include('core.api.urls')),
+    
+    # Auth
+    path('', auth_views.LoginView.as_view(template_name='login.html', redirect_authenticated_user=True), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+    
+    # Dashboard
+    path('dashboard/', inventory.dashboard, name='dashboard'),
+    
+    # Workspaces
+    path('workspaces/', inventory.workspace_list, name='workspace_list'),
+    path('workspaces/create/', inventory.workspace_create, name='workspace_create'),
+    path('workspaces/<uuid:workspace_id>/', inventory.workspace_detail, name='workspace_detail'),
+    path('workspaces/<uuid:workspace_id>/edit/', inventory.workspace_edit, name='workspace_edit'),
 
-    # Login Page (Home) 
-    path('', auth_views.LoginView.as_view(
-        template_name='login.html',
-        redirect_authenticated_user=True  # If already logged in, go to dashboard (later)
-    ), name='login'),
+    # Products
+    path('products/', inventory.product_list, name='product_list'),
+    path('products/create/', inventory.product_create, name='product_create'),
+    path('products/<uuid:product_id>/', inventory.product_detail, name='product_detail'),
+    path('products/<uuid:product_id>/edit/', inventory.product_edit, name='product_edit'),
 
-    # Dashboard URL
-    path('dashboard/', views.dashboard, name='dashboard'),
+    # Releases & Findings
+    path('products/<uuid:product_id>/releases/create/', findings.release_create, name='release_create'),
+    path('releases/<uuid:release_id>/', findings.release_detail, name='release_detail'),
+    path('releases/<uuid:release_id>/upload-sbom/', findings.release_sbom_upload, name='release_sbom_upload'),
+    path('releases/<uuid:release_id>/export-sbom/', findings.release_sbom_export, name='release_sbom_export'),
 
-    # WORKSPACES
-    path('workspaces/', finding_views.workspace_list, name='workspace_list'),
-    path('workspaces/create/', finding_views.workspace_create, name='workspace_create'),
-    path('workspaces/<uuid:workspace_id>/', finding_views.workspace_detail, name='workspace_detail'),
-    path('workspaces/<uuid:workspace_id>/edit/', finding_views.workspace_edit, name='workspace_edit'),
-    path('products/', finding_views.product_list, name='product_list'),
-    path('products/create/', finding_views.product_create, name='product_create'),
-    path('products/<uuid:product_id>/', finding_views.product_detail, name='product_detail'),
-    path('products/<uuid:product_id>/edit/', finding_views.product_edit, name='product_edit'),
-    path('releases/<uuid:release_id>/', finding_views.release_detail, name='release_detail'),
-    path('products/<uuid:product_id>/releases/create/', finding_views.release_create, name='release_create'),
-    path('releases/<uuid:release_id>/export-sbom/', finding_views.release_sbom_export, name='release_sbom_export'),
-    path('upload/', finding_views.upload_scan, name='upload_scan'),
-
-    # Logout (Redirects back to login page)
-    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    # Ingestion
+    path('upload/', ingestion.upload_scan, name='upload_scan'),
+    
+    # Vulnerabilities
+    path('vulnerabilities/', findings.vulnerabilities_list, name='vulnerabilities_list'),
+    path('vulnerabilities/<uuid:finding_id>/detail/', findings.vulnerability_detail, name='vulnerability_detail'),
+    path('vulnerabilities/<uuid:finding_id>/update-status/', findings.update_vulnerability_status, name='update_vulnerability_status'),
+    
+    # SBOMs
+    path('sboms/', findings.sboms_list, name='sboms_list'),
+    
+    # Profile Settings
+    path('profile/', profile.profile_settings, name='profile_settings'),
+    path('profile/tokens/create/', profile.create_api_token, name='create_api_token'),
+    path('profile/tokens/<uuid:token_id>/revoke/', profile.revoke_api_token, name='revoke_api_token'),
+    
+    # User Management
+    path('users/', users.user_list, name='user_list'),
+    path('users/create/', users.user_create, name='user_create'),
+    path('users/<int:user_id>/edit/', users.user_edit, name='user_edit'),
+    path('users/<int:user_id>/delete/', users.user_delete, name='user_delete'),
+    
+    # Role Management
+    path('roles/', roles.role_list, name='role_list'),
+    path('roles/<uuid:role_id>/', roles.role_detail, name='role_detail'),
+    path('roles/<uuid:role_id>/edit/', roles.role_edit, name='role_edit'),
+    
+    # Platform Settings (Admin Only)
+    path('settings/platform/', settings.platform_settings, name='platform_settings'),
+    path('settings/platform/trigger-enrich/', settings.trigger_enrich_db, name='trigger_enrich_db'),
 ]

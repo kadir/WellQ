@@ -1,0 +1,5 @@
+{{- if .Values.healthCheck.enabled }}
+# Health check endpoint - add this to your Django urls.py
+# path('health/', lambda r: HttpResponse('OK'), name='health'),
+{{- end }}
+

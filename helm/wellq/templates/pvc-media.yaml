@@ -1,0 +1,18 @@
+{{- if .Values.storage.media.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "wellq.fullname" . }}-media
+  labels:
+    {{- include "wellq.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  {{- if .Values.storage.media.storageClass }}
+  storageClassName: {{ .Values.storage.media.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.media.size }}
+{{- end }}
+

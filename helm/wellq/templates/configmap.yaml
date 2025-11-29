@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wellq.fullname" . }}-config
+  labels:
+    {{- include "wellq.labels" . | nindent 4 }}
+data:
+  DJANGO_SETTINGS_MODULE: "core.settings"
+  ENVIRONMENT: {{ .Values.django.environment | quote }}
+  DEBUG: {{ .Values.django.debug | quote }}
+  ALLOWED_HOSTS: {{ .Values.django.allowedHosts | quote }}
+  TIME_ZONE: {{ .Values.django.timeZone | quote }}
+  LANGUAGE_CODE: {{ .Values.django.languageCode | quote }}
+  DB_ENGINE: "postgresql"
+  {{- if .Values.database.external.enabled }}
+  DB_HOST: {{ .Values.database.external.host | quote }}
+  DB_PORT: {{ .Values.database.external.port | quote }}
+  DB_NAME: {{ .Values.database.external.name | quote }}
+  DB_USER: {{ .Values.database.external.user | quote }}
+  {{- else }}
+  DB_HOST: {{ printf "%s-postgresql" (include "wellq.fullname" .) | quote }}
+  DB_PORT: "5432"
+  DB_NAME: {{ .Values.postgresql.auth.database | quote }}
+  DB_USER: {{ .Values.postgresql.auth.username | quote }}
+  {{- end }}
+  {{- if .Values.redisExternal.enabled }}
+  REDIS_HOST: {{ .Values.redisExternal.host | quote }}
+  REDIS_PORT: {{ .Values.redisExternal.port | quote }}
+  {{- else }}
+  REDIS_HOST: {{ printf "%s-redis-master" (include "wellq.fullname" .) | quote }}
+  REDIS_PORT: "6379"
+  {{- end }}
+  CELERY_TASK_TIME_LIMIT: {{ .Values.celery.taskTimeLimit | quote }}
+  CELERY_TASK_SOFT_TIME_LIMIT: {{ .Values.celery.taskSoftTimeLimit | quote }}
+  CELERY_WORKER_CONCURRENCY: {{ .Values.celery.workerConcurrency | quote }}
+  LOGGING_LEVEL: {{ .Values.logging.level | quote }}
+  LOGGING_FORMAT: {{ .Values.logging.format | quote }}
+  {{- range .Values.extraEnv }}
+  {{ .name }}: {{ .value | quote }}
+  {{- end }}
+

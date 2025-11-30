@@ -64,6 +64,50 @@ if not ALLOWED_HOSTS and not DEBUG:
         UserWarning
     )
 
+# CSRF Trusted Origins - Required for HTTPS behind proxy
+# Add your domain(s) here, e.g., https://demo.wellq.io
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() 
+    for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') 
+    if origin.strip()
+]
+
+# Auto-add HTTPS origins from ALLOWED_HOSTS if CSRF_TRUSTED_ORIGINS is empty
+if not CSRF_TRUSTED_ORIGINS and ALLOWED_HOSTS:
+    USE_PROXY = os.getenv('USE_PROXY', 'False').lower() == 'true'
+    # Check if any host looks like a domain (not localhost/127.0.0.1/0.0.0.0)
+    has_domain = any(host not in ['localhost', '127.0.0.1', '0.0.0.0'] for host in ALLOWED_HOSTS)
+    
+    # If behind proxy (nginx), in production, or has a domain, use HTTPS
+    if USE_PROXY or not DEBUG or has_domain:
+        # Use HTTPS for domains (production/nginx setup)
+        domain_hosts = [host for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1', '0.0.0.0']]
+        if domain_hosts:
+            CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in domain_hosts]
+        # Also add HTTP for localhost in development if needed
+        if DEBUG:
+            localhost_hosts = [host for host in ALLOWED_HOSTS if host in ['localhost', '127.0.0.1', '0.0.0.0']]
+            if localhost_hosts:
+                if not CSRF_TRUSTED_ORIGINS:
+                    CSRF_TRUSTED_ORIGINS = []
+                CSRF_TRUSTED_ORIGINS.extend([f'http://{host}' for host in localhost_hosts])
+    else:
+        # Pure development - allow both http and https
+        CSRF_TRUSTED_ORIGINS = [f'http://{host}' for host in ALLOWED_HOSTS] + \
+                              [f'https://{host}' for host in ALLOWED_HOSTS]
+
+# Final fallback: if still empty and we have ALLOWED_HOSTS, add HTTPS for domains
+if not CSRF_TRUSTED_ORIGINS and ALLOWED_HOSTS:
+    domain_hosts = [host for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1', '0.0.0.0']]
+    if domain_hosts:
+        CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in domain_hosts]
+
+# Debug: Log CSRF configuration (only in development)
+if DEBUG:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(f"CSRF_TRUSTED_ORIGINS configured: {CSRF_TRUSTED_ORIGINS}")
+
 
 # Application definition
 
@@ -117,6 +161,11 @@ if not DEBUG:
         USE_X_FORWARDED_PORT = True
     else:
         SECURE_PROXY_SSL_HEADER = None
+else:
+    # Development settings
+    # Allow CSRF in development (less strict)
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
 
 # File Upload Security
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB

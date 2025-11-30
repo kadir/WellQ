@@ -12,9 +12,10 @@ User = get_user_model()
 class WorkspaceForm(forms.ModelForm):
     class Meta:
         model = Workspace
-        fields = ['name']
+        fields = ['name', 'description']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'cra-input'}),
+            'description': forms.Textarea(attrs={'class': 'cra-input', 'rows': 4}),
         }
 
 
@@ -22,11 +23,13 @@ class WorkspaceForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['name', 'product_type', 'workspace']
+        fields = ['name', 'product_type', 'workspace', 'description', 'criticality']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'cra-input'}),
             'product_type': forms.Select(attrs={'class': 'cra-input'}),
             'workspace': forms.Select(attrs={'class': 'cra-input'}),
+            'description': forms.Textarea(attrs={'class': 'cra-input', 'rows': 4}),
+            'criticality': forms.Select(attrs={'class': 'cra-input'}),
         }
 
 

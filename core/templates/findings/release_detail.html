@@ -265,20 +265,23 @@
             </div>
         </div>
 
-        <div class="flex justify-between items-center mb-4">
-            <form method="post" action="{% url 'release_sbom_upload' release.id %}" enctype="multipart/form-data" id="sbomUploadForm" class="flex items-center gap-2">
-                {% csrf_token %}
-                <input type="file" name="sbom_file" id="sbomFileInput" accept=".json" required class="hidden">
-                <button type="button" onclick="document.getElementById('sbomFileInput').click()" class="bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-600 transition-colors flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    Upload SBOM
-                </button>
-                <span id="sbomFileName" class="text-xs text-gray-400 hidden"></span>
-            </form>
-            <a href="{% url 'release_sbom_export' release.id %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded border border-zinc-700 hover:bg-zinc-700 transition-colors flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                Download CycloneDX
-            </a>
+        <div class="bg-zinc-900/50 border border-dashed border-zinc-800 rounded-lg p-6 mb-6 hover:border-emerald-500/50 transition-colors">
+            <div class="flex justify-between items-center">
+                <form method="post" action="{% url 'release_sbom_upload' release.id %}" enctype="multipart/form-data" id="sbomUploadForm" class="flex items-center gap-3 flex-1">
+                    {% csrf_token %}
+                    <input type="file" name="sbom_file" id="sbomFileInput" accept=".json" required class="hidden">
+                    <button type="button" onclick="document.getElementById('sbomFileInput').click()" class="bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-600 transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        Upload SBOM
+                    </button>
+                    <span id="sbomFileName" class="text-xs text-gray-400"></span>
+                    <span class="text-[10px] text-gray-500 font-mono ml-auto">Accepted: CycloneDX JSON</span>
+                </form>
+                <a href="{% url 'release_sbom_export' release.id %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded border border-zinc-700 hover:bg-zinc-700 transition-colors flex items-center gap-2 ml-4">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Download CycloneDX
+                </a>
+            </div>
         </div>
         
         <script>
@@ -286,12 +289,12 @@
                 const fileName = e.target.files[0]?.name;
                 const fileNameSpan = document.getElementById('sbomFileName');
                 if (fileName) {
-                    fileNameSpan.textContent = fileName;
+                    fileNameSpan.textContent = 'Selected: ' + fileName;
                     fileNameSpan.classList.remove('hidden');
                     // Auto-submit form when file is selected
                     document.getElementById('sbomUploadForm').submit();
                 } else {
-                    fileNameSpan.classList.add('hidden');
+                    fileNameSpan.textContent = '';
                 }
             });
         </script>

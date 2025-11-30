@@ -101,6 +101,14 @@ def release_detail(request, release_id):
         )
     )
 
+    # Paginate vulnerabilities
+    vuln_per_page = request.GET.get('vuln_per_page', '50')
+    if vuln_per_page not in ['20', '50', '100']:
+        vuln_per_page = '50'
+    vuln_paginator = Paginator(findings, int(vuln_per_page))
+    vuln_page_number = request.GET.get('vuln_page', 1)
+    vuln_page_obj = vuln_paginator.get_page(vuln_page_number)
+
     # SBOM Logic
     all_components = release.components.all().order_by('name')
     total_components = all_components.count()
@@ -127,7 +135,8 @@ def release_detail(request, release_id):
     return render(request, 'findings/release_detail.html', {
         'release': release,
         'scans': scans,
-        'findings': findings,
+        'findings': vuln_page_obj,
+        'vuln_per_page': vuln_per_page,
         'vuln_stats': vuln_stats,
         'lic_stats': lic_stats,
         'page_obj': page_obj,

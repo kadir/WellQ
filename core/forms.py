@@ -37,9 +37,11 @@ class ProductForm(forms.ModelForm):
 class ReleaseForm(forms.ModelForm):
     class Meta:
         model = Release
-        fields = ['name']
+        fields = ['name', 'commit_hash', 'sbom_file']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'cra-input'}),
+            'commit_hash': forms.TextInput(attrs={'class': 'cra-input', 'placeholder': 'Git commit SHA (optional)'}),
+            'sbom_file': forms.FileInput(attrs={'class': 'cra-input', 'accept': '.json'}),
         }
 
 

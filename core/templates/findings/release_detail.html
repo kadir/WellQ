@@ -84,6 +84,8 @@
         <!-- Filters -->
         <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-4 mb-6">
             <form method="get" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <input type="hidden" name="tab" value="vuln">
+                <input type="hidden" name="vuln_per_page" value="{{ vuln_per_page }}">
                 <div>
                     <label class="block text-xs text-gray-500 mb-1">Status</label>
                     <select name="status" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
@@ -126,7 +128,7 @@
                     <button type="submit" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
                         Apply Filters
                     </button>
-                    <a href="{% url 'release_detail' release.id %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors uppercase tracking-wider">
+                    <a href="{% url 'release_detail' release.id %}?tab=vuln" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors uppercase tracking-wider">
                         Clear
                     </a>
                 </div>
@@ -227,6 +229,38 @@
                     {% endfor %}
                 </tbody>
             </table>
+
+            <div class="px-6 py-4 border-t border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
+                <form method="get" id="vulnPaginationForm" class="flex items-center gap-2 text-xs text-gray-500">
+                    <input type="hidden" name="tab" value="vuln">
+                    {% if filters.status %}<input type="hidden" name="status" value="{{ filters.status }}">{% endif %}
+                    {% if filters.severity %}<input type="hidden" name="severity" value="{{ filters.severity }}">{% endif %}
+                    {% if filters.cve_id %}<input type="hidden" name="cve_id" value="{{ filters.cve_id }}">{% endif %}
+                    {% if filters.epss %}<input type="hidden" name="epss" value="{{ filters.epss }}">{% endif %}
+                    {% if filters.kev %}<input type="hidden" name="kev" value="{{ filters.kev }}">{% endif %}
+                    <span>Show</span>
+                    <select name="vuln_per_page" onchange="document.getElementById('vulnPaginationForm').submit()" class="bg-zinc-900 border border-zinc-700 text-white rounded px-2 py-1 outline-none focus:border-emerald-500">
+                        <option value="20" {% if vuln_per_page == '20' %}selected{% endif %}>20</option>
+                        <option value="50" {% if vuln_per_page == '50' %}selected{% endif %}>50</option>
+                        <option value="100" {% if vuln_per_page == '100' %}selected{% endif %}>100</option>
+                    </select>
+                    <span>of {{ findings.paginator.count }} items</span>
+                </form>
+
+                <div class="flex items-center gap-2">
+                    {% if findings.has_previous %}
+                        <a href="?vuln_page={{ findings.previous_page_number }}&vuln_per_page={{ vuln_per_page }}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.severity %}&severity={{ filters.severity }}{% endif %}{% if filters.cve_id %}&cve_id={{ filters.cve_id }}{% endif %}{% if filters.epss %}&epss={{ filters.epss }}{% endif %}{% if filters.kev %}&kev={{ filters.kev }}{% endif %}&tab=vuln" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">Previous</a>
+                    {% else %}
+                        <span class="px-3 py-1 bg-zinc-900 border border-zinc-800 text-gray-600 rounded text-xs cursor-not-allowed">Previous</span>
+                    {% endif %}
+                    <span class="text-xs text-gray-500 font-mono">Page {{ findings.number }} / {{ findings.paginator.num_pages }}</span>
+                    {% if findings.has_next %}
+                        <a href="?vuln_page={{ findings.next_page_number }}&vuln_per_page={{ vuln_per_page }}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.severity %}&severity={{ filters.severity }}{% endif %}{% if filters.cve_id %}&cve_id={{ filters.cve_id }}{% endif %}{% if filters.epss %}&epss={{ filters.epss }}{% endif %}{% if filters.kev %}&kev={{ filters.kev }}{% endif %}&tab=vuln" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">Next</a>
+                    {% else %}
+                        <span class="px-3 py-1 bg-zinc-900 border border-zinc-800 text-gray-600 rounded text-xs cursor-not-allowed">Next</span>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -462,6 +496,9 @@
         const activeTab = urlParams.get('tab');
         if (activeTab && ['vuln', 'sbom', 'scans'].includes(activeTab)) {
             switchTab(activeTab);
+        } else {
+            // Default to vuln tab if no tab specified
+            switchTab('vuln');
         }
     });
 </script>

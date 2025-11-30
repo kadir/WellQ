@@ -1,6 +1,5 @@
-version: '3.8'
-
 # Development override for docker-compose.yml
+# Note: version field removed (obsolete in Docker Compose v2+)
 # Use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 services:

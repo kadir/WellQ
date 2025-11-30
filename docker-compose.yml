@@ -1,4 +1,5 @@
-version: '3.8'
+# Docker Compose file for WellQ
+# Note: version field removed (obsolete in Docker Compose v2+)
 
 services:
   db:

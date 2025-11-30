@@ -1,6 +1,5 @@
-version: '3.8'
-
 # Simplified Docker Compose - Works out of the box!
+# Note: version is obsolete in Docker Compose v2+, but kept for compatibility
 # Just run: docker-compose -f docker-compose.simple.yml up -d
 
 services:

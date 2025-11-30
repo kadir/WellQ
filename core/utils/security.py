@@ -3,8 +3,15 @@ Security utilities for file validation and content checking.
 """
 import os
 import json
-import magic
 from django.core.exceptions import ValidationError
+
+# Optional: python-magic for MIME type detection
+try:
+    import magic
+    HAS_MAGIC = True
+except ImportError:
+    HAS_MAGIC = False
+    magic = None
 
 
 def validate_json_file(file, max_size_mb=100):
@@ -33,23 +40,21 @@ def validate_json_file(file, max_size_mb=100):
         return False, "Invalid filename - path traversal detected"
     
     # Check MIME type (if python-magic is available)
-    try:
-        file.seek(0)
-        mime_type = magic.from_buffer(file.read(1024), mime=True)
-        file.seek(0)
-        
-        # Allow JSON and text/plain (some systems report JSON as text/plain)
-        allowed_mimes = ['application/json', 'text/plain', 'text/json']
-        if mime_type not in allowed_mimes:
-            return False, f"Invalid file type: {mime_type}. Expected JSON file."
-    except ImportError:
-        # python-magic not installed, skip MIME check but log warning
-        import warnings
-        warnings.warn("python-magic not installed. MIME type validation skipped.")
-    except Exception as e:
-        # If magic fails, continue but log
-        import warnings
-        warnings.warn(f"MIME type check failed: {e}")
+    if HAS_MAGIC:
+        try:
+            file.seek(0)
+            mime_type = magic.from_buffer(file.read(1024), mime=True)
+            file.seek(0)
+            
+            # Allow JSON and text/plain (some systems report JSON as text/plain)
+            allowed_mimes = ['application/json', 'text/plain', 'text/json']
+            if mime_type not in allowed_mimes:
+                return False, f"Invalid file type: {mime_type}. Expected JSON file."
+        except Exception as e:
+            # If magic fails, continue but log (non-critical)
+            import warnings
+            warnings.warn(f"MIME type check failed: {e}")
+    # If python-magic is not installed, skip MIME check (it's optional)
     
     # Validate JSON structure (check if it's valid JSON)
     try:

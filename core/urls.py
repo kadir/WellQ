@@ -75,13 +75,9 @@ urlpatterns = [
     path('settings/platform/trigger-enrich/', settings.trigger_enrich_db, name='trigger_enrich_db'),
 ]
 
-# Serve static files in development and production (if not using nginx)
-# In production with nginx, you should configure nginx to serve static files instead
-# Set SERVE_STATIC=true environment variable to enable Django serving static files in production
-serve_static = django_settings.DEBUG or os.getenv('SERVE_STATIC', 'False').lower() == 'true'
-if serve_static:
-    # Add static file serving - must be at the end of urlpatterns
-    # Use str() to ensure path is a string, not Path object
-    static_root = str(django_settings.STATIC_ROOT)
-    urlpatterns += static(django_settings.STATIC_URL, document_root=static_root)
+# WhiteNoise handles static files automatically - no need for static() function
+# Media files still need to be served (user uploads)
+# Only add media serving if not using nginx
+serve_media = django_settings.DEBUG or os.getenv('SERVE_MEDIA', 'False').lower() == 'true'
+if serve_media:
     urlpatterns += static(django_settings.MEDIA_URL, document_root=str(django_settings.MEDIA_ROOT))

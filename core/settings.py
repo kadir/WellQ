@@ -281,6 +281,11 @@ WHITENOISE_USE_FINDERS = True  # Use Django's staticfiles finders
 WHITENOISE_AUTOREFRESH = DEBUG  # Auto-refresh in development
 WHITENOISE_MANIFEST_STRICT = False  # Don't fail if manifest is missing
 
+# For production, also allow WhiteNoise to serve files without manifest
+# This ensures files work even if collectstatic hasn't run with manifest
+if not DEBUG:
+    WHITENOISE_ROOT = STATIC_ROOT  # Serve from STATIC_ROOT
+
 # Media files (user uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

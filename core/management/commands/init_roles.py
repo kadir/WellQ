@@ -101,3 +101,4 @@ class Command(BaseCommand):
             f'\n✓ Roles initialized: {created_count} created, {updated_count} updated'
         ))
 
+

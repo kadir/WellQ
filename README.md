@@ -32,24 +32,39 @@ Open-source ASPM (Application Security Posture Management) platform built with D
 
 ## Installation
 
-### Option 1: Docker (Recommended)
+### Option 1: Docker (Recommended - Easiest!)
 
-See [DOCKER_SETUP.md](DOCKER_SETUP.md) for detailed Docker setup instructions.
+**🚀 One-Command Setup (No configuration needed!):**
 
-**Quick Start:**
+**Windows:**
+```powershell
+.\setup-docker.ps1
+```
+
+**Linux/Mac:**
 ```bash
-# Copy environment file
-cp .env.example .env
-# Edit .env with your settings
+chmod +x setup-docker.sh
+./setup-docker.sh
+```
 
-# Build and start
-docker-compose up -d --build
+**Or manually:**
+```bash
+# That's it! No .env file needed
+docker-compose -f docker-compose.simple.yml up -d --build
 
 # Create superuser
-docker-compose exec web python manage.py createsuperuser
+docker-compose -f docker-compose.simple.yml exec web python manage.py createsuperuser
 
 # Access at http://localhost:8000
 ```
+
+**✨ What's configured automatically:**
+- PostgreSQL database (wellq/wellq/wellq_dev_password)
+- Redis for Celery
+- All Django settings
+- No manual configuration needed!
+
+See [DOCKER_SIMPLE_SETUP.md](DOCKER_SIMPLE_SETUP.md) for details, or [DOCKER_SETUP.md](DOCKER_SETUP.md) for advanced configuration.
 
 ### Option 2: Manual Installation
 

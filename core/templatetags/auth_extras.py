@@ -12,3 +12,4 @@ def has_role(user, role_name):
         return user.profile.has_role(role_name)
     return False
 
+

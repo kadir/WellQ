@@ -33,9 +33,10 @@ RUN mkdir -p /app/staticfiles /app/media
 # Collect static files (will be run again in entrypoint for production)
 RUN python manage.py collectstatic --noinput || true
 
-# Create entrypoint script
+# Create entrypoint scripts
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY docker-entrypoint-simple.sh /docker-entrypoint-simple.sh
+RUN chmod +x /docker-entrypoint.sh /docker-entrypoint-simple.sh
 
 # Expose port
 EXPOSE 8000

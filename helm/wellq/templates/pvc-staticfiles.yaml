@@ -16,3 +16,4 @@ spec:
       storage: {{ .Values.storage.staticFiles.size }}
 {{- end }}
 
+

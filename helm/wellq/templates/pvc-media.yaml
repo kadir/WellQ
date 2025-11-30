@@ -16,3 +16,4 @@ spec:
       storage: {{ .Values.storage.media.size }}
 {{- end }}
 
+

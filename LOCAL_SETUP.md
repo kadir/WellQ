@@ -478,3 +478,4 @@ python manage.py createsuperuser
 - Verify environment variables in `.env`
 - Ensure ports are not in use by other applications
 
+

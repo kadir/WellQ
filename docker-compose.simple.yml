@@ -1,0 +1,160 @@
+version: '3.8'
+
+# Simplified Docker Compose - Works out of the box!
+# Just run: docker-compose -f docker-compose.simple.yml up -d
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: wellq-postgres
+    environment:
+      POSTGRES_DB: wellq
+      POSTGRES_USER: wellq
+      POSTGRES_PASSWORD: wellq_dev_password  # Change in production!
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wellq"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - wellq-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: wellq-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - wellq-network
+
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: wellq-web
+    entrypoint: ["/docker-entrypoint-simple.sh"]
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      # Django Settings
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production-12345}
+      DEBUG: ${DEBUG:-True}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
+      
+      # Database (auto-configured for Docker)
+      DB_ENGINE: postgresql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: wellq
+      DB_USER: wellq
+      DB_PASSWORD: wellq_dev_password
+      
+      # Redis (auto-configured for Docker)
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - wellq-network
+    restart: unless-stopped
+
+  celery:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: wellq-celery
+    entrypoint: ["/docker-entrypoint-simple.sh"]
+    command: celery -A core worker --loglevel=info --concurrency=2
+    volumes:
+      - media_volume:/app/media
+    environment:
+      # Django Settings
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production-12345}
+      DEBUG: ${DEBUG:-True}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      
+      # Database
+      DB_ENGINE: postgresql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: wellq
+      DB_USER: wellq
+      DB_PASSWORD: wellq_dev_password
+      
+      # Redis
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - wellq-network
+    restart: unless-stopped
+
+  celery-beat:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: wellq-celery-beat
+    entrypoint: ["/docker-entrypoint-simple.sh"]
+    command: celery -A core beat --loglevel=info
+    volumes:
+      - media_volume:/app/media
+    environment:
+      # Django Settings
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production-12345}
+      DEBUG: ${DEBUG:-True}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      
+      # Database
+      DB_ENGINE: postgresql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: wellq
+      DB_USER: wellq
+      DB_PASSWORD: wellq_dev_password
+      
+      # Redis
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - wellq-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:
+
+networks:
+  wellq-network:
+    driver: bridge
+

@@ -129,3 +129,4 @@ For this project, I recommend **Chart.js** as it's:
 - Good performance
 - Supports all chart types we need
 
+

@@ -1,6 +1,6 @@
 # Quick Start Guide - WellQ Local Setup
 
-## 🚀 Fastest Way: Docker (Recommended)
+## 🚀 Fastest Way: Docker (Recommended - No Configuration!)
 
 ### What to Install First:
 
@@ -9,42 +9,43 @@
    - Install and start Docker Desktop
    - Verify: Open terminal and run `docker --version`
 
-### Exact Commands (Copy & Paste):
+### ✨ One-Command Setup (Easiest!):
+
+**Windows PowerShell:**
+```powershell
+.\setup-docker.ps1
+```
+
+**Linux/Mac:**
+```bash
+chmod +x setup-docker.sh
+./setup-docker.sh
+```
+
+**That's it!** The script will:
+- ✅ Generate a secret key
+- ✅ Configure PostgreSQL automatically
+- ✅ Configure Redis automatically
+- ✅ Build and start all services
+- ✅ Show you access information
+
+### Manual Setup (If scripts don't work):
 
 ```bash
-# 1. Navigate to project directory
-cd WellQ
+# 1. Build and start (no .env file needed!)
+docker-compose -f docker-compose.simple.yml up -d --build
 
-# 2. Create .env file
-# Windows PowerShell:
-Copy-Item .env.example .env
+# 2. Create admin user
+docker-compose -f docker-compose.simple.yml exec web python manage.py createsuperuser
 
-# Windows CMD:
-copy .env.example .env
-
-# Linux/Mac:
-cp .env.example .env
-
-# 3. Edit .env file (use any text editor)
-# Set these values:
-# SECRET_KEY=dev-secret-key-12345
-# DEBUG=True
-# ENVIRONMENT=development
-# ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
-
-# 4. Build and start all services
-docker-compose up -d --build
-
-# 5. Wait for services to start (30-60 seconds), then run migrations
-docker-compose exec web python manage.py migrate
-
-# 6. Create admin user
-docker-compose exec web python manage.py createsuperuser
-# Follow prompts: username, email, password
-
-# 7. Access the application
+# 3. Access the application
 # Open browser: http://localhost:8000
 ```
+
+**✨ Everything is auto-configured:**
+- PostgreSQL: `wellq` database, `wellq` user, `wellq_dev_password` password
+- Redis: Auto-configured for Celery
+- Django: All settings with sensible defaults
 
 ### Verify It's Working:
 
@@ -249,4 +250,5 @@ pip install -r requirements.txt
 - Check .env file configuration
 - Ensure ports are not in use
 - See LOCAL_SETUP.md for detailed guide
+
 

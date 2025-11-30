@@ -9,3 +9,4 @@ def get_scanner_type(scanner_name):
     from core.scanners import get_scanner_type as _get_scanner_type
     return _get_scanner_type(scanner_name)
 
+

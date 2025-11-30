@@ -199,3 +199,4 @@ docker-compose ps
 
 Services communicate on the `wellq-network` bridge network. The web service is accessible on port 8000 by default.
 
+

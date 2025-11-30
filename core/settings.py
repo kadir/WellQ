@@ -65,43 +65,39 @@ if not ALLOWED_HOSTS and not DEBUG:
     )
 
 # CSRF Trusted Origins - Required for HTTPS behind proxy
-# Read from environment variable first
+# HARDCODED FIX: Always set this for demo.wellq.io
+CSRF_TRUSTED_ORIGINS = ['https://demo.wellq.io']
+
+# Also read from environment variable if set (allows override)
 csrf_env = os.getenv('CSRF_TRUSTED_ORIGINS', '').strip()
 if csrf_env:
-    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_env.split(',') if origin.strip()]
-else:
-    CSRF_TRUSTED_ORIGINS = []
+    # Merge with hardcoded value
+    env_origins = [origin.strip() for origin in csrf_env.split(',') if origin.strip()]
+    CSRF_TRUSTED_ORIGINS = list(set(CSRF_TRUSTED_ORIGINS + env_origins))  # Remove duplicates
 
-# Auto-add HTTPS origins from ALLOWED_HOSTS if CSRF_TRUSTED_ORIGINS is still empty
-# This is critical for HTTPS behind nginx
-if not CSRF_TRUSTED_ORIGINS:
-    if ALLOWED_HOSTS and len(ALLOWED_HOSTS) > 0:
-        # Filter out localhost/127.0.0.1/0.0.0.0 to get real domains
-        domain_hosts = []
-        for host in ALLOWED_HOSTS:
-            if host and host not in ['localhost', '127.0.0.1', '0.0.0.0']:
-                domain_hosts.append(host)
-        
-        if domain_hosts:
-            # Always use HTTPS for domains
-            CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in domain_hosts]
-        
-        # In development, also add HTTP for localhost
-        if DEBUG:
-            localhost_hosts = [host for host in ALLOWED_HOSTS if host in ['localhost', '127.0.0.1', '0.0.0.0']]
-            if localhost_hosts:
-                CSRF_TRUSTED_ORIGINS.extend([f'http://{host}' for host in localhost_hosts])
-
-# Final safety check: if still empty but we have a domain in ALLOWED_HOSTS, force it
-if not CSRF_TRUSTED_ORIGINS and ALLOWED_HOSTS:
+# Auto-add HTTPS origins from ALLOWED_HOSTS (in addition to hardcoded)
+if ALLOWED_HOSTS and len(ALLOWED_HOSTS) > 0:
+    # Filter out localhost/127.0.0.1/0.0.0.0 to get real domains
+    domain_hosts = []
     for host in ALLOWED_HOSTS:
         if host and host not in ['localhost', '127.0.0.1', '0.0.0.0']:
-            CSRF_TRUSTED_ORIGINS = [f'https://{host}']
-            break
-
-# GUARANTEED FIX: If still empty, hardcode demo.wellq.io (remove this after confirming it works)
-if not CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS = ['https://demo.wellq.io']
+            domain_hosts.append(host)
+    
+    if domain_hosts:
+        # Add HTTPS for domains
+        for host in domain_hosts:
+            origin = f'https://{host}'
+            if origin not in CSRF_TRUSTED_ORIGINS:
+                CSRF_TRUSTED_ORIGINS.append(origin)
+    
+    # In development, also add HTTP for localhost
+    if DEBUG:
+        localhost_hosts = [host for host in ALLOWED_HOSTS if host in ['localhost', '127.0.0.1', '0.0.0.0']]
+        if localhost_hosts:
+            for host in localhost_hosts:
+                origin = f'http://{host}'
+                if origin not in CSRF_TRUSTED_ORIGINS:
+                    CSRF_TRUSTED_ORIGINS.append(origin)
 
 # Debug: Log CSRF configuration (only in development)
 if DEBUG:

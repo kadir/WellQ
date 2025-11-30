@@ -1,5 +1,5 @@
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view, permission_classes, action, throttle_classes, throttle_scope
+from rest_framework.decorators import api_view, permission_classes, action, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle, ScopedRateThrottle
@@ -8,6 +8,15 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExampl
 from drf_spectacular.types import OpenApiTypes
 
 from core.models import Workspace, Product, Release, Scan, Finding, Component
+
+
+# Custom throttle class for upload endpoints
+class UploadRateThrottle(ScopedRateThrottle):
+    """Throttle class for upload endpoints with 'upload' scope."""
+    scope_attr = 'throttle_scope'
+    
+    def get_scope(self):
+        return 'upload'
 from core.api.serializers import (
     WorkspaceSerializer, ProductSerializer, ReleaseSerializer,
     ScanSerializer, FindingSerializer, ScanUploadSerializer, SBOMUploadSerializer
@@ -64,8 +73,7 @@ import base64
 )
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-@throttle_classes([ScopedRateThrottle])
-@throttle_scope('upload')
+@throttle_classes([UploadRateThrottle])
 def upload_scan(request):
     """
     Upload and process scan results.
@@ -197,8 +205,7 @@ def upload_scan(request):
 )
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-@throttle_classes([ScopedRateThrottle])
-@throttle_scope('upload')
+@throttle_classes([UploadRateThrottle])
 def upload_sbom(request):
     """
     Upload and process SBOM file.

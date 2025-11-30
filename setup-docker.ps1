@@ -91,3 +91,4 @@ Write-Host "   Restart:     docker-compose -f docker-compose.simple.yml restart"
 Write-Host "   Create user: docker-compose -f docker-compose.simple.yml exec web python manage.py createsuperuser"
 Write-Host ""
 
+

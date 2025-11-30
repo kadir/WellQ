@@ -11,17 +11,20 @@ services:
       POSTGRES_DB: wellq
       POSTGRES_USER: wellq
       POSTGRES_PASSWORD: wellq_dev_password  # Change in production!
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U wellq"]
-      interval: 5s
+      interval: 3s
       timeout: 5s
-      retries: 10
+      retries: 30
+      start_period: 30s
     networks:
       - wellq-network
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -33,11 +36,13 @@ services:
       - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      interval: 3s
       timeout: 3s
-      retries: 10
+      retries: 20
+      start_period: 5s
     networks:
       - wellq-network
+    restart: unless-stopped
 
   web:
     build: 

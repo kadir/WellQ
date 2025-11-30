@@ -130,3 +130,4 @@ For this project, I recommend **Chart.js** as it's:
 - Supports all chart types we need
 
 
+

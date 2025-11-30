@@ -94,3 +94,4 @@ echo "   Stop:        docker-compose -f docker-compose.simple.yml down"
 echo "   Restart:     docker-compose -f docker-compose.simple.yml restart"
 echo ""
 
+

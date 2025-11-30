@@ -1,11 +1,15 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
+from django.http import HttpResponse
 
 # Import from the new views package
 from core.views import inventory, findings, ingestion, profile, users, roles, settings
 
 urlpatterns = [
+    # Health check endpoint (for Docker/Kubernetes)
+    path('health/', lambda r: HttpResponse('OK'), name='health'),
+    
     path('admin/', admin.site.urls),
     
     # API routes

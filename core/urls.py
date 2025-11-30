@@ -2,6 +2,9 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.http import HttpResponse
+from django.conf import settings
+from django.conf.urls.static import static
+import os
 
 # Import from the new views package
 from core.views import inventory, findings, ingestion, profile, users, roles, settings
@@ -71,3 +74,10 @@ urlpatterns = [
     path('settings/platform/', settings.platform_settings, name='platform_settings'),
     path('settings/platform/trigger-enrich/', settings.trigger_enrich_db, name='trigger_enrich_db'),
 ]
+
+# Serve static files in development and production (if not using nginx)
+# In production with nginx, you should configure nginx to serve static files instead
+# Set SERVE_STATIC=true environment variable to enable Django serving static files in production
+if settings.DEBUG or os.getenv('SERVE_STATIC', 'False').lower() == 'true':
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

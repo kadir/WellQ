@@ -4,7 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <title>WELLQ | {% block title %}Dashboard{% endblock %}</title>
+    {% if debug %}
+    {# Use Tailwind CDN only in development #}
     <script src="https://cdn.tailwindcss.com"></script>
+    {% else %}
+    {# In production, use compiled Tailwind CSS or include it in your static files #}
+    {# For now, we'll use CDN but you should build Tailwind properly for production #}
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% endif %}
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     <link rel="stylesheet" href="{% static 'css/forms.css' %}">

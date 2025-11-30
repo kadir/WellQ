@@ -94,6 +94,7 @@ MIDDLEWARE = [
 # Security Settings
 if not DEBUG:
     # HTTPS Settings (only in production)
+    # SSL/HTTPS settings - enable when behind nginx with SSL
     SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -107,7 +108,15 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     
     # Additional production security
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if os.getenv('USE_PROXY', 'False').lower() == 'true' else None
+    # Trust proxy headers when behind nginx (required for SSL detection)
+    USE_PROXY = os.getenv('USE_PROXY', 'False').lower() == 'true'
+    if USE_PROXY:
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+        # Trust nginx proxy
+        USE_X_FORWARDED_HOST = True
+        USE_X_FORWARDED_PORT = True
+    else:
+        SECURE_PROXY_SSL_HEADER = None
 
 # File Upload Security
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
@@ -199,7 +208,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # For production - where collectstatic puts files
 
 if DEBUG:
@@ -208,6 +217,12 @@ if DEBUG:
 else:
     # Production: only use STATIC_ROOT
     STATICFILES_DIRS = []
+
+# Static files finders
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
 
 # Media files (user uploads)
 MEDIA_URL = '/media/'

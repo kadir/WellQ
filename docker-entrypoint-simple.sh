@@ -118,7 +118,12 @@ python manage.py migrate --noinput
 
 # Collect static files
 echo "📁 Collecting static files..."
-python manage.py collectstatic --noinput || echo "⚠️  Warning: collectstatic failed (OK if no static files)"
+echo "📦 Collecting static files..."
+python manage.py collectstatic --noinput --clear || {
+    echo "⚠️  Warning: collectstatic failed"
+    echo "   This might be OK if static files are served by nginx"
+    echo "   If you see 404 errors for CSS/JS files, check that collectstatic ran successfully"
+}
 
 # Create superuser if it doesn't exist (optional - for first run)
 if [ "${CREATE_SUPERUSER:-false}" = "true" ]; then

@@ -60,7 +60,9 @@ services:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production-12345}
       DEBUG: ${DEBUG:-True}
       ENVIRONMENT: ${ENVIRONMENT:-development}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-demo.wellq.io,localhost,127.0.0.1,0.0.0.0}
+      # Enable Django to serve static files (set to false if using nginx)
+      SERVE_STATIC: ${SERVE_STATIC:-true}
       
       # Database (auto-configured for Docker)
       DB_ENGINE: postgresql

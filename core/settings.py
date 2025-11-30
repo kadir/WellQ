@@ -65,7 +65,7 @@ if not ALLOWED_HOSTS and not DEBUG:
     )
 
 # CSRF Trusted Origins - Required for HTTPS behind proxy
-# Add your domain(s) here, e.g., https://demo.wellq.io
+# First, try to read from environment variable
 CSRF_TRUSTED_ORIGINS = [
     origin.strip() 
     for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') 
@@ -73,34 +73,22 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # Auto-add HTTPS origins from ALLOWED_HOSTS if CSRF_TRUSTED_ORIGINS is empty
+# This is critical for HTTPS behind nginx
 if not CSRF_TRUSTED_ORIGINS and ALLOWED_HOSTS:
-    USE_PROXY = os.getenv('USE_PROXY', 'False').lower() == 'true'
-    # Check if any host looks like a domain (not localhost/127.0.0.1/0.0.0.0)
-    has_domain = any(host not in ['localhost', '127.0.0.1', '0.0.0.0'] for host in ALLOWED_HOSTS)
-    
-    # If behind proxy (nginx), in production, or has a domain, use HTTPS
-    if USE_PROXY or not DEBUG or has_domain:
-        # Use HTTPS for domains (production/nginx setup)
-        domain_hosts = [host for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1', '0.0.0.0']]
-        if domain_hosts:
-            CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in domain_hosts]
-        # Also add HTTP for localhost in development if needed
-        if DEBUG:
-            localhost_hosts = [host for host in ALLOWED_HOSTS if host in ['localhost', '127.0.0.1', '0.0.0.0']]
-            if localhost_hosts:
-                if not CSRF_TRUSTED_ORIGINS:
-                    CSRF_TRUSTED_ORIGINS = []
-                CSRF_TRUSTED_ORIGINS.extend([f'http://{host}' for host in localhost_hosts])
-    else:
-        # Pure development - allow both http and https
-        CSRF_TRUSTED_ORIGINS = [f'http://{host}' for host in ALLOWED_HOSTS] + \
-                              [f'https://{host}' for host in ALLOWED_HOSTS]
-
-# Final fallback: if still empty and we have ALLOWED_HOSTS, add HTTPS for domains
-if not CSRF_TRUSTED_ORIGINS and ALLOWED_HOSTS:
+    # Filter out localhost/127.0.0.1/0.0.0.0 to get real domains
     domain_hosts = [host for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1', '0.0.0.0']]
+    
     if domain_hosts:
+        # Always use HTTPS for domains
         CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in domain_hosts]
+    
+    # In development, also add HTTP for localhost
+    if DEBUG:
+        localhost_hosts = [host for host in ALLOWED_HOSTS if host in ['localhost', '127.0.0.1', '0.0.0.0']]
+        if localhost_hosts:
+            if not CSRF_TRUSTED_ORIGINS:
+                CSRF_TRUSTED_ORIGINS = []
+            CSRF_TRUSTED_ORIGINS.extend([f'http://{host}' for host in localhost_hosts])
 
 # Debug: Log CSRF configuration (only in development)
 if DEBUG:

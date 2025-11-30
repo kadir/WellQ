@@ -78,6 +78,10 @@ urlpatterns = [
 # Serve static files in development and production (if not using nginx)
 # In production with nginx, you should configure nginx to serve static files instead
 # Set SERVE_STATIC=true environment variable to enable Django serving static files in production
-if django_settings.DEBUG or os.getenv('SERVE_STATIC', 'False').lower() == 'true':
-    urlpatterns += static(django_settings.STATIC_URL, document_root=django_settings.STATIC_ROOT)
-    urlpatterns += static(django_settings.MEDIA_URL, document_root=django_settings.MEDIA_ROOT)
+serve_static = django_settings.DEBUG or os.getenv('SERVE_STATIC', 'False').lower() == 'true'
+if serve_static:
+    # Add static file serving - must be at the end of urlpatterns
+    # Use str() to ensure path is a string, not Path object
+    static_root = str(django_settings.STATIC_ROOT)
+    urlpatterns += static(django_settings.STATIC_URL, document_root=static_root)
+    urlpatterns += static(django_settings.MEDIA_URL, document_root=str(django_settings.MEDIA_ROOT))

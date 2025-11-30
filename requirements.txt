@@ -22,7 +22,6 @@ jsonschema-specifications==2025.9.1
 kombu==5.5.4
 packaging==25.0
 prompt_toolkit==3.0.52
-psycopg-binary==3.2.13
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
 pytz==2025.2
@@ -39,3 +38,5 @@ uritemplate==4.2.0
 urllib3==2.5.0
 vine==5.1.0
 wcwidth==0.2.14
+psycopg[binary]
+

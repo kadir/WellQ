@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+
+{% block title %}Approvals{% endblock %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<span class="text-emerald-400">Approvals</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+    <div class="mb-6 border-b border-zinc-800 pb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-1">Status Change Approvals</h1>
+                <div class="text-xs font-mono text-gray-500 mt-2">
+                    Review and approve vulnerability status change requests
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="mb-6 border-b border-zinc-800">
+        <div class="flex gap-1">
+            <a href="?tab=pending&pending_page=1&per_page={{ per_page }}" 
+               class="px-6 py-3 text-sm font-medium transition-colors {% if active_tab == 'pending' %}text-white border-b-2 border-emerald-500{% else %}text-gray-400 hover:text-white{% endif %}">
+                Waiting Approvals
+                {% if pending_requests.paginator.count > 0 %}
+                <span class="ml-2 bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2 py-0.5 rounded">{{ pending_requests.paginator.count }}</span>
+                {% endif %}
+            </a>
+            <a href="?tab=history&history_page=1&per_page={{ per_page }}" 
+               class="px-6 py-3 text-sm font-medium transition-colors {% if active_tab == 'history' %}text-white border-b-2 border-emerald-500{% else %}text-gray-400 hover:text-white{% endif %}">
+                Approval History
+            </a>
+        </div>
+    </div>
+
+    <!-- Waiting Approvals Tab -->
+    {% if active_tab == 'pending' %}
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-[#18181b] border-b border-[#27272a]">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Requested At</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Requested By</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Vulnerability</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Current Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Requested Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Triage Note</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#27272a]">
+                    {% for request in pending_requests %}
+                    <tr class="hover:bg-[#18181b] transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-white font-mono">{{ request.requested_at|date:"Y-m-d H:i" }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-white">{{ request.requested_by.username }}</div>
+                            <div class="text-xs text-gray-500">{{ request.requested_by.get_full_name|default:request.requested_by.email }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-white font-semibold">{{ request.finding.cve_id }}</div>
+                            <div class="text-xs text-gray-500">{{ request.finding.title|truncatewords:10 }}</div>
+                            <div class="text-xs text-gray-600 mt-1">
+                                {{ request.finding.scan.release.product.name }} @ {{ request.finding.scan.release.name }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if request.finding.status == 'FIXED' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">✓ FIXED</span>
+                            {% elif request.finding.status == 'FALSE_POSITIVE' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">∅ FALSE POSITIVE</span>
+                            {% elif request.finding.status == 'RISK_ACCEPTED' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 w-fit">⚠ ACCEPTED</span>
+                            {% elif request.finding.status == 'DUPLICATE' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 w-fit">↻ DUPLICATE</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 w-fit">● ACTIVE</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if request.requested_status == 'FIXED' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">✓ FIXED</span>
+                            {% elif request.requested_status == 'FALSE_POSITIVE' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">∅ FALSE POSITIVE</span>
+                            {% elif request.requested_status == 'RISK_ACCEPTED' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 w-fit">⚠ ACCEPTED</span>
+                            {% elif request.requested_status == 'DUPLICATE' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 w-fit">↻ DUPLICATE</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 w-fit">● ACTIVE</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-300 max-w-xs">{{ request.triage_note|truncatewords:20|default:"No note provided" }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex gap-2">
+                                <form method="post" action="{% url 'approve_status_request' request.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="review_note" value="">
+                                    <button type="submit" onclick="return confirm('Are you sure you want to approve this status change request?');" class="bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-emerald-600 transition-colors uppercase tracking-wider">
+                                        Approve
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'reject_status_request' request.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="review_note" value="">
+                                    <button type="submit" onclick="return confirm('Are you sure you want to reject this status change request?');" class="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-red-600 transition-colors uppercase tracking-wider">
+                                        Reject
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center">
+                            <div class="text-gray-500 text-sm">No pending approval requests</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination for Pending Requests -->
+    <div class="mt-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="text-sm text-gray-500">
+                {% if pending_requests.has_other_pages %}
+                    Showing {{ pending_requests.start_index }} to {{ pending_requests.end_index }} of {{ pending_requests.paginator.count }} pending requests
+                {% else %}
+                    {{ pending_requests.paginator.count }} pending request{{ pending_requests.paginator.count|pluralize }}
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500">Per page:</span>
+                <select onchange="window.location.href='?tab=pending&pending_page=1&per_page=' + this.value" class="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-white">
+                    <option value="20" {% if per_page == '20' %}selected{% endif %}>20</option>
+                    <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
+                </select>
+            </div>
+        </div>
+        {% if pending_requests.has_other_pages %}
+        <div class="flex gap-2">
+            {% if pending_requests.has_previous %}
+                <a href="?tab=pending&pending_page={{ pending_requests.previous_page_number }}&per_page={{ per_page }}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors">
+                    Previous
+                </a>
+            {% endif %}
+            {% if pending_requests.has_next %}
+                <a href="?tab=pending&pending_page={{ pending_requests.next_page_number }}&per_page={{ per_page }}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors">
+                    Next
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Approval History Tab -->
+    {% elif active_tab == 'history' %}
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-[#18181b] border-b border-[#27272a]">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Requested At</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Requested By</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Vulnerability</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Requested Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Decision</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Reviewed By</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Reviewed At</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Triage Note</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#27272a]">
+                    {% for request in history_requests %}
+                    <tr class="hover:bg-[#18181b] transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-white font-mono">{{ request.requested_at|date:"Y-m-d H:i" }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-white">{{ request.requested_by.username }}</div>
+                            <div class="text-xs text-gray-500">{{ request.requested_by.get_full_name|default:request.requested_by.email }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-white font-semibold">{{ request.finding.cve_id }}</div>
+                            <div class="text-xs text-gray-500">{{ request.finding.title|truncatewords:10 }}</div>
+                            <div class="text-xs text-gray-600 mt-1">
+                                {{ request.finding.scan.release.product.name }} @ {{ request.finding.scan.release.name }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if request.requested_status == 'FIXED' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">✓ FIXED</span>
+                            {% elif request.requested_status == 'FALSE_POSITIVE' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">∅ FALSE POSITIVE</span>
+                            {% elif request.requested_status == 'RISK_ACCEPTED' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 w-fit">⚠ ACCEPTED</span>
+                            {% elif request.requested_status == 'DUPLICATE' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 w-fit">↻ DUPLICATE</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 w-fit">● ACTIVE</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if request.status == 'APPROVED' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">✓ APPROVED</span>
+                            {% elif request.status == 'REJECTED' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20 w-fit">✗ REJECTED</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-white">{{ request.reviewed_by.username|default:"N/A" }}</div>
+                            {% if request.reviewed_by %}
+                            <div class="text-xs text-gray-500">{{ request.reviewed_by.get_full_name|default:request.reviewed_by.email }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-white font-mono">{{ request.reviewed_at|date:"Y-m-d H:i"|default:"N/A" }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-300 max-w-xs">{{ request.triage_note|truncatewords:20|default:"No note provided" }}</div>
+                            {% if request.review_note %}
+                            <div class="text-xs text-gray-500 mt-1 italic">Review: {{ request.review_note|truncatewords:10 }}</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <div class="text-gray-500 text-sm">No approval history</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination for History Requests -->
+    <div class="mt-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="text-sm text-gray-500">
+                {% if history_requests.has_other_pages %}
+                    Showing {{ history_requests.start_index }} to {{ history_requests.end_index }} of {{ history_requests.paginator.count }} history records
+                {% else %}
+                    {{ history_requests.paginator.count }} history record{{ history_requests.paginator.count|pluralize }}
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500">Per page:</span>
+                <select onchange="window.location.href='?tab=history&history_page=1&per_page=' + this.value" class="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-white">
+                    <option value="20" {% if per_page == '20' %}selected{% endif %}>20</option>
+                    <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
+                </select>
+            </div>
+        </div>
+        {% if history_requests.has_other_pages %}
+        <div class="flex gap-2">
+            {% if history_requests.has_previous %}
+                <a href="?tab=history&history_page={{ history_requests.previous_page_number }}&per_page={{ per_page }}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors">
+                    Previous
+                </a>
+            {% endif %}
+            {% if history_requests.has_next %}
+                <a href="?tab=history&history_page={{ history_requests.next_page_number }}&per_page={{ per_page }}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors">
+                    Next
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

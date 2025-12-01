@@ -464,3 +464,75 @@ class PlatformSettings(models.Model):
             existing.updated_by = self.updated_by
             return existing.save(*args, **kwargs)
         return super().save(*args, **kwargs)
+
+
+# Status Approval Request Model
+class StatusApprovalRequest(models.Model):
+    """
+    Tracks requests to change vulnerability status that require approval.
+    Only Security Expert and Administrator roles can approve these requests.
+    """
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    finding = models.ForeignKey(Finding, on_delete=models.CASCADE, related_name='approval_requests')
+    
+    # Request details
+    requested_status = models.CharField(max_length=20, choices=Finding.STATUS_CHOICES)
+    triage_note = models.TextField(blank=True, help_text="Reason for status change")
+    requested_by = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='status_approval_requests')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    
+    # Approval details
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True)
+    reviewed_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_status_requests')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.TextField(blank=True, help_text="Optional note from reviewer")
+    
+    class Meta:
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['status', '-requested_at']),
+            models.Index(fields=['finding', 'status']),
+        ]
+    
+    def __str__(self):
+        return f"Approval request for {self.finding.cve_id} - {self.requested_status} by {self.requested_by.username}"
+    
+    def approve(self, reviewer, review_note=''):
+        """Approve this request and update the finding status"""
+        from django.utils import timezone
+        
+        if self.status != 'PENDING':
+            raise ValueError("Can only approve pending requests")
+        
+        # Update the finding
+        self.finding.status = self.requested_status
+        self.finding.triage_note = self.triage_note
+        self.finding.triage_by = self.requested_by
+        self.finding.triage_at = timezone.now()
+        self.finding.save()
+        
+        # Update the approval request
+        self.status = 'APPROVED'
+        self.reviewed_by = reviewer
+        self.reviewed_at = timezone.now()
+        self.review_note = review_note
+        self.save()
+    
+    def reject(self, reviewer, review_note=''):
+        """Reject this request"""
+        from django.utils import timezone
+        
+        if self.status != 'PENDING':
+            raise ValueError("Can only reject pending requests")
+        
+        self.status = 'REJECTED'
+        self.reviewed_by = reviewer
+        self.reviewed_at = timezone.now()
+        self.review_note = review_note
+        self.save()

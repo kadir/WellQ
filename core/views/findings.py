@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from core.models import Product, Release, Finding, Component
+from core.models import Product, Release, Finding, Component, StatusApprovalRequest
 from core.forms import ReleaseForm
 from core.services.sbom import digest_sbom
 
@@ -407,9 +407,24 @@ def vulnerability_detail(request, finding_id):
     return JsonResponse(data)
 
 
+def can_approve_status(user):
+    """Check if user can approve status change requests (Security Expert or Administrator)"""
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.is_staff:
+        return True
+    try:
+        if not hasattr(user, 'profile'):
+            from core.models import UserProfile
+            UserProfile.objects.get_or_create(user=user)
+        return user.profile.has_role('SECURITY_EXPERT') or user.profile.has_role('ADMINISTRATOR')
+    except Exception:
+        return user.is_superuser or user.is_staff
+
+
 @login_required
 def update_vulnerability_status(request, finding_id):
-    """Update vulnerability status"""
+    """Update vulnerability status - now creates approval request for non-ACTIVE statuses"""
     from django.http import JsonResponse
     from django.utils import timezone
     from core.models import Finding
@@ -425,17 +440,143 @@ def update_vulnerability_status(request, finding_id):
     if new_status not in dict(Finding.STATUS_CHOICES):
         return JsonResponse({'error': 'Invalid status'}, status=400)
     
-    # Update status
-    finding.status = new_status
-    finding.triage_note = triage_note
-    finding.triage_by = request.user
-    finding.triage_at = timezone.now()
-    finding.save()
+    # If status is ACTIVE, update directly (no approval needed)
+    if new_status == 'ACTIVE':
+        finding.status = new_status
+        finding.triage_note = triage_note
+        finding.triage_by = request.user
+        finding.triage_at = timezone.now()
+        finding.save()
+        
+        return JsonResponse({
+            'success': True,
+            'status': finding.status,
+            'triage_note': finding.triage_note,
+            'triage_by': finding.triage_by.username,
+            'triage_at': finding.triage_at.strftime('%Y-%m-%d %H:%M'),
+        })
+    
+    # For other statuses (FIXED, FALSE_POSITIVE, RISK_ACCEPTED, DUPLICATE), create approval request
+    # Check if user has approval permission - if yes, update directly
+    if can_approve_status(request.user):
+        finding.status = new_status
+        finding.triage_note = triage_note
+        finding.triage_by = request.user
+        finding.triage_at = timezone.now()
+        finding.save()
+        
+        return JsonResponse({
+            'success': True,
+            'status': finding.status,
+            'triage_note': finding.triage_note,
+            'triage_by': finding.triage_by.username,
+            'triage_at': finding.triage_at.strftime('%Y-%m-%d %H:%M'),
+        })
+    
+    # Create approval request for users without approval permission
+    approval_request = StatusApprovalRequest.objects.create(
+        finding=finding,
+        requested_status=new_status,
+        triage_note=triage_note,
+        requested_by=request.user,
+    )
     
     return JsonResponse({
         'success': True,
-        'status': finding.status,
-        'triage_note': finding.triage_note,
-        'triage_by': finding.triage_by.username,
-        'triage_at': finding.triage_at.strftime('%Y-%m-%d %H:%M'),
+        'requires_approval': True,
+        'message': 'Status change request submitted and pending approval.',
+        'request_id': str(approval_request.id),
     })
+
+
+@login_required
+def approvals_list(request):
+    """List all approval requests with tabs for pending and history"""
+    # Only Security Expert and Administrator can view this page
+    if not can_approve_status(request.user):
+        messages.error(request, 'You do not have permission to view approval requests.')
+        return redirect('dashboard')
+    
+    # Get active tab (default to 'pending')
+    active_tab = request.GET.get('tab', 'pending')
+    
+    # Pagination settings
+    per_page = request.GET.get('per_page', '50')
+    if per_page not in ['20', '50', '100']:
+        per_page = '50'
+    
+    # Pending requests (first tab)
+    pending_requests = StatusApprovalRequest.objects.filter(
+        status='PENDING'
+    ).select_related(
+        'finding',
+        'finding__scan__release__product__workspace',
+        'requested_by'
+    ).order_by('-requested_at')
+    
+    pending_paginator = Paginator(pending_requests, int(per_page))
+    pending_page = request.GET.get('pending_page', 1)
+    pending_page_obj = pending_paginator.get_page(pending_page)
+    
+    # History requests (second tab) - approved and rejected
+    history_requests = StatusApprovalRequest.objects.filter(
+        status__in=['APPROVED', 'REJECTED']
+    ).select_related(
+        'finding',
+        'finding__scan__release__product__workspace',
+        'requested_by',
+        'reviewed_by'
+    ).order_by('-reviewed_at', '-requested_at')
+    
+    history_paginator = Paginator(history_requests, int(per_page))
+    history_page = request.GET.get('history_page', 1)
+    history_page_obj = history_paginator.get_page(history_page)
+    
+    return render(request, 'findings/approvals_list.html', {
+        'pending_requests': pending_page_obj,
+        'history_requests': history_page_obj,
+        'per_page': per_page,
+        'active_tab': active_tab,
+    })
+
+
+@login_required
+@require_POST
+def approve_status_request(request, request_id):
+    """Approve a status change request"""
+    if not can_approve_status(request.user):
+        messages.error(request, 'You do not have permission to approve requests.')
+        return redirect('dashboard')
+    
+    approval_request = get_object_or_404(StatusApprovalRequest, id=request_id, status='PENDING')
+    review_note = request.POST.get('review_note', '')
+    
+    try:
+        approval_request.approve(request.user, review_note)
+        messages.success(request, f'Status change request approved. Vulnerability status updated to {approval_request.requested_status}.')
+    except ValueError as e:
+        messages.error(request, f'Error approving request: {str(e)}')
+    
+    # Redirect back to pending tab
+    return redirect('approvals_list?tab=pending')
+
+
+@login_required
+@require_POST
+def reject_status_request(request, request_id):
+    """Reject a status change request"""
+    if not can_approve_status(request.user):
+        messages.error(request, 'You do not have permission to reject requests.')
+        return redirect('dashboard')
+    
+    approval_request = get_object_or_404(StatusApprovalRequest, id=request_id, status='PENDING')
+    review_note = request.POST.get('review_note', '')
+    
+    try:
+        approval_request.reject(request.user, review_note)
+        messages.success(request, 'Status change request rejected.')
+    except ValueError as e:
+        messages.error(request, f'Error rejecting request: {str(e)}')
+    
+    # Redirect back to pending tab
+    return redirect('approvals_list?tab=pending')

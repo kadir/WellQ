@@ -51,6 +51,11 @@ urlpatterns = [
     path('vulnerabilities/<uuid:finding_id>/detail/', findings.vulnerability_detail, name='vulnerability_detail'),
     path('vulnerabilities/<uuid:finding_id>/update-status/', findings.update_vulnerability_status, name='update_vulnerability_status'),
     
+    # Approvals
+    path('approvals/', findings.approvals_list, name='approvals_list'),
+    path('approvals/<uuid:request_id>/approve/', findings.approve_status_request, name='approve_status_request'),
+    path('approvals/<uuid:request_id>/reject/', findings.reject_status_request, name='reject_status_request'),
+    
     # SBOMs
     path('sboms/', findings.sboms_list, name='sboms_list'),
     

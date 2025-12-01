@@ -36,18 +36,7 @@ Open-source ASPM (Application Security Posture Management) platform built with D
 
 **🚀 One-Command Setup (No configuration needed!):**
 
-**Windows:**
-```powershell
-.\setup-docker.ps1
-```
-
-**Linux/Mac:**
-```bash
-chmod +x setup-docker.sh
-./setup-docker.sh
-```
-
-**Or manually:**
+**Quick Start:**
 ```bash
 # That's it! No .env file needed
 docker-compose -f docker-compose.simple.yml up -d --build
@@ -64,7 +53,7 @@ docker-compose -f docker-compose.simple.yml exec web python manage.py createsupe
 - All Django settings
 - No manual configuration needed!
 
-See [DOCKER_SIMPLE_SETUP.md](DOCKER_SIMPLE_SETUP.md) for details, or [DOCKER_SETUP.md](DOCKER_SETUP.md) for advanced configuration.
+For advanced Docker configuration, see the docker-compose files in the repository.
 
 ### Option 2: Manual Installation
 
@@ -258,7 +247,7 @@ server {
 
 #### Using Docker Compose
 
-Docker Compose configuration is included in the repository. See [DOCKER_SETUP.md](DOCKER_SETUP.md) for detailed instructions.
+Docker Compose configuration is included in the repository.
 
 **Quick Start:**
 ```bash

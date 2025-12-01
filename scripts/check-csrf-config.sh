@@ -31,3 +31,4 @@ echo ""
 echo "✅ If CSRF_TRUSTED_ORIGINS includes 'https://demo.wellq.io', you're good!"
 echo ""
 
+

@@ -11,3 +11,4 @@ def get_scanner_type(scanner_name):
 
 
 
+

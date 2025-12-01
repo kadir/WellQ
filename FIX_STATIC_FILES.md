@@ -63,3 +63,4 @@ After setting `SERVE_STATIC=true` and restarting:
 2. Visit `https://demo.wellq.io` - page should have styling
 3. Check Django logs: `docker-compose -f docker-compose.simple.yml logs web | tail -20`
 
+

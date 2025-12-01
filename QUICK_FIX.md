@@ -115,3 +115,4 @@ docker-compose -f docker-compose.simple.yml logs web | grep "PostgreSQL is ready
    - Has enough memory allocated (2GB+)?
    - WSL2 enabled (Windows)?
 
+

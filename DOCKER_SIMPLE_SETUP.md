@@ -148,3 +148,4 @@ docker-compose -f docker-compose.simple.yml up -d --build --force-recreate
 That's it! No complex PostgreSQL configuration needed. 🎉
 
 
+

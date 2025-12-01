@@ -87,3 +87,4 @@ The code now automatically detects when you're using a domain (like `demo.wellq.
 
 But it's still recommended to set `USE_PROXY=true` for proper proxy header handling.
 
+

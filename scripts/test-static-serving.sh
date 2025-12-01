@@ -45,3 +45,4 @@ echo "4. Test HTTP request from inside container:"
 docker exec wellq-web curl -I http://localhost:8000/static/css/dashboard.css 2>/dev/null | head -5
 echo ""
 
+

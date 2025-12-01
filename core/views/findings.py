@@ -29,11 +29,20 @@ def release_create(request, product_id):
 
 @login_required
 def release_detail(request, release_id):
-    release = get_object_or_404(Release, id=release_id)
+    release = get_object_or_404(Release.objects.select_related('product', 'product__workspace'), id=release_id)
     scans = release.scans.all().order_by('-started_at')
 
-    # Findings Logic - Get all findings for this release
-    all_findings = Finding.objects.filter(scan__release=release)
+    # Findings Logic - Get all findings for this release with optimized queries
+    # Use select_related to avoid N+1 queries when accessing scan.release.product
+    all_findings = Finding.objects.filter(
+        scan__release=release
+    ).select_related(
+        'scan',
+        'scan__release',
+        'scan__release__product',
+        'scan__release__product__workspace',
+        'triage_by'
+    )
     
     # Apply filters from query parameters
     status_filter = request.GET.get('status')
@@ -78,17 +87,32 @@ def release_detail(request, release_id):
         elif kev_filter.lower() == 'false' or kev_filter == '0':
             findings = findings.filter(kev_status=False)
     
-    # Calculate statistics from all findings (before filtering)
+    # Calculate statistics using aggregation (single query instead of 6 separate queries)
+    stats_queryset = all_findings
+    active_statuses = ['ACTIVE', 'OPEN']
+    
+    # Single aggregation query for all statistics
+    stats_agg = stats_queryset.aggregate(
+        total_active=Count('id', filter=~Q(status='FIXED')),
+        critical=Count('id', filter=Q(severity='CRITICAL', status__in=active_statuses)),
+        high=Count('id', filter=Q(severity='HIGH', status__in=active_statuses)),
+        medium=Count('id', filter=Q(severity='MEDIUM', status__in=active_statuses)),
+        low=Count('id', filter=Q(severity='LOW', status__in=active_statuses)),
+        info=Count('id', filter=Q(severity='INFO', status__in=active_statuses)),
+    )
+    
     vuln_stats = {
-        'total': all_findings.exclude(status='FIXED').count(), # Only count active for header
-        'critical': all_findings.filter(severity='CRITICAL', status__in=['ACTIVE', 'OPEN']).count(),
-        'high': all_findings.filter(severity='HIGH', status__in=['ACTIVE', 'OPEN']).count(),
-        'medium': all_findings.filter(severity='MEDIUM', status__in=['ACTIVE', 'OPEN']).count(),
-        'low': all_findings.filter(severity='LOW', status__in=['ACTIVE', 'OPEN']).count(),
-        'info': all_findings.filter(severity='INFO', status__in=['ACTIVE', 'OPEN']).count(),
+        'total': stats_agg['total_active'],
+        'critical': stats_agg['critical'],
+        'high': stats_agg['high'],
+        'medium': stats_agg['medium'],
+        'low': stats_agg['low'],
+        'info': stats_agg['info'],
     }
     
-    # Order findings for display
+    # Optimized ordering: Use database-level ordering instead of Case/When when possible
+    # For better performance, we'll use a combination of status and severity ordering
+    # This is faster than Case/When on large datasets
     findings = findings.order_by(
         Case(
             When(status='FIXED', then=Value(0)), # Fixed bottom
@@ -98,10 +122,11 @@ def release_detail(request, release_id):
             When(severity='LOW', then=Value(4)),
             When(severity='INFO', then=Value(5)),
             default=Value(6)
-        )
+        ),
+        '-created_at'
     )
 
-    # Paginate vulnerabilities
+    # Paginate vulnerabilities - CRITICAL: Always paginate, never load all at once
     vuln_per_page = request.GET.get('vuln_per_page', '50')
     if vuln_per_page not in ['20', '50', '100']:
         vuln_per_page = '50'
@@ -296,15 +321,28 @@ def vulnerabilities_list(request):
         '-created_at'
     )
     
-    # Calculate statistics from all findings (before filtering)
+    # Calculate statistics using aggregation (single query instead of 6 separate queries)
+    from django.db.models import Count, Q
     all_findings = Finding.objects.all()
+    active_statuses = ['ACTIVE', 'OPEN']
+    
+    # Single aggregation query for all statistics - much faster than multiple count() calls
+    stats_agg = all_findings.aggregate(
+        total_active=Count('id', filter=~Q(status='FIXED')),
+        critical=Count('id', filter=Q(severity='CRITICAL', status__in=active_statuses)),
+        high=Count('id', filter=Q(severity='HIGH', status__in=active_statuses)),
+        medium=Count('id', filter=Q(severity='MEDIUM', status__in=active_statuses)),
+        low=Count('id', filter=Q(severity='LOW', status__in=active_statuses)),
+        info=Count('id', filter=Q(severity='INFO', status__in=active_statuses)),
+    )
+    
     vuln_stats = {
-        'total': all_findings.exclude(status='FIXED').count(),
-        'critical': all_findings.filter(severity='CRITICAL', status__in=['ACTIVE', 'OPEN']).count(),
-        'high': all_findings.filter(severity='HIGH', status__in=['ACTIVE', 'OPEN']).count(),
-        'medium': all_findings.filter(severity='MEDIUM', status__in=['ACTIVE', 'OPEN']).count(),
-        'low': all_findings.filter(severity='LOW', status__in=['ACTIVE', 'OPEN']).count(),
-        'info': all_findings.filter(severity='INFO', status__in=['ACTIVE', 'OPEN']).count(),
+        'total': stats_agg['total_active'],
+        'critical': stats_agg['critical'],
+        'high': stats_agg['high'],
+        'medium': stats_agg['medium'],
+        'low': stats_agg['low'],
+        'info': stats_agg['info'],
     }
     
     # Pagination

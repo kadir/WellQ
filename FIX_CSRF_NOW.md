@@ -69,3 +69,4 @@ docker-compose -f docker-compose.simple.yml restart web
 docker exec wellq-web python manage.py shell -c "from django.conf import settings; print('CSRF_TRUSTED_ORIGINS:', settings.CSRF_TRUSTED_ORIGINS)"
 ```
 
+

@@ -170,3 +170,4 @@ docker-compose -f docker-compose.simple.yml logs web
    - WSL2 enabled (Windows)?
    - Enough disk space?
 
+

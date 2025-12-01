@@ -211,3 +211,4 @@ echo "🔍 Test your setup:"
 echo "   curl -I https://$DOMAIN"
 echo ""
 
+

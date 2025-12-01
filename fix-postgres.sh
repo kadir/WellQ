@@ -64,3 +64,4 @@ echo ""
 echo "✅ Done! Check status with: docker-compose -f docker-compose.simple.yml ps"
 echo "   View logs: docker-compose -f docker-compose.simple.yml logs -f"
 
+

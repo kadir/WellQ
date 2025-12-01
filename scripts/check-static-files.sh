@@ -32,3 +32,4 @@ echo ""
 
 echo "✅ If files don't exist, run: docker exec wellq-web python manage.py collectstatic --noinput"
 
+

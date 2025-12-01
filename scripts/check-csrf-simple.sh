@@ -30,3 +30,4 @@ echo ""
 echo "✅ If CSRF_TRUSTED_ORIGINS includes 'https://demo.wellq.io', you're good!"
 echo "❌ If it's empty, set USE_PROXY=true and restart the container"
 
+

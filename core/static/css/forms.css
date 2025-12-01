@@ -48,3 +48,27 @@ textarea.cra-input {
     line-height: 1.5;
     min-height: 100px;
 }
+
+/* File input specific styling */
+input[type="file"].cra-input {
+    padding: 0.5rem;
+    cursor: pointer;
+    color: #f4f4f5;
+}
+
+input[type="file"].cra-input::file-selector-button {
+    background-color: #27272a;
+    color: #f4f4f5;
+    border: 1px solid #3f3f46;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    margin-right: 1rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+input[type="file"].cra-input::file-selector-button:hover {
+    background-color: #3f3f46;
+    border-color: #52525b;
+}

@@ -52,3 +52,4 @@ echo ""
 echo "✅ If WhiteNoise is not installed, rebuild: docker-compose -f docker-compose.simple.yml build web"
 echo "✅ If manifest is missing, run: docker exec wellq-web python manage.py collectstatic --noinput"
 
+

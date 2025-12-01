@@ -196,6 +196,21 @@ class Finding(models.Model):
     first_seen = models.DateTimeField(auto_now_add=True)
     last_seen = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            # Composite index for common filter: status + severity
+            models.Index(fields=['status', 'severity'], name='finding_status_severity_idx'),
+            # Composite index for release filtering: scan__release lookup
+            models.Index(fields=['scan'], name='finding_scan_idx'),
+            # Composite index for EPSS filtering with status
+            models.Index(fields=['status', 'epss_score'], name='finding_status_epss_idx'),
+            # Composite index for KEV filtering with severity
+            models.Index(fields=['kev_status', 'severity'], name='finding_kev_severity_idx'),
+            # Index for created_at ordering
+            models.Index(fields=['-created_at'], name='finding_created_at_idx'),
+        ]
+        ordering = ['-created_at']
+
     def save(self, *args, **kwargs):
         # Generate deterministic hash
         unique_str = f"{self.cve_id}-{self.package_name}-{self.package_version}-{self.scan.release.id}"

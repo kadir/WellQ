@@ -69,3 +69,4 @@ Write-Host ""
 Write-Host "✅ Done! Check status with: docker-compose -f docker-compose.simple.yml ps" -ForegroundColor Green
 Write-Host "   View logs: docker-compose -f docker-compose.simple.yml logs -f" -ForegroundColor Cyan
 
+

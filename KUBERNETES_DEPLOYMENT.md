@@ -381,3 +381,4 @@ kubectl delete namespace wellq
 
 
 
+

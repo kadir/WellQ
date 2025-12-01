@@ -34,3 +34,4 @@ print(f"  ALLOWED_HOSTS exists: {bool(settings.ALLOWED_HOSTS)}")
 print(f"  Condition should be: {not settings.CSRF_TRUSTED_ORIGINS and settings.ALLOWED_HOSTS}")
 PYEOF
 
+

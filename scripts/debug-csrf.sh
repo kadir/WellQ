@@ -19,3 +19,4 @@ print("CSRF_TRUSTED_ORIGINS setting:", settings.CSRF_TRUSTED_ORIGINS)
 print("CSRF_TRUSTED_ORIGINS type:", type(settings.CSRF_TRUSTED_ORIGINS))
 PYEOF
 
+

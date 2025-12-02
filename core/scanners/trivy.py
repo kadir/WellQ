@@ -35,7 +35,7 @@ class TrivyScanner(BaseScanner):
                     pkg = vuln.get('PkgName', 'Unknown')
                     ver = vuln.get('InstalledVersion', 'Unknown')
                     
-                    # Generate Hash
+                    # Generate Hash (will be regenerated in save(), but we need it for deduplication)
                     unique_str = f"{cve}-{pkg}-{ver}-{release.id}"
                     finding_hash = hashlib.sha256(unique_str.encode('utf-8')).hexdigest()
                     seen_hashes.add(finding_hash)
@@ -47,8 +47,8 @@ class TrivyScanner(BaseScanner):
                         # Only update if something changed (Performance tweak)
                         needs_save = False
                         
-                        if obj.status == 'FIXED':
-                            obj.status = 'ACTIVE' # Regression
+                        if obj.status == Finding.Status.FIXED:
+                            obj.status = Finding.Status.OPEN  # Regression
                             needs_save = True
                         
                         # Always update metadata
@@ -59,17 +59,32 @@ class TrivyScanner(BaseScanner):
                         to_update.append(obj)
                     else:
                         # NEW: Prepare for Create
+                        # Extract CVSS and other metadata
+                        cvss_v2 = vuln.get('CVSS', {}).get('nvd', {}).get('V2Score', '')
+                        cvss_v3 = vuln.get('CVSS', {}).get('nvd', {}).get('V3Score', '')
+                        cvss_vector = vuln.get('CVSS', {}).get('nvd', {}).get('V3Vector', '')
+                        references = vuln.get('References', [])
+                        
                         to_create.append(Finding(
                             scan=scan_instance,
                             title=vuln.get('Title', 'Unknown'),
-                            cve_id=cve,
-                            severity=vuln.get('Severity', 'INFO').upper(),
                             description=vuln.get('Description', ''),
+                            severity=vuln.get('Severity', 'INFO').upper(),
+                            finding_type=Finding.Type.SCA,
+                            vulnerability_id=cve,
                             package_name=pkg,
                             package_version=ver,
-                            fixed_version=vuln.get('FixedVersion', ''),
+                            fix_version=vuln.get('FixedVersion', ''),
                             hash_id=finding_hash,
-                            status='ACTIVE'
+                            status=Finding.Status.OPEN,
+                            metadata={
+                                'cvss_v2': cvss_v2,
+                                'cvss_v3': cvss_v3,
+                                'cvss_vector': cvss_vector,
+                                'references': references,
+                                'pkg_id': vuln.get('PkgID', ''),
+                                'pkg_path': vuln.get('PkgPath', ''),
+                            }
                         ))
 
             # 2. BULK OPERATIONS (The Speed Boost)
@@ -80,7 +95,7 @@ class TrivyScanner(BaseScanner):
             
             # B. Bulk Update (1 Query)
             if to_update:
-                Finding.objects.bulk_update(to_update, ['scan', 'last_seen', 'status'])
+                Finding.objects.bulk_update(to_update, ['scan', 'last_seen', 'status'], batch_size=100)
 
             # 3. AUTO-CLOSE LOGIC (1 Query)
             all_known_hashes = set(existing_map.keys())
@@ -90,8 +105,8 @@ class TrivyScanner(BaseScanner):
                 Finding.objects.filter(
                     scan__release=release, 
                     hash_id__in=missing_hashes
-                ).exclude(status='FIXED').update( # Don't update if already fixed
-                    status='FIXED',
+                ).exclude(status=Finding.Status.FIXED).update(  # Don't update if already fixed
+                    status=Finding.Status.FIXED,
                     last_seen=now
                 )
 

@@ -54,51 +54,52 @@ def release_detail(request, release_id):
     # Apply status filter
     if status_filter:
         status_upper = status_filter.upper()
-        if status_upper == 'ACTIVE':
-            # Show both ACTIVE and OPEN for backward compatibility
-            findings = findings.filter(status__in=['ACTIVE', 'OPEN'])
-        else:
-            findings = findings.filter(status=status_upper)
+        # Map old status names to new ones for backward compatibility
+        status_mapping = {
+            'ACTIVE': 'OPEN',
+            'RISK_ACCEPTED': 'WONT_FIX',
+        }
+        mapped_status = status_mapping.get(status_upper, status_upper)
+        findings = findings.filter(status=mapped_status)
     # If no status filter (All selected), show all findings including FIXED
     
     # Apply severity filter
     if severity_filter:
         findings = findings.filter(severity=severity_filter.upper())
     
-    # Apply CVE filter
+    # Apply CVE/Vulnerability ID filter
     if cve_filter:
-        findings = findings.filter(cve_id__icontains=cve_filter)
+        findings = findings.filter(vulnerability_id__icontains=cve_filter)
     
-    # Apply EPSS score filter (minimum threshold)
+    # Apply EPSS score filter (minimum threshold) - from metadata JSON
     epss_filter = request.GET.get('epss', '').strip()
     if epss_filter:
         try:
             min_epss = float(epss_filter)
-            findings = findings.filter(epss_score__gte=min_epss)
+            findings = findings.filter(metadata__epss_score__gte=min_epss)
         except (ValueError, TypeError):
             # Invalid value, ignore filter
             pass
     
-    # Apply KEV filter
+    # Apply KEV filter - from metadata JSON
     kev_filter = request.GET.get('kev')
     if kev_filter:
         if kev_filter.lower() == 'true' or kev_filter == '1':
-            findings = findings.filter(kev_status=True)
+            findings = findings.filter(metadata__kev_status=True)
         elif kev_filter.lower() == 'false' or kev_filter == '0':
-            findings = findings.filter(kev_status=False)
+            findings = findings.filter(metadata__kev_status=False)
     
     # Calculate statistics using aggregation (single query instead of 6 separate queries)
     stats_queryset = all_findings
-    active_statuses = ['ACTIVE', 'OPEN']
     
     # Single aggregation query for all statistics
     stats_agg = stats_queryset.aggregate(
         total_active=Count('id', filter=~Q(status='FIXED')),
-        critical=Count('id', filter=Q(severity='CRITICAL', status__in=active_statuses)),
-        high=Count('id', filter=Q(severity='HIGH', status__in=active_statuses)),
-        medium=Count('id', filter=Q(severity='MEDIUM', status__in=active_statuses)),
-        low=Count('id', filter=Q(severity='LOW', status__in=active_statuses)),
-        info=Count('id', filter=Q(severity='INFO', status__in=active_statuses)),
+        critical=Count('id', filter=Q(severity='CRITICAL', status='OPEN')),
+        high=Count('id', filter=Q(severity='HIGH', status='OPEN')),
+        medium=Count('id', filter=Q(severity='MEDIUM', status='OPEN')),
+        low=Count('id', filter=Q(severity='LOW', status='OPEN')),
+        info=Count('id', filter=Q(severity='INFO', status='OPEN')),
     )
     
     vuln_stats = {
@@ -266,11 +267,13 @@ def vulnerabilities_list(request):
     status_filter = request.GET.get('status')
     if status_filter:
         status_upper = status_filter.upper()
-        if status_upper == 'ACTIVE':
-            # Show both ACTIVE and OPEN for backward compatibility
-            findings = findings.filter(status__in=['ACTIVE', 'OPEN'])
-        else:
-            findings = findings.filter(status=status_upper)
+        # Map old status names to new ones for backward compatibility
+        status_mapping = {
+            'ACTIVE': 'OPEN',
+            'RISK_ACCEPTED': 'WONT_FIX',
+        }
+        mapped_status = status_mapping.get(status_upper, status_upper)
+        findings = findings.filter(status=mapped_status)
     # If no status filter (All selected), show all findings including FIXED
     
     severity_filter = request.GET.get('severity')
@@ -279,7 +282,7 @@ def vulnerabilities_list(request):
     
     cve_filter = request.GET.get('cve_id')
     if cve_filter:
-        findings = findings.filter(cve_id__icontains=cve_filter)
+        findings = findings.filter(vulnerability_id__icontains=cve_filter)
     
     product_filter = request.GET.get('product')
     if product_filter:
@@ -289,23 +292,23 @@ def vulnerabilities_list(request):
     if workspace_filter:
         findings = findings.filter(scan__release__product__workspace__name__icontains=workspace_filter)
     
-    # Apply EPSS score filter (minimum threshold)
+    # Apply EPSS score filter (minimum threshold) - from metadata JSON
     epss_filter = request.GET.get('epss', '').strip()
     if epss_filter:
         try:
             min_epss = float(epss_filter)
-            findings = findings.filter(epss_score__gte=min_epss)
+            findings = findings.filter(metadata__epss_score__gte=min_epss)
         except (ValueError, TypeError):
             # Invalid value, ignore filter
             pass
     
-    # Apply KEV filter
+    # Apply KEV filter - from metadata JSON
     kev_filter = request.GET.get('kev')
     if kev_filter:
         if kev_filter.lower() == 'true' or kev_filter == '1':
-            findings = findings.filter(kev_status=True)
+            findings = findings.filter(metadata__kev_status=True)
         elif kev_filter.lower() == 'false' or kev_filter == '0':
-            findings = findings.filter(kev_status=False)
+            findings = findings.filter(metadata__kev_status=False)
     
     # Order by severity and date
     findings = findings.order_by(
@@ -324,16 +327,14 @@ def vulnerabilities_list(request):
     # Calculate statistics using aggregation (single query instead of 6 separate queries)
     from django.db.models import Count, Q
     all_findings = Finding.objects.all()
-    active_statuses = ['ACTIVE', 'OPEN']
-    
     # Single aggregation query for all statistics - much faster than multiple count() calls
     stats_agg = all_findings.aggregate(
-        total_active=Count('id', filter=~Q(status='FIXED')),
-        critical=Count('id', filter=Q(severity='CRITICAL', status__in=active_statuses)),
-        high=Count('id', filter=Q(severity='HIGH', status__in=active_statuses)),
-        medium=Count('id', filter=Q(severity='MEDIUM', status__in=active_statuses)),
-        low=Count('id', filter=Q(severity='LOW', status__in=active_statuses)),
-        info=Count('id', filter=Q(severity='INFO', status__in=active_statuses)),
+        total_active=Count('id', filter=Q(status='OPEN')),
+        critical=Count('id', filter=Q(severity='CRITICAL', status='OPEN')),
+        high=Count('id', filter=Q(severity='HIGH', status='OPEN')),
+        medium=Count('id', filter=Q(severity='MEDIUM', status='OPEN')),
+        low=Count('id', filter=Q(severity='LOW', status='OPEN')),
+        info=Count('id', filter=Q(severity='INFO', status='OPEN')),
     )
     
     vuln_stats = {
@@ -377,20 +378,31 @@ def vulnerability_detail(request, finding_id):
     
     finding = get_object_or_404(Finding, id=finding_id)
     
+    # Extract EPSS and KEV from metadata
+    metadata = finding.metadata or {}
+    epss_score = metadata.get('epss_score', 0.0)
+    epss_percentile = metadata.get('epss_percentile', 0.0)
+    kev_status = metadata.get('kev_status', False)
+    kev_date = metadata.get('kev_date')
+    
     data = {
         'id': str(finding.id),
-        'cve_id': finding.cve_id,
+        'vulnerability_id': finding.vulnerability_id or 'N/A',
         'title': finding.title,
         'description': finding.description,
         'severity': finding.severity,
+        'finding_type': finding.finding_type,
         'status': finding.status,
-        'package_name': finding.package_name,
-        'package_version': finding.package_version,
-        'fixed_version': finding.fixed_version or 'Not available',
-        'epss_score': finding.epss_score,
-        'epss_percentile': finding.epss_percentile,
-        'kev_status': finding.kev_status,
-        'kev_date': finding.kev_date.strftime('%Y-%m-%d') if finding.kev_date else None,
+        'package_name': finding.package_name or 'N/A',
+        'package_version': finding.package_version or 'N/A',
+        'fix_version': finding.fix_version or 'Not available',
+        'file_path': finding.file_path or 'N/A',
+        'line_number': finding.line_number,
+        'epss_score': epss_score,
+        'epss_percentile': epss_percentile,
+        'kev_status': kev_status,
+        'kev_date': kev_date.strftime('%Y-%m-%d') if kev_date and hasattr(kev_date, 'strftime') else (kev_date if kev_date else None),
+        'metadata': metadata,
         'triage_note': finding.triage_note,
         'triage_by': finding.triage_by.username if finding.triage_by else None,
         'triage_at': finding.triage_at.strftime('%Y-%m-%d %H:%M') if finding.triage_at else None,

@@ -1,4 +1,6 @@
 from .trivy import TrivyScanner
+from .trufflehog import TrufflehogScanner
+from .jfrogxray import JFrogXrayScanner
 
 # Scanner Type Classifications
 # Maps scanner names to their type (SCA, SAST, DAST, etc.)
@@ -7,6 +9,7 @@ SCANNER_TYPES = {
     'Grype': 'SCA Scan',
     'Snyk': 'SCA Scan',
     'Dependabot': 'SCA Scan',
+    'JFrog Xray': 'SCA Scan',
     'SonarQube': 'SAST Scan',
     'Bandit': 'SAST Scan',
     'Semgrep': 'SAST Scan',
@@ -14,6 +17,7 @@ SCANNER_TYPES = {
     'OWASP ZAP': 'DAST Scan',
     'Burp Suite': 'DAST Scan',
     'Nessus': 'DAST Scan',
+    'Trufflehog': 'Secret Scanner',
 }
 
 # 1. The Registry Dictionary
@@ -21,6 +25,8 @@ SCANNER_TYPES = {
 # Value = The Class that handles it
 SCANNER_REGISTRY = {
     'Trivy': TrivyScanner,
+    'Trufflehog': TrufflehogScanner,
+    'JFrog Xray': JFrogXrayScanner,
     # 'Grype': GrypeScanner,       <-- Easy to add later
     # 'SonarQube': SonarScanner,   <-- Easy to add later
 }

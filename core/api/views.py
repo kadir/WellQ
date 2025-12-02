@@ -87,7 +87,7 @@ def upload_scan(request):
     6. Deduplicates findings using hash-based fingerprinting
     7. Updates existing findings or creates new ones
     
-    Supported scanners: Trivy (more can be added)
+    Supported scanners: Trivy, Trufflehog, JFrog Xray (more can be added)
     """
     serializer = ScanUploadSerializer(data=request.data)
     

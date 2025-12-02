@@ -19,10 +19,10 @@ def dashboard(request):
     last_90_days = now - timedelta(days=90)
     
     # === OVERVIEW CARDS ===
-    active_findings = Finding.objects.filter(status__in=['ACTIVE', 'OPEN']).exclude(status='FIXED')
+    active_findings = Finding.objects.filter(status='OPEN').exclude(status='FIXED')
     critical_high = active_findings.filter(severity__in=['CRITICAL', 'HIGH']).count()
-    kev_count = active_findings.filter(kev_status=True).count()
-    high_epss = active_findings.filter(epss_score__gte=0.7).count()
+    kev_count = active_findings.filter(metadata__kev_status=True).count()
+    high_epss = active_findings.filter(metadata__epss_score__gte=0.7).count()
     
     # Fix rate (last 30 days)
     fixed_last_30 = Finding.objects.filter(
@@ -34,7 +34,7 @@ def dashboard(request):
     ).count()
     fix_rate = (fixed_last_30 / total_last_30 * 100) if total_last_30 > 0 else 0
     
-    risk_accepted = Finding.objects.filter(status='RISK_ACCEPTED').count()
+    risk_accepted = Finding.objects.filter(status='WONT_FIX').count()
     
     # === SEVERITY DISTRIBUTION ===
     severity_data = list(
@@ -70,7 +70,7 @@ def dashboard(request):
     
     # === TOP 10 CVEs ===
     top_cves = list(
-        active_findings.values('cve_id', 'severity')
+        active_findings.values('vulnerability_id', 'severity')
         .annotate(count=Count('id'))
         .order_by('-count')[:10]
     )
@@ -88,14 +88,14 @@ def dashboard(request):
     epss_data = []
     for r in epss_ranges:
         count = active_findings.filter(
-            epss_score__gte=r['min'],
-            epss_score__lt=r['max'] if r['max'] < 1.0 else 1.01
+            metadata__epss_score__gte=r['min'],
+            metadata__epss_score__lt=r['max'] if r['max'] < 1.0 else 1.01
         ).count()
         epss_data.append({'range': r['range'], 'count': count})
     
     # === KEV STATUS ===
-    kev_count_active = active_findings.filter(kev_status=True).count()
-    kev_not_exploited = active_findings.filter(kev_status=False).count()
+    kev_count_active = active_findings.filter(metadata__kev_status=True).count()
+    kev_not_exploited = active_findings.filter(metadata__kev_status=False).count()
     kev_data = [
         {'label': 'Exploited (KEV)', 'count': kev_count_active},
         {'label': 'Not Exploited', 'count': kev_not_exploited}
@@ -105,7 +105,7 @@ def dashboard(request):
     product_vulns = list(
         Product.objects.annotate(
             vuln_count=Count('releases__scans__findings', filter=Q(
-                releases__scans__findings__status__in=['ACTIVE', 'OPEN']
+                releases__scans__findings__status='OPEN'
             ))
         )
         .filter(vuln_count__gt=0)
@@ -132,8 +132,8 @@ def dashboard(request):
         ).count()
         
         active_count = Finding.objects.filter(
-            status__in=['ACTIVE', 'OPEN'],
-            created_at__lte=date_end
+            status='OPEN',
+            first_seen__lte=date_end
         ).exclude(status='FIXED').count()
         
         trend_data.append({
@@ -229,10 +229,10 @@ def workspace_list(request):
         ).exclude(status='FIXED')
         
         # Count by severity, including both ACTIVE and OPEN for backward compatibility
-        workspace.crit_count = findings.filter(severity='CRITICAL', status__in=['ACTIVE', 'OPEN']).count()
-        workspace.high_count = findings.filter(severity='HIGH', status__in=['ACTIVE', 'OPEN']).count()
-        workspace.med_count = findings.filter(severity='MEDIUM', status__in=['ACTIVE', 'OPEN']).count()
-        workspace.low_count = findings.filter(severity='LOW', status__in=['ACTIVE', 'OPEN']).count()
+        workspace.crit_count = findings.filter(severity='CRITICAL', status='OPEN').count()
+        workspace.high_count = findings.filter(severity='HIGH', status='OPEN').count()
+        workspace.med_count = findings.filter(severity='MEDIUM', status='OPEN').count()
+        workspace.low_count = findings.filter(severity='LOW', status='OPEN').count()
     
     return render(request, 'findings/workspace_list.html', {'workspaces': workspaces})
 
@@ -307,7 +307,7 @@ def product_detail(request, product_id):
     for release in releases:
         release.vuln_count = Finding.objects.filter(
             scan__release=release,
-            status='ACTIVE'
+            status='OPEN'
         ).count()
 
     return render(request, 'findings/product_detail.html', {

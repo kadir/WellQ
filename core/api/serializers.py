@@ -66,16 +66,14 @@ class FindingSerializer(serializers.ModelSerializer):
         model = Finding
         fields = [
             'id', 'scan', 'scan_scanner', 'release_name', 'product_name',
-            'title', 'cve_id', 'severity', 'description',
-            'package_name', 'package_version', 'fixed_version',
-            'epss_score', 'epss_percentile', 'kev_status', 'kev_date',
+            'title', 'description', 'severity', 'finding_type',
+            'vulnerability_id', 'package_name', 'package_version', 'fix_version',
+            'file_path', 'line_number', 'metadata',
             'status', 'triage_note', 'triage_by', 'triage_at',
-            'hash_id', 'first_seen', 'last_seen', 'created_at'
+            'hash_id', 'first_seen', 'last_seen'
         ]
         read_only_fields = [
-            'id', 'hash_id', 'first_seen', 'last_seen',
-            'epss_score', 'epss_percentile', 'kev_status', 'kev_date',
-            'created_at'
+            'id', 'hash_id', 'first_seen', 'last_seen'
         ]
 
 

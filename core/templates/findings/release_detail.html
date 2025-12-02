@@ -188,7 +188,15 @@
                             </div>
                         </td>
 
-                        <td class="px-6 py-3 font-mono text-white group-hover:text-emerald-400">{{ finding.cve_id }}</td>
+                        <td class="px-6 py-3 font-mono text-white group-hover:text-emerald-400">
+                            {% if finding.vulnerability_id %}
+                            <a href="https://nvd.nist.gov/vuln/detail/{{ finding.vulnerability_id }}" target="_blank" class="hover:underline">
+                                {{ finding.vulnerability_id }}
+                            </a>
+                            {% else %}
+                            <span class="text-gray-600">{{ finding.vulnerability_id|default:"N/A" }}</span>
+                            {% endif %}
+                        </td>
 
                         <td class="px-6 py-3">
                             <div class="text-gray-300">{{ finding.package_name }}</div>
@@ -203,7 +211,7 @@
                             </span>
                         </td>
 
-                        <td class="px-6 py-3 font-mono text-emerald-500">{{ finding.fixed_version|default:"-" }}</td>
+                        <td class="px-6 py-3 font-mono text-emerald-500">{{ finding.fix_version|default:"-" }}</td>
 
                         <!-- Status (Last Column) -->
                         <td class="px-6 py-3">

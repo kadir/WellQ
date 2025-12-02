@@ -104,20 +104,26 @@ class Command(BaseCommand):
         total_updates = 0
 
         for finding in queryset:
-            cve = finding.cve_id
+            cve = finding.vulnerability_id
             updated = False
 
             # 1. Check EPSS
             if cve in epss_dict:
                 data = epss_dict[cve]
-                finding.epss_score = data['score']
-                finding.epss_percentile = data['p']
+                # Store EPSS in metadata
+                if not finding.metadata:
+                    finding.metadata = {}
+                finding.metadata['epss_score'] = data['score']
+                finding.metadata['epss_percentile'] = data.get('p', 0.0)
                 updated = True
 
             # 2. Check KEV
             if cve in kev_dict:
-                finding.kev_status = True
-                finding.kev_date = kev_dict[cve]
+                # Store KEV in metadata
+                if not finding.metadata:
+                    finding.metadata = {}
+                finding.metadata['kev_status'] = True
+                finding.metadata['kev_date'] = kev_dict[cve]
                 updated = True
             
             # If we have data, mark as enriched

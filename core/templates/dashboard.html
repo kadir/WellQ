@@ -354,7 +354,7 @@ if (kevData.length > 0 && (kevData[0]?.count > 0 || kevData[1]?.count > 0)) {
 // Top 10 CVEs (Horizontal Bar Chart)
 const topCvesData = safeParseJSON('top-cves-data', []);
 if (topCvesData.length > 0) {
-    const cveLabels = topCvesData.map(d => d.cve_id);
+    const cveLabels = topCvesData.map(d => d.vulnerability_id || 'N/A');
     const cveCounts = topCvesData.map(d => d.count);
     const cveColors = topCvesData.map(d => {
         const map = {CRITICAL: colors.critical, HIGH: colors.high, MEDIUM: colors.medium, LOW: colors.low, INFO: colors.info};

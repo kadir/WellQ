@@ -165,15 +165,21 @@ def enrich_findings_with_threat_intel():
                 needs_update = False
                 
                 # Update KEV status
-                if finding.cve_id in kev_dict:
-                    if not finding.kev_status:
-                        finding.kev_status = True
+                if finding.vulnerability_id in kev_dict:
+                    # Store KEV in metadata
+                    if not finding.metadata:
+                        finding.metadata = {}
+                    if not finding.metadata.get('kev_status'):
+                        finding.metadata['kev_status'] = True
                         needs_update = True
-                    kev_info = kev_dict[finding.cve_id]
+                    kev_info = kev_dict[finding.vulnerability_id]
                     if kev_info.get('dateAdded'):
                         try:
                             from datetime import datetime
-                            finding.kev_date = datetime.strptime(
+                            # Store KEV date in metadata
+                            if not finding.metadata:
+                                finding.metadata = {}
+                            finding.metadata['kev_date'] = datetime.strptime(
                                 kev_info['dateAdded'], 
                                 '%Y-%m-%d'
                             ).date()
@@ -181,19 +187,25 @@ def enrich_findings_with_threat_intel():
                         except:
                             pass
                 else:
-                    if finding.kev_status:
-                        finding.kev_status = False
+                    # Update KEV status in metadata
+                    if not finding.metadata:
+                        finding.metadata = {}
+                    if finding.metadata.get('kev_status'):
+                        finding.metadata['kev_status'] = False
                         needs_update = True
                 
                 # Update EPSS data
-                if finding.cve_id in epss_dict:
-                    epss_info = epss_dict[finding.cve_id]
-                    if finding.epss_score != epss_info['score']:
-                        finding.epss_score = epss_info['score']
+                if finding.vulnerability_id in epss_dict:
+                    epss_info = epss_dict[finding.vulnerability_id]
+                    # Store EPSS in metadata
+                    if not finding.metadata:
+                        finding.metadata = {}
+                    if finding.metadata.get('epss_score') != epss_info['score']:
+                        finding.metadata['epss_score'] = epss_info['score']
+                        finding.metadata['epss_percentile'] = epss_info.get('percentile', 0.0)
                         needs_update = True
-                    if finding.epss_percentile != epss_info['percentile']:
-                        finding.epss_percentile = epss_info['percentile']
-                        needs_update = True
+                    # EPSS percentile is already handled above
+                    pass
                 
                 if needs_update:
                     finding.last_enrichment = timezone.now()

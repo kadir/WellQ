@@ -65,7 +65,7 @@
                             <div class="text-xs text-gray-500">{{ request.requested_by.get_full_name|default:request.requested_by.email }}</div>
                         </td>
                         <td class="px-6 py-4">
-                            <div class="text-sm text-white font-semibold">{{ request.finding.cve_id }}</div>
+                            <div class="text-sm text-white font-semibold">{{ request.finding.vulnerability_id|default:"N/A" }}</div>
                             <div class="text-xs text-gray-500">{{ request.finding.title|truncatewords:10 }}</div>
                             <div class="text-xs text-gray-600 mt-1">
                                 {{ request.finding.scan.release.product.name }} @ {{ request.finding.scan.release.name }}
@@ -194,7 +194,7 @@
                             <div class="text-xs text-gray-500">{{ request.requested_by.get_full_name|default:request.requested_by.email }}</div>
                         </td>
                         <td class="px-6 py-4">
-                            <div class="text-sm text-white font-semibold">{{ request.finding.cve_id }}</div>
+                            <div class="text-sm text-white font-semibold">{{ request.finding.vulnerability_id|default:"N/A" }}</div>
                             <div class="text-xs text-gray-500">{{ request.finding.title|truncatewords:10 }}</div>
                             <div class="text-xs text-gray-600 mt-1">
                                 {{ request.finding.scan.release.product.name }} @ {{ request.finding.scan.release.name }}

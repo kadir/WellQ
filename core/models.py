@@ -236,6 +236,37 @@ class Finding(models.Model):
             self.hash_id = hashlib.sha256(unique_str.encode('utf-8')).hexdigest()
         super().save(*args, **kwargs)
 
+    # --- HELPER PROPERTIES (for backward compatibility with templates) ---
+    @property
+    def cve_id(self):
+        """Backward compatibility: alias for vulnerability_id"""
+        return self.vulnerability_id or ''
+    
+    @property
+    def fixed_version(self):
+        """Backward compatibility: alias for fix_version"""
+        return self.fix_version or ''
+    
+    @property
+    def epss_score(self):
+        """Get EPSS score from metadata"""
+        return (self.metadata or {}).get('epss_score', 0.0)
+    
+    @property
+    def epss_percentile(self):
+        """Get EPSS percentile from metadata"""
+        return (self.metadata or {}).get('epss_percentile', 0.0)
+    
+    @property
+    def kev_status(self):
+        """Get KEV status from metadata"""
+        return (self.metadata or {}).get('kev_status', False)
+    
+    @property
+    def kev_date(self):
+        """Get KEV date from metadata"""
+        return (self.metadata or {}).get('kev_date', None)
+
     def __str__(self):
         return f"[{self.severity}] {self.title}"
 
@@ -376,7 +407,11 @@ class UserProfile(models.Model):
 def create_user_profile(sender, instance, created, **kwargs):
     """Automatically create UserProfile when a User is created"""
     if created:
-        UserProfile.objects.get_or_create(user=instance)
+        try:
+            UserProfile.objects.get_or_create(user=instance)
+        except Exception:
+            # Ignore if table doesn't exist yet (migrations not run)
+            pass
 
 
 # Platform Settings Model
@@ -520,7 +555,7 @@ class StatusApprovalRequest(models.Model):
         ]
     
     def __str__(self):
-        return f"Approval request for {self.finding.cve_id} - {self.requested_status} by {self.requested_by.username}"
+        return f"Approval request for {self.finding.vulnerability_id or 'N/A'} - {self.requested_status} by {self.requested_by.username}"
     
     def approve(self, reviewer, review_note=''):
         """Approve this request and update the finding status"""

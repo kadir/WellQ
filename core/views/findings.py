@@ -124,7 +124,7 @@ def release_detail(request, release_id):
             When(severity='INFO', then=Value(5)),
             default=Value(6)
         ),
-        '-created_at'
+        '-first_seen'
     )
 
     # Paginate vulnerabilities - CRITICAL: Always paginate, never load all at once
@@ -321,7 +321,7 @@ def vulnerabilities_list(request):
             When(severity='INFO', then=Value(5)),
             default=Value(6)
         ),
-        '-created_at'
+        '-first_seen'
     )
     
     # Calculate statistics using aggregation (single query instead of 6 separate queries)
@@ -449,11 +449,11 @@ def update_vulnerability_status(request, finding_id):
     new_status = request.POST.get('status')
     triage_note = request.POST.get('triage_note', '')
     
-    if new_status not in dict(Finding.STATUS_CHOICES):
+    if new_status not in dict(Finding.Status.choices):
         return JsonResponse({'error': 'Invalid status'}, status=400)
     
-    # If status is ACTIVE, update directly (no approval needed)
-    if new_status == 'ACTIVE':
+    # If status is OPEN, update directly (no approval needed)
+    if new_status == 'OPEN':
         finding.status = new_status
         finding.triage_note = triage_note
         finding.triage_by = request.user
@@ -468,7 +468,7 @@ def update_vulnerability_status(request, finding_id):
             'triage_at': finding.triage_at.strftime('%Y-%m-%d %H:%M'),
         })
     
-    # For other statuses (FIXED, FALSE_POSITIVE, RISK_ACCEPTED, DUPLICATE), create approval request
+    # For other statuses (FIXED, FALSE_POSITIVE, WONT_FIX, DUPLICATE), create approval request
     # Check if user has approval permission - if yes, update directly
     if can_approve_status(request.user):
         finding.status = new_status

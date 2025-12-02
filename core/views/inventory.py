@@ -30,7 +30,7 @@ def dashboard(request):
         last_seen__gte=last_30_days
     ).count()
     total_last_30 = Finding.objects.filter(
-        created_at__gte=last_30_days
+        first_seen__gte=last_30_days
     ).count()
     fix_rate = (fixed_last_30 / total_last_30 * 100) if total_last_30 > 0 else 0
     
@@ -61,10 +61,10 @@ def dashboard(request):
     # Ensure we have data for all statuses even if count is 0
     if not status_data:
         status_data = [
-            {'status': 'ACTIVE', 'count': 0},
+            {'status': 'OPEN', 'count': 0},
             {'status': 'FIXED', 'count': 0},
             {'status': 'FALSE_POSITIVE', 'count': 0},
-            {'status': 'RISK_ACCEPTED', 'count': 0},
+            {'status': 'WONT_FIX', 'count': 0},
             {'status': 'DUPLICATE', 'count': 0},
         ]
     
@@ -121,8 +121,8 @@ def dashboard(request):
         date_end = date_start + timedelta(days=1)
         
         new_count = Finding.objects.filter(
-            created_at__gte=date_start,
-            created_at__lt=date_end
+            first_seen__gte=date_start,
+            first_seen__lt=date_end
         ).count()
         
         fixed_count = Finding.objects.filter(
@@ -168,7 +168,7 @@ def dashboard(request):
     
     # Components with vulnerabilities
     components_with_vulns = Component.objects.filter(
-        release__scans__findings__status__in=['ACTIVE', 'OPEN']
+        release__scans__findings__status='OPEN'
     ).distinct().count()
     
     # === RECENT ACTIVITY (Last 10 events) ===

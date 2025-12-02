@@ -619,13 +619,13 @@ class FindingViewSet(viewsets.ReadOnlyModelViewSet):
         
         cve_filter = request.query_params.get('cve_id')
         if cve_filter:
-            queryset = queryset.filter(cve_id__icontains=cve_filter)
+            queryset = queryset.filter(vulnerability_id__icontains=cve_filter)
         
         kev_filter = request.query_params.get('kev_status')
         if kev_filter is not None:
-            queryset = queryset.filter(kev_status=kev_filter.lower() == 'true')
+            queryset = queryset.filter(metadata__kev_status=kev_filter.lower() == 'true')
         
-        queryset = queryset.order_by('-severity', '-created_at')
+        queryset = queryset.order_by('-severity', '-first_seen')
         
         page = self.paginate_queryset(queryset)
         if page is not None:

@@ -1,8 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
-from core.models import Workspace, Product, Release, Finding, Scan, Component
-from core.forms import WorkspaceForm, ProductForm
+from django.contrib import messages
+from django.http import JsonResponse
+import uuid
+from core.models import Workspace, Product, Release, Finding, Scan, Component, Repository, Artifact
+from core.forms import WorkspaceForm, ProductForm, RepositoryForm, ReleaseComposerForm
 
 @login_required
 def dashboard(request):
@@ -426,3 +429,213 @@ def product_detail(request, product_id):
         'product': product,
         'releases': releases
     })
+
+
+# ===== ASSET INVENTORY (BOM Architecture) =====
+
+@login_required
+def asset_inventory(request):
+    """
+    Asset Inventory page - Manage Repositories and view Artifacts
+    Lists all repositories with expandable rows showing their artifacts
+    """
+    repositories = Repository.objects.select_related('workspace').prefetch_related(
+        'artifacts'
+    ).order_by('workspace__name', 'name')
+    
+    # Group repositories by workspace
+    repos_by_workspace = {}
+    for repo in repositories:
+        workspace_name = repo.workspace.name
+        if workspace_name not in repos_by_workspace:
+            repos_by_workspace[workspace_name] = []
+        repos_by_workspace[workspace_name].append(repo)
+    
+    # Get artifact scan status for each repository
+    for repo in repositories:
+        artifacts = repo.artifacts.all()[:5]  # Latest 5 artifacts
+        for artifact in artifacts:
+            # Get latest scan status for this artifact
+            latest_scan = Scan.objects.filter(artifact=artifact).order_by('-started_at').first()
+            artifact.latest_scan_status = latest_scan.status if latest_scan else 'NO_SCAN'
+            artifact.latest_scan_date = latest_scan.started_at if latest_scan else None
+            artifact.findings_count = Finding.objects.filter(
+                scan__artifact=artifact,
+                status='OPEN'
+            ).count() if latest_scan else 0
+    
+    workspaces = Workspace.objects.all().order_by('name')
+    
+    return render(request, 'inventory/asset_inventory.html', {
+        'repositories': repositories,
+        'repos_by_workspace': repos_by_workspace,
+        'workspaces': workspaces,
+    })
+
+
+@login_required
+def repository_create(request):
+    """Create a new repository (modal form handler)"""
+    if request.method == 'POST':
+        form = RepositoryForm(request.POST)
+        if form.is_valid():
+            repository = form.save()
+            messages.success(request, f'Repository "{repository.name}" created successfully.')
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Repository "{repository.name}" created successfully.',
+                    'repository_id': str(repository.id)
+                })
+            return redirect('asset_inventory')
+        else:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'errors': form.errors
+                }, status=400)
+            messages.error(request, 'Error creating repository. Please check the form.')
+    else:
+        form = RepositoryForm()
+    
+    return render(request, 'inventory/repository_form_modal.html', {
+        'form': form
+    })
+
+
+@login_required
+def artifact_search_api(request):
+    """
+    API endpoint for artifact search (used by Release Composer)
+    Returns JSON list of artifacts matching the search query
+    """
+    query = request.GET.get('q', '').strip()
+    workspace_id = request.GET.get('workspace_id')
+    
+    artifacts = Artifact.objects.select_related('repository', 'workspace').all()
+    
+    # Filter by workspace if provided
+    if workspace_id:
+        try:
+            artifacts = artifacts.filter(workspace_id=workspace_id)
+        except ValueError:
+            pass
+    
+    # Search by name or version
+    if query:
+        artifacts = artifacts.filter(
+            Q(name__icontains=query) | Q(version__icontains=query)
+        )
+    
+    # Limit results
+    artifacts = artifacts[:20]
+    
+    # Get scan status for each artifact
+    results = []
+    for artifact in artifacts:
+        latest_scan = Scan.objects.filter(artifact=artifact).order_by('-started_at').first()
+        results.append({
+            'id': str(artifact.id),
+            'name': artifact.name,
+            'version': artifact.version,
+            'type': artifact.type,
+            'repository': artifact.repository.name if artifact.repository else None,
+            'workspace': artifact.workspace.name,
+            'latest_scan_status': latest_scan.status if latest_scan else 'NO_SCAN',
+            'findings_count': Finding.objects.filter(
+                scan__artifact=artifact,
+                status='OPEN'
+            ).count() if latest_scan else 0,
+        })
+    
+    return JsonResponse({'artifacts': results})
+
+
+# ===== RELEASE COMPOSER (BOM Builder) =====
+
+@login_required
+def release_composer(request, product_id):
+    """
+    Release Composer - BOM Builder
+    Allows users to compose a release by selecting artifacts
+    """
+    product = get_object_or_404(Product, id=product_id)
+    
+    if request.method == 'POST':
+        form = ReleaseComposerForm(request.POST)
+        if form.is_valid():
+            release = form.save(commit=False)
+            release.product = product
+            release.save()
+            
+            # Link artifacts to release
+            artifact_ids = form.cleaned_data.get('artifact_ids', [])
+            if artifact_ids:
+                try:
+                    artifacts = Artifact.objects.filter(id__in=artifact_ids)
+                    release.artifacts.set(artifacts)
+                except Exception as e:
+                    messages.error(request, f'Error linking artifacts: {str(e)}')
+            
+            messages.success(request, f'Release "{release.name}" created successfully with {len(artifact_ids)} artifacts.')
+            return redirect('release_detail', release_id=release.id)
+        else:
+            messages.error(request, 'Error creating release. Please check the form.')
+    else:
+        form = ReleaseComposerForm()
+    
+    # Get all workspaces for filtering
+    workspaces = Workspace.objects.all().order_by('name')
+    
+    return render(request, 'inventory/release_composer.html', {
+        'product': product,
+        'form': form,
+        'workspaces': workspaces,
+    })
+
+
+@login_required
+def release_composer_risk_preview(request):
+    """
+    API endpoint to calculate estimated risk for selected artifacts
+    Used by Release Composer to show risk preview
+    """
+    artifact_ids = request.GET.get('artifact_ids', '').strip()
+    
+    if not artifact_ids:
+        return JsonResponse({
+            'critical': 0,
+            'high': 0,
+            'medium': 0,
+            'low': 0,
+            'total': 0
+        })
+    
+    try:
+        artifact_id_list = [uuid.UUID(id.strip()) for id in artifact_ids.split(',') if id.strip()]
+        artifacts = Artifact.objects.filter(id__in=artifact_id_list)
+        
+        # Get all findings from scans of these artifacts
+        findings = Finding.objects.filter(
+            scan__artifact__in=artifacts,
+            status='OPEN'
+        )
+        
+        stats = findings.aggregate(
+            critical=Count('id', filter=Q(severity='CRITICAL')),
+            high=Count('id', filter=Q(severity='HIGH')),
+            medium=Count('id', filter=Q(severity='MEDIUM')),
+            low=Count('id', filter=Q(severity='LOW')),
+            total=Count('id')
+        )
+        
+        return JsonResponse(stats)
+    except (ValueError, Exception) as e:
+        return JsonResponse({
+            'error': str(e),
+            'critical': 0,
+            'high': 0,
+            'medium': 0,
+            'low': 0,
+            'total': 0
+        }, status=400)

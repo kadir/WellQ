@@ -57,8 +57,8 @@
              <a href="{% url 'product_edit' product.id %}" class="px-3 py-2 border border-zinc-700 rounded text-xs text-gray-300 hover:text-white hover:border-gray-500 transition-colors uppercase font-bold tracking-wider">
                 Edit Product
             </a>
-            <a href="{% url 'release_create' product.id %}" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider flex items-center gap-2">
-                <span>+ New Release</span>
+            <a href="{% url 'release_composer' product.id %}" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider flex items-center gap-2">
+                <span>+ Compose Release</span>
             </a>
         </div>
     </div>
@@ -136,7 +136,7 @@
                                 <svg class="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                             </div>
                             <p class="text-gray-500 text-sm">No releases tracked for this product.</p>
-                            <a href="{% url 'release_create' product.id %}" class="text-emerald-500 text-xs font-bold mt-2 hover:underline">Create first release</a>
+                            <a href="{% url 'release_composer' product.id %}" class="text-emerald-500 text-xs font-bold mt-2 hover:underline">Compose first release</a>
                         </div>
                     </td>
                 </tr>

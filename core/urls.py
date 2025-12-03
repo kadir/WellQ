@@ -39,9 +39,16 @@ urlpatterns = [
 
     # Releases & Findings
     path('products/<uuid:product_id>/releases/create/', findings.release_create, name='release_create'),
+    path('products/<uuid:product_id>/releases/compose/', inventory.release_composer, name='release_composer'),
     path('releases/<uuid:release_id>/', findings.release_detail, name='release_detail'),
     path('releases/<uuid:release_id>/upload-sbom/', findings.release_sbom_upload, name='release_sbom_upload'),
     path('releases/<uuid:release_id>/export-sbom/', findings.release_sbom_export, name='release_sbom_export'),
+    
+    # Asset Inventory (BOM Architecture)
+    path('inventory/', inventory.asset_inventory, name='asset_inventory'),
+    path('inventory/repositories/create/', inventory.repository_create, name='repository_create'),
+    path('api/artifacts/search/', inventory.artifact_search_api, name='artifact_search_api'),
+    path('api/releases/risk-preview/', inventory.release_composer_risk_preview, name='release_composer_risk_preview'),
 
     # Ingestion
     path('upload/', ingestion.upload_scan, name='upload_scan'),

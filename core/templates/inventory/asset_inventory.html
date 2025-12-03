@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}Asset Inventory{% endblock %}
+
+{% block breadcrumbs %}
+<span class="text-gray-600">/</span>
+<a href="{% url 'asset_inventory' %}" class="hover:text-white">inventory</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    
+    <div class="mb-8 flex justify-between items-start border-b border-zinc-800 pb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-white mb-1">Asset Inventory</h1>
+            <p class="text-gray-500 text-sm mt-2">Manage repositories and view artifacts produced by your CI/CD pipelines</p>
+        </div>
+        
+        <button onclick="openRepoModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded transition-colors uppercase tracking-wider flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Connect Repository
+        </button>
+    </div>
+
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+        <div class="px-6 py-3 border-b border-[#27272a] bg-zinc-900/30 flex justify-between items-center">
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Repositories</h3>
+            <span class="text-[10px] font-mono text-gray-500">{{ repositories.count }} REPOS</span>
+        </div>
+        
+        {% if repositories %}
+        <div class="divide-y divide-zinc-800">
+            {% for repo in repositories %}
+            <div class="repo-row" data-repo-id="{{ repo.id }}">
+                <div class="px-6 py-4 hover:bg-zinc-900/30 cursor-pointer transition-colors flex items-center justify-between" onclick="toggleRepoArtifacts({{ repo.id }})">
+                    <div class="flex items-center gap-4">
+                        <svg class="w-5 h-5 text-zinc-500 transition-transform" id="arrow-{{ repo.id }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <div>
+                            <div class="text-sm font-bold text-white">{{ repo.name }}</div>
+                            <div class="text-xs text-zinc-500 font-mono mt-1">{{ repo.url|default:"No URL" }}</div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-zinc-500 font-mono">
+                        {{ repo.workspace.name }}
+                    </div>
+                </div>
+                
+                <div id="artifacts-{{ repo.id }}" class="hidden px-6 py-4 bg-zinc-950/50 border-t border-zinc-800">
+                    <div class="text-xs text-zinc-500 uppercase font-mono mb-3">Latest Artifacts</div>
+                    {% if repo.artifacts.all %}
+                        <div class="space-y-2">
+                            {% for artifact in repo.artifacts.all|slice:":5" %}
+                            <div class="flex justify-between items-center bg-zinc-900/50 border border-zinc-800 p-3 rounded">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-8 w-8 bg-blue-500/20 rounded flex items-center justify-center text-blue-400 font-mono text-xs">
+                                        {{ artifact.type|slice:":3"|upper }}
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-white font-bold">{{ artifact.name }}</div>
+                                        <div class="text-xs text-zinc-500 font-mono">{{ artifact.version|truncatechars:20 }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    {% if artifact.latest_scan_status == 'COMPLETED' %}
+                                        <span class="text-xs text-emerald-500 font-mono">Scanned</span>
+                                    {% elif artifact.latest_scan_status == 'NO_SCAN' %}
+                                        <span class="text-xs text-zinc-600 font-mono">Not Scanned</span>
+                                    {% else %}
+                                        <span class="text-xs text-yellow-500 font-mono">{{ artifact.latest_scan_status }}</span>
+                                    {% endif %}
+                                    {% if artifact.findings_count > 0 %}
+                                        <span class="text-xs text-red-500 font-bold">{{ artifact.findings_count }} findings</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-sm text-zinc-600 italic">No artifacts found for this repository</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="px-6 py-12 text-center">
+            <svg class="w-12 h-12 text-zinc-700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            <p class="text-zinc-500 text-sm mb-4">No repositories found</p>
+            <button onclick="openRepoModal()" class="text-emerald-500 text-xs font-bold hover:underline">Connect your first repository</button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Repository Modal -->
+<div id="repoModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+    <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-xl w-96 max-w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-white font-bold">Connect Repository</h3>
+            <button onclick="closeRepoModal()" class="text-zinc-500 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <form method="POST" action="{% url 'repository_create' %}" id="repoForm">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-xs text-zinc-500 mb-1">Workspace</label>
+                <select name="workspace" required class="w-full bg-black border border-zinc-700 rounded p-2 text-white">
+                    {% for workspace in workspaces %}
+                    <option value="{{ workspace.id }}">{{ workspace.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-xs text-zinc-500 mb-1">Repo Name</label>
+                <input type="text" name="name" required class="w-full bg-black border border-zinc-700 rounded p-2 text-white" placeholder="e.g. backend-api">
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-xs text-zinc-500 mb-1">Git URL</label>
+                <input type="url" name="url" class="w-full bg-black border border-zinc-700 rounded p-2 text-white" placeholder="https://github.com/org/repo">
+            </div>
+            
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded transition-colors">Connect</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleRepoArtifacts(repoId) {
+    const artifactsDiv = document.getElementById('artifacts-' + repoId);
+    const arrow = document.getElementById('arrow-' + repoId);
+    
+    if (artifactsDiv.classList.contains('hidden')) {
+        artifactsDiv.classList.remove('hidden');
+        arrow.classList.add('rotate-90');
+    } else {
+        artifactsDiv.classList.add('hidden');
+        arrow.classList.remove('rotate-90');
+    }
+}
+
+function openRepoModal() {
+    document.getElementById('repoModal').classList.remove('hidden');
+}
+
+function closeRepoModal() {
+    document.getElementById('repoModal').classList.add('hidden');
+}
+
+// Handle form submission via AJAX
+document.getElementById('repoForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeRepoModal();
+            location.reload();
+        } else {
+            alert('Error: ' + (data.errors || 'Failed to create repository'));
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+});
+</script>
+{% endblock %}
+

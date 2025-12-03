@@ -1,5 +1,5 @@
 from django import forms
-from core.models import Workspace, Product, Release, Role, PlatformSettings
+from core.models import Workspace, Product, Release, Role, PlatformSettings, Repository, Artifact
 from core.scanners import SCANNER_REGISTRY
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm as DjangoPasswordChangeForm
 from django.contrib.auth import get_user_model
@@ -270,3 +270,65 @@ class PlatformSettingsForm(forms.ModelForm):
         cleaned_data = super().clean()
         # Model's clean() method will handle URL validation
         return cleaned_data
+
+
+# Repository Form
+class RepositoryForm(forms.ModelForm):
+    """Form for creating/editing repositories"""
+    class Meta:
+        model = Repository
+        fields = ['name', 'url', 'workspace']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full bg-black border border-zinc-700 rounded p-2 text-white',
+                'placeholder': 'e.g. backend-api'
+            }),
+            'url': forms.URLInput(attrs={
+                'class': 'w-full bg-black border border-zinc-700 rounded p-2 text-white',
+                'placeholder': 'https://github.com/org/repo'
+            }),
+            'workspace': forms.Select(attrs={
+                'class': 'w-full bg-black border border-zinc-700 rounded p-2 text-white'
+            }),
+        }
+
+
+# Release Composer Form (BOM Builder)
+class ReleaseComposerForm(forms.ModelForm):
+    """Form for composing a release with artifacts (BOM Builder)"""
+    artifact_ids = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+        help_text="Comma-separated list of artifact IDs"
+    )
+    
+    class Meta:
+        model = Release
+        fields = ['name', 'commit_hash']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full bg-black border border-zinc-700 text-white p-3 rounded',
+                'placeholder': 'v1.5.0-production'
+            }),
+            'commit_hash': forms.TextInput(attrs={
+                'class': 'w-full bg-black border border-zinc-700 text-white p-3 rounded',
+                'placeholder': 'Git commit SHA (optional)'
+            }),
+        }
+    
+    def clean_artifact_ids(self):
+        """Validate and parse artifact IDs"""
+        artifact_ids_str = self.cleaned_data.get('artifact_ids', '')
+        if not artifact_ids_str:
+            return []
+        
+        # Parse comma-separated IDs
+        try:
+            artifact_ids = [uuid.UUID(id.strip()) for id in artifact_ids_str.split(',') if id.strip()]
+            # Verify artifacts exist
+            existing_count = Artifact.objects.filter(id__in=artifact_ids).count()
+            if existing_count != len(artifact_ids):
+                raise forms.ValidationError("One or more artifacts not found.")
+            return artifact_ids
+        except (ValueError, TypeError) as e:
+            raise forms.ValidationError(f"Invalid artifact ID format: {str(e)}")

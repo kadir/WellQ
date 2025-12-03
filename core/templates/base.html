@@ -58,6 +58,10 @@
                         Products
                     </a>
 
+                    <a href="{% url 'asset_inventory' %}" class="group flex items-center w-full pl-10 pr-2 py-2 text-xs font-medium rounded-md transition-colors {% if 'inventory' in request.path and 'products' not in request.path and 'workspaces' not in request.path %}bg-[#27272a] text-white{% else %}text-gray-400 hover:text-white hover:bg-[#27272a]{% endif %}">
+                        Assets
+                    </a>
+
                 </div>
             </div>
 

@@ -102,36 +102,73 @@ def upload_scan(request):
     # Get or create workspace
     workspace = get_object_or_404(Workspace, id=validated_data['workspace_id'])
     
-    # Get or create product
-    product, product_created = Product.objects.get_or_create(
-        name=validated_data['product_name'],
-        workspace=workspace,
-        defaults={
-            'product_type': validated_data.get('product_type', 'WEB'),
-            'criticality': validated_data.get('product_criticality', 'MEDIUM')
-        }
-    )
+    # NEW BOM Architecture: Check if using artifact-based or legacy mode
+    artifact_name = validated_data.get('artifact_name', '').strip()
+    artifact_version = validated_data.get('artifact_version', '').strip()
     
-    # Get or create release
-    release, release_created = Release.objects.get_or_create(
-        name=validated_data['release_name'],
-        product=product,
-        defaults={
-            'commit_hash': validated_data.get('commit_hash', '')
-        }
-    )
+    scan = None
+    artifact = None
+    release = None
+    product = None
+    product_created = False
+    release_created = False
+    artifact_created = False
     
-    # Update commit hash if provided and release already existed
-    if not release_created and validated_data.get('commit_hash'):
-        release.commit_hash = validated_data['commit_hash']
-        release.save()
-    
-    # Create scan with PENDING status
-    scan = Scan.objects.create(
-        release=release,
-        scanner_name=validated_data['scanner_name'],
-        status='PENDING'
-    )
+    if artifact_name and artifact_version:
+        # NEW: Artifact-based scanning (BOM architecture)
+        from core.services.artifact import upsert_artifact, get_or_create_scan_for_artifact
+        
+        # Upsert artifact
+        artifact, artifact_created, _ = upsert_artifact(
+            workspace=workspace,
+            artifact_name=artifact_name,
+            artifact_version=artifact_version,
+            artifact_type=validated_data.get('artifact_type', 'CONTAINER'),
+            repository_name=validated_data.get('repository_name', '').strip() or None,
+            repository_url=validated_data.get('repository_url', '').strip() or None
+        )
+        
+        # Get or create scan for artifact (with deduplication)
+        scan, is_new_scan = get_or_create_scan_for_artifact(
+            artifact=artifact,
+            scanner_name=validated_data['scanner_name']
+        )
+        
+    else:
+        # LEGACY: Product/Release-based scanning (backward compatibility)
+        product_name = validated_data.get('product_name', '').strip()
+        release_name = validated_data.get('release_name', '').strip()
+        
+        # Get or create product
+        product, product_created = Product.objects.get_or_create(
+            name=product_name,
+            workspace=workspace,
+            defaults={
+                'product_type': validated_data.get('product_type', 'WEB'),
+                'criticality': validated_data.get('product_criticality', 'MEDIUM')
+            }
+        )
+        
+        # Get or create release
+        release, release_created = Release.objects.get_or_create(
+            name=release_name,
+            product=product,
+            defaults={
+                'commit_hash': validated_data.get('commit_hash', '')
+            }
+        )
+        
+        # Update commit hash if provided and release already existed
+        if not release_created and validated_data.get('commit_hash'):
+            release.commit_hash = validated_data['commit_hash']
+            release.save()
+        
+        # Create scan with PENDING status (legacy mode)
+        scan = Scan.objects.create(
+            release=release,
+            scanner_name=validated_data['scanner_name'],
+            status='PENDING'
+        )
     
     # Read file content for async processing
     scan_file = validated_data['scan_file']
@@ -146,20 +183,33 @@ def upload_scan(request):
         file_name
     )
     
-    return Response(
-        {
-            'success': True,
-            'message': 'Scan uploaded and queued for processing',
-            'scan_id': str(scan.id),
+    response_data = {
+        'success': True,
+        'message': 'Scan uploaded and queued for processing',
+        'scan_id': str(scan.id),
+        'task_id': task.id,
+        'status': 'PENDING',
+    }
+    
+    # Add artifact info if using BOM architecture
+    if artifact:
+        response_data.update({
+            'artifact_id': str(artifact.id),
+            'artifact_name': artifact.name,
+            'artifact_version': artifact.version,
+            'artifact_created': artifact_created,
+        })
+    
+    # Add legacy info if using product/release mode
+    if release and product:
+        response_data.update({
             'release_id': str(release.id),
             'product_id': str(product.id),
-            'task_id': task.id,
-            'status': 'PENDING',
             'product_created': product_created,
-            'release_created': release_created
-        },
-        status=status.HTTP_202_ACCEPTED
-    )
+            'release_created': release_created,
+        })
+    
+    return Response(response_data, status=status.HTTP_202_ACCEPTED)
 
 
 @extend_schema(

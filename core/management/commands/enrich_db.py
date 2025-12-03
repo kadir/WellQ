@@ -90,45 +90,61 @@ class Command(BaseCommand):
             return {}
 
     def update_findings(self, kev_dict, epss_dict):
-        # We define fields to update to optimize the SQL query
-        fields_to_update = ['epss_score', 'epss_percentile', 'kev_status', 'kev_date', 'last_enrichment']
+        # Only update metadata field (EPSS/KEV stored in JSON)
+        fields_to_update = ['metadata']
         
         batch = []
         batch_size = 2000 # Update 2000 rows at a time
-        now = timezone.now()
 
-        # Iterator() is crucial for 100k rows to keep memory low
-        queryset = Finding.objects.all().iterator()
+        # Only process SCA findings with vulnerability IDs (CVE, GHSA, etc.)
+        # Secrets and other scan types don't need EPSS/KEV enrichment
+        queryset = Finding.objects.filter(
+            finding_type=Finding.Type.SCA
+        ).exclude(
+            vulnerability_id__isnull=True
+        ).exclude(
+            vulnerability_id=''
+        ).iterator()
         
         count = 0
         total_updates = 0
 
         for finding in queryset:
             cve = finding.vulnerability_id
+            if not cve:
+                continue
+                
             updated = False
+            if not finding.metadata:
+                finding.metadata = {}
 
-            # 1. Check EPSS
+            # 1. Check EPSS (only for SCA findings with CVE IDs)
             if cve in epss_dict:
                 data = epss_dict[cve]
-                # Store EPSS in metadata
-                if not finding.metadata:
-                    finding.metadata = {}
                 finding.metadata['epss_score'] = data['score']
                 finding.metadata['epss_percentile'] = data.get('p', 0.0)
                 updated = True
+            else:
+                # Clear EPSS if CVE is no longer in EPSS database
+                if 'epss_score' in finding.metadata:
+                    finding.metadata.pop('epss_score', None)
+                    finding.metadata.pop('epss_percentile', None)
+                    updated = True
 
-            # 2. Check KEV
+            # 2. Check KEV (only for SCA findings with CVE IDs)
             if cve in kev_dict:
-                # Store KEV in metadata
-                if not finding.metadata:
-                    finding.metadata = {}
                 finding.metadata['kev_status'] = True
                 finding.metadata['kev_date'] = kev_dict[cve]
                 updated = True
+            else:
+                # Clear KEV if CVE is no longer in KEV database
+                if finding.metadata.get('kev_status'):
+                    finding.metadata['kev_status'] = False
+                    finding.metadata.pop('kev_date', None)
+                    updated = True
             
-            # If we have data, mark as enriched
+            # If we have data, add to batch
             if updated:
-                finding.last_enrichment = now
                 batch.append(finding)
                 count += 1
 

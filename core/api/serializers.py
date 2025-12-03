@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Workspace, Product, Release, Scan, Finding
+from core.models import Workspace, Product, Release, Scan, Finding, Artifact
 from core.scanners import SCANNER_REGISTRY
 
 
@@ -81,18 +81,65 @@ class ScanUploadSerializer(serializers.Serializer):
     """
     Serializer for uploading scan results.
     Accepts scan JSON file and metadata to create/update scans and findings.
+    
+    NEW BOM Architecture: Supports artifact-based scanning.
+    - artifact_name + artifact_version: Scan an artifact directly (recommended)
+    - product_name + release_name: Legacy mode (backward compatibility)
     """
     workspace_id = serializers.UUIDField(
         help_text="UUID of the workspace"
     )
+    
+    # NEW: Artifact-based fields (recommended for BOM architecture)
+    artifact_name = serializers.CharField(
+        max_length=200,
+        required=False,
+        allow_blank=True,
+        help_text="Name of the artifact (e.g., 'payment-service-image'). Required if using artifact-based scanning."
+    )
+    artifact_version = serializers.CharField(
+        max_length=200,
+        required=False,
+        allow_blank=True,
+        help_text="Version of the artifact (e.g., 'sha256:a1b2...' or 'v1.0.5'). Required if using artifact-based scanning."
+    )
+    artifact_type = serializers.ChoiceField(
+        choices=[
+            ('CONTAINER', 'Container Image'),
+            ('LIBRARY', 'Library'),
+            ('PACKAGE', 'Package'),
+            ('BINARY', 'Binary Executable'),
+        ],
+        default='CONTAINER',
+        required=False,
+        help_text="Type of artifact (defaults to CONTAINER)"
+    )
+    repository_name = serializers.CharField(
+        max_length=200,
+        required=False,
+        allow_blank=True,
+        help_text="Optional repository name (e.g., 'payment-service')"
+    )
+    repository_url = serializers.URLField(
+        required=False,
+        allow_blank=True,
+        help_text="Optional repository URL (e.g., 'https://github.com/acme/payment')"
+    )
+    
+    # LEGACY: Product/Release fields (for backward compatibility)
     product_name = serializers.CharField(
         max_length=200,
-        help_text="Name of the product (will be created if doesn't exist)"
+        required=False,
+        allow_blank=True,
+        help_text="Name of the product (legacy mode, will be created if doesn't exist)"
     )
     release_name = serializers.CharField(
         max_length=100,
-        help_text="Version/release name (e.g., 'v1.2.0')"
+        required=False,
+        allow_blank=True,
+        help_text="Version/release name (legacy mode, e.g., 'v1.2.0')"
     )
+    
     scanner_name = serializers.ChoiceField(
         choices=list(SCANNER_REGISTRY.keys()),
         help_text="Name of the scanner that generated the results"
@@ -111,6 +158,26 @@ class ScanUploadSerializer(serializers.Serializer):
             raise serializers.ValidationError(error_msg)
         
         return value
+    
+    def validate(self, data):
+        """Validate that either artifact fields OR product/release fields are provided"""
+        artifact_name = data.get('artifact_name', '').strip()
+        artifact_version = data.get('artifact_version', '').strip()
+        product_name = data.get('product_name', '').strip()
+        release_name = data.get('release_name', '').strip()
+        
+        # Check if using artifact-based mode
+        has_artifact = artifact_name and artifact_version
+        # Check if using legacy mode
+        has_legacy = product_name and release_name
+        
+        if not has_artifact and not has_legacy:
+            raise serializers.ValidationError(
+                "Either (artifact_name + artifact_version) OR (product_name + release_name) must be provided."
+            )
+        
+        return data
+    
     commit_hash = serializers.CharField(
         max_length=64,
         required=False,
@@ -121,13 +188,13 @@ class ScanUploadSerializer(serializers.Serializer):
         choices=Product.PRODUCT_TYPES,
         default='WEB',
         required=False,
-        help_text="Type of product (defaults to WEB)"
+        help_text="Type of product (defaults to WEB, legacy mode only)"
     )
     product_criticality = serializers.ChoiceField(
         choices=Product.IMPACT_CHOICES,
         default='MEDIUM',
         required=False,
-        help_text="Criticality level of the product (defaults to MEDIUM)"
+        help_text="Criticality level of the product (defaults to MEDIUM, legacy mode only)"
     )
 
     def validate_workspace_id(self, value):

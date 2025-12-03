@@ -33,11 +33,12 @@ def release_detail(request, release_id):
     scans = release.scans.all().order_by('-started_at')
 
     # Findings Logic - Get all findings for this release with optimized queries
-    # Use select_related to avoid N+1 queries when accessing scan.release.product
-    all_findings = Finding.objects.filter(
-        scan__release=release
-    ).select_related(
+    # Support both artifact-based (new BOM) and release-based (legacy) modes
+    from core.services.release_risk import get_release_findings_queryset
+    
+    all_findings = get_release_findings_queryset(release).select_related(
         'scan',
+        'scan__artifact',
         'scan__release',
         'scan__release__product',
         'scan__release__product__workspace',

@@ -150,12 +150,19 @@ def enrich_findings_with_threat_intel():
                     except (ValueError, TypeError):
                         continue
         
-        # Update findings in batches
+        # Only process SCA findings with vulnerability IDs (CVE, GHSA, etc.)
+        # Secrets and other scan types don't need EPSS/KEV enrichment
+        findings = Finding.objects.filter(
+            finding_type=Finding.Type.SCA
+        ).exclude(
+            vulnerability_id__isnull=True
+        ).exclude(
+            vulnerability_id=''
+        )
+        
+        total = findings.count()
         updated_count = 0
         batch_size = 1000
-        
-        findings = Finding.objects.all()
-        total = findings.count()
         
         for i in range(0, total, batch_size):
             batch = findings[i:i + batch_size]
@@ -163,58 +170,53 @@ def enrich_findings_with_threat_intel():
             
             for finding in batch:
                 needs_update = False
+                if not finding.metadata:
+                    finding.metadata = {}
                 
-                # Update KEV status
+                # Update KEV status (only for SCA findings with CVE IDs)
                 if finding.vulnerability_id in kev_dict:
-                    # Store KEV in metadata
-                    if not finding.metadata:
-                        finding.metadata = {}
+                    kev_info = kev_dict[finding.vulnerability_id]
                     if not finding.metadata.get('kev_status'):
                         finding.metadata['kev_status'] = True
                         needs_update = True
-                    kev_info = kev_dict[finding.vulnerability_id]
                     if kev_info.get('dateAdded'):
                         try:
                             from datetime import datetime
-                            # Store KEV date in metadata
-                            if not finding.metadata:
-                                finding.metadata = {}
-                            finding.metadata['kev_date'] = datetime.strptime(
-                                kev_info['dateAdded'], 
-                                '%Y-%m-%d'
-                            ).date()
-                            needs_update = True
+                            kev_date = datetime.strptime(kev_info['dateAdded'], '%Y-%m-%d').date()
+                            if finding.metadata.get('kev_date') != kev_date:
+                                finding.metadata['kev_date'] = kev_date
+                                needs_update = True
                         except:
                             pass
                 else:
-                    # Update KEV status in metadata
-                    if not finding.metadata:
-                        finding.metadata = {}
+                    # Clear KEV if CVE is no longer in KEV database
                     if finding.metadata.get('kev_status'):
                         finding.metadata['kev_status'] = False
+                        finding.metadata.pop('kev_date', None)
                         needs_update = True
                 
-                # Update EPSS data
+                # Update EPSS data (only for SCA findings with CVE IDs)
                 if finding.vulnerability_id in epss_dict:
                     epss_info = epss_dict[finding.vulnerability_id]
-                    # Store EPSS in metadata
-                    if not finding.metadata:
-                        finding.metadata = {}
                     if finding.metadata.get('epss_score') != epss_info['score']:
                         finding.metadata['epss_score'] = epss_info['score']
                         finding.metadata['epss_percentile'] = epss_info.get('percentile', 0.0)
                         needs_update = True
-                    # EPSS percentile is already handled above
-                    pass
+                else:
+                    # Clear EPSS if CVE is no longer in EPSS database
+                    if 'epss_score' in finding.metadata:
+                        finding.metadata.pop('epss_score', None)
+                        finding.metadata.pop('epss_percentile', None)
+                        needs_update = True
                 
                 if needs_update:
-                    finding.last_enrichment = timezone.now()
                     to_update.append(finding)
             
             if to_update:
+                # Only update metadata field (EPSS/KEV stored in JSON)
                 Finding.objects.bulk_update(
                     to_update, 
-                    ['kev_status', 'kev_date', 'epss_score', 'epss_percentile', 'last_enrichment'],
+                    ['metadata'],
                     batch_size=500
                 )
                 updated_count += len(to_update)

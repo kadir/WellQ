@@ -23,7 +23,65 @@ class Workspace(models.Model):
     def __str__(self):
         return self.name
 
-# 2. PRODUCT (The Repo/Asset)
+# 1.5. REPOSITORY (The Source Code Repository)
+class Repository(models.Model):
+    """
+    Represents a source code repository (GitHub, GitLab, etc.)
+    Part of Layer A: The Supply Chain (Physical Assets)
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='repositories')
+    
+    name = models.CharField(max_length=200)  # e.g. "payment-service"
+    url = models.URLField(max_length=500, blank=True)  # e.g. "https://github.com/acme/payment"
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name_plural = "Repositories"
+        indexes = [
+            models.Index(fields=['workspace', 'name']),
+        ]
+    
+    def __str__(self):
+        return self.name
+
+# 2. ARTIFACT (The Physical Asset)
+class Artifact(models.Model):
+    """
+    Represents a physical software artifact (Docker image, library, package, etc.)
+    Part of Layer A: The Supply Chain (Physical Assets)
+    
+    This is the key to deduplication: Same artifact scanned once, results propagate to all releases.
+    """
+    ARTIFACT_TYPES = [
+        ('CONTAINER', 'Container Image'),
+        ('LIBRARY', 'Library'),
+        ('PACKAGE', 'Package'),
+        ('BINARY', 'Binary Executable'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    repository = models.ForeignKey(Repository, on_delete=models.SET_NULL, null=True, blank=True, related_name='artifacts')
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='artifacts')
+    
+    name = models.CharField(max_length=200)  # e.g. "payment-service-image"
+    version = models.CharField(max_length=200)  # e.g. "sha256:a1b2..." or "v1.0.5"
+    type = models.CharField(max_length=20, choices=ARTIFACT_TYPES, default='CONTAINER')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('name', 'version')  # Prevent duplicate artifacts
+        indexes = [
+            models.Index(fields=['workspace', 'name', 'version']),
+            models.Index(fields=['type']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name}:{self.version}"
+
+# 2.5. PRODUCT (The Repo/Asset)
 class Product(models.Model):
     # The specific types you requested
     PRODUCT_TYPES = [
@@ -62,7 +120,10 @@ class Product(models.Model):
 class Release(models.Model):
     """
     Represents a specific version of a Product (e.g. v1.2.0).
-    Logic: 1 Release has 1 SBOM file.
+    Part of Layer B: The Business Logic (Logical Grouping)
+    
+    A Release is composed of multiple Artifacts (M2M relationship).
+    This allows the same artifact to be used in multiple releases without re-scanning.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='releases')
@@ -73,10 +134,17 @@ class Release(models.Model):
     # The Raw SBOM File (Evidence)
     sbom_file = models.FileField(upload_to='sboms/', blank=True, null=True)
     
+    # Many-to-Many relationship with Artifacts
+    # A release is composed of multiple artifacts (e.g., backend:v1 + frontend:v2)
+    artifacts = models.ManyToManyField('Artifact', related_name='releases', blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('product', 'name') # Prevent duplicate v1.0.0
+        indexes = [
+            models.Index(fields=['product', 'name']),
+        ]
 
     def __str__(self):
         return f"{self.product.name} @ {self.name}"
@@ -121,6 +189,13 @@ class Component(models.Model):
 
 # 4. SCAN (The Event)
 class Scan(models.Model):
+    """
+    Represents a security scan of an Artifact.
+    Part of Layer C: Security Data (The Findings)
+    
+    Scans are now linked to Artifacts, not Releases.
+    This enables deduplication: scan an artifact once, results propagate to all releases using it.
+    """
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('PROCESSING', 'Processing'),
@@ -129,13 +204,25 @@ class Scan(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    release = models.ForeignKey(Release, on_delete=models.CASCADE, related_name='scans')
+    
+    # NEW: Link to Artifact (primary relationship)
+    artifact = models.ForeignKey('Artifact', on_delete=models.CASCADE, related_name='scans', null=True, blank=True)
+    
+    # DEPRECATED: Keep for backward compatibility during migration
+    # TODO: Remove after data migration
+    release = models.ForeignKey(Release, on_delete=models.CASCADE, related_name='scans', null=True, blank=True)
     
     scanner_name = models.CharField(max_length=50)
     started_at = models.DateTimeField(default=timezone.now)
     completed_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True)
     findings_count = models.IntegerField(default=0)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['artifact', 'scanner_name', 'started_at']),
+            models.Index(fields=['status']),
+        ]
 
 # 5. FINDING (Polymorphic Storage - Generic Finding Table)
 class Finding(models.Model):
@@ -221,19 +308,27 @@ class Finding(models.Model):
         # Generate deterministic hash based on finding type
         # This ensures proper deduplication across different scanner types
         # Only generate if hash_id is not already set (scanners set it explicitly)
-        if not self.hash_id and self.scan and self.scan.release:
-            if self.finding_type == Finding.Type.SECRET:
-                # For secrets: use file_path + metadata secret hash + release.id
-                secret_hash = (self.metadata or {}).get('secret_hash', '')
-                unique_str = f"{self.file_path or ''}-{secret_hash}-{self.scan.release.id}"
-            elif self.finding_type == Finding.Type.SCA:
-                # For SCA: use vulnerability_id + package_name + package_version + release.id
-                unique_str = f"{self.vulnerability_id or ''}-{self.package_name or ''}-{self.package_version or ''}-{self.scan.release.id}"
-            else:
-                # For SAST/IAC: use file_path + line_number + title + release.id
-                unique_str = f"{self.file_path or ''}-{self.line_number}-{self.title}-{self.scan.release.id}"
+        if not self.hash_id and self.scan:
+            # Use artifact if available (new BOM model), fallback to release (backward compatibility)
+            artifact_or_release_id = None
+            if self.scan.artifact:
+                artifact_or_release_id = self.scan.artifact.id
+            elif self.scan.release:
+                artifact_or_release_id = self.scan.release.id
             
-            self.hash_id = hashlib.sha256(unique_str.encode('utf-8')).hexdigest()
+            if artifact_or_release_id:
+                if self.finding_type == Finding.Type.SECRET:
+                    # For secrets: use file_path + metadata secret hash + artifact/release.id
+                    secret_hash = (self.metadata or {}).get('secret_hash', '')
+                    unique_str = f"{self.file_path or ''}-{secret_hash}-{artifact_or_release_id}"
+                elif self.finding_type == Finding.Type.SCA:
+                    # For SCA: use vulnerability_id + package_name + package_version + artifact/release.id
+                    unique_str = f"{self.vulnerability_id or ''}-{self.package_name or ''}-{self.package_version or ''}-{artifact_or_release_id}"
+                else:
+                    # For SAST/IAC: use file_path + line_number + title + artifact/release.id
+                    unique_str = f"{self.file_path or ''}-{self.line_number}-{self.title}-{artifact_or_release_id}"
+                
+                self.hash_id = hashlib.sha256(unique_str.encode('utf-8')).hexdigest()
         super().save(*args, **kwargs)
 
     # --- HELPER PROPERTIES (for backward compatibility with templates) ---

@@ -196,7 +196,7 @@ class JFrogXrayScanner(BaseScanner):
                 full_description = "\n".join(description_parts)
                 
                 # Generate Hash (will be regenerated in save(), but we need it for deduplication)
-                unique_str = f"{cve_id}-{pkg_name}-{pkg_version}-{release.id}"
+                unique_str = f"{cve_id}-{pkg_name}-{pkg_version}-{scope_id}"
                 finding_hash = hashlib.sha256(unique_str.encode('utf-8')).hexdigest()
                 seen_hashes.add(finding_hash)
 
@@ -268,7 +268,7 @@ class JFrogXrayScanner(BaseScanner):
             
             if missing_hashes:
                 Finding.objects.filter(
-                    scan__release=release, 
+                    **dedup_scope,
                     hash_id__in=missing_hashes
                 ).exclude(status=Finding.Status.FIXED).update(  # Don't update if already fixed
                     status=Finding.Status.FIXED,

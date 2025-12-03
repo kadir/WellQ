@@ -12,14 +12,32 @@ class TrivyScanner(BaseScanner):
             # Security: Use safe JSON loading with size limits (max 100MB for scan files)
             data = safe_json_load(json_file, max_size_mb=100)
             results = data.get('Results', [])
+            
+            # Support both artifact-based (new BOM) and release-based (legacy) modes
+            artifact = scan_instance.artifact
             release = scan_instance.release
+            
+            # Determine the scope for deduplication
+            if artifact:
+                # New BOM architecture: deduplicate within artifact
+                dedup_scope = {'scan__artifact': artifact}
+                scope_id = artifact.id
+            elif release:
+                # Legacy mode: deduplicate within release
+                dedup_scope = {'scan__release': release}
+                scope_id = release.id
+            else:
+                # Fallback: deduplicate within scan
+                dedup_scope = {'scan': scan_instance}
+                scope_id = scan_instance.id
+            
             now = timezone.now()
 
             # 1. FETCH ALL EXISTING (Map: Hash -> ID)
             # We only need ID and Status to make decisions
             existing_map = {
                 f.hash_id: f 
-                for f in Finding.objects.filter(scan__release=release)
+                for f in Finding.objects.filter(**dedup_scope)
             }
             
             seen_hashes = set()
@@ -36,7 +54,7 @@ class TrivyScanner(BaseScanner):
                     ver = vuln.get('InstalledVersion', 'Unknown')
                     
                     # Generate Hash (will be regenerated in save(), but we need it for deduplication)
-                    unique_str = f"{cve}-{pkg}-{ver}-{release.id}"
+                    unique_str = f"{cve}-{pkg}-{ver}-{scope_id}"
                     finding_hash = hashlib.sha256(unique_str.encode('utf-8')).hexdigest()
                     seen_hashes.add(finding_hash)
 
@@ -103,7 +121,7 @@ class TrivyScanner(BaseScanner):
             
             if missing_hashes:
                 Finding.objects.filter(
-                    scan__release=release, 
+                    **dedup_scope,
                     hash_id__in=missing_hashes
                 ).exclude(status=Finding.Status.FIXED).update(  # Don't update if already fixed
                     status=Finding.Status.FIXED,

@@ -415,12 +415,12 @@ def product_detail(request, product_id):
     releases = product.releases.all().order_by('-created_at')
     
     # Calculate findings count for each release for the UI
-    # Findings are accessed through scans: Finding -> Scan -> Release
+    # Support both artifact-based (new BOM) and release-based (legacy) modes
+    from core.services.release_risk import get_release_findings_queryset
+    
     for release in releases:
-        release.vuln_count = Finding.objects.filter(
-            scan__release=release,
-            status='OPEN'
-        ).count()
+        findings = get_release_findings_queryset(release)
+        release.vuln_count = findings.filter(status='OPEN').count()
 
     return render(request, 'findings/product_detail.html', {
         'product': product,

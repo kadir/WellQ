@@ -1,481 +1,225 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Command Center{% endblock %}
 
 {% block breadcrumbs %}
 <span class="text-gray-600">/</span>
-<span>overview</span>
+<span>command-center</span>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto">
-    <h1 class="text-3xl font-bold text-white mb-6">Security Posture Dashboard</h1>
-    
-    <!-- Overview Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Total Active Vulnerabilities</div>
-            <div class="text-3xl font-bold text-white">{{ total_active }}</div>
-            <div class="mt-2 text-xs text-gray-500 font-mono">Requiring attention</div>
+<div class="max-w-[1920px] mx-auto px-6 py-8">
+    <!-- Top Section: Grade + Key Metrics -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Security Grade (Top Left) -->
+        <div class="lg:col-span-1 bg-[#09090b] border border-[#27272a] rounded-lg p-8 flex flex-col items-center justify-center">
+            <div class="text-xs font-mono text-gray-500 uppercase mb-4 tracking-wider">Security Grade</div>
+            <div class="text-9xl font-bold {% if security_grade == 'A' %}text-emerald-400{% elif security_grade == 'B' %}text-emerald-300{% elif security_grade == 'C' %}text-yellow-400{% else %}text-red-500{% endif %} drop-shadow-lg {% if security_grade == 'A' %}drop-shadow-emerald-500/50{% elif security_grade == 'B' %}drop-shadow-emerald-400/50{% elif security_grade == 'C' %}drop-shadow-yellow-500/50{% else %}drop-shadow-red-500/50{% endif %}">
+                {{ security_grade }}
+            </div>
+            <div class="text-xs text-gray-500 font-mono mt-4">Score: {{ grade_score|floatformat:0 }}/100</div>
+        </div>
+
+        <!-- Key Metrics (Top Right) -->
+        <div class="lg:col-span-2 bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+            <div class="text-xs font-mono text-gray-500 uppercase mb-6 tracking-wider">Key Metrics</div>
+            <div class="grid grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="text-4xl font-bold {% if critical_high > 0 %}text-red-400{% else %}text-emerald-400{% endif %} mb-2">
+                        {{ critical_high }}
+                    </div>
+                    <div class="text-xs text-gray-500 font-mono uppercase">Criticals</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold {% if secrets_count > 0 %}text-red-400{% else %}text-emerald-400{% endif %} mb-2">
+                        {{ secrets_count }}
+                    </div>
+                    <div class="text-xs text-gray-500 font-mono uppercase">Secrets</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold {% if mttr_days <= 7 %}text-emerald-400{% elif mttr_days <= 14 %}text-yellow-400{% else %}text-red-400{% endif %} mb-2">
+                        {{ mttr_days|floatformat:0 }}
+                    </div>
+                    <div class="text-xs text-gray-500 font-mono uppercase">MTTR (days)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remediation Heatmap (Middle) -->
+    <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-6 mb-8">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-lg font-bold text-white mb-1">Security Velocity</h2>
+                <div class="text-xs text-gray-500 font-mono">Remediation Heatmap (Last 90 Days)</div>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-gray-500 font-mono">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-emerald-500 rounded"></div>
+                    <span>Fixed</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-zinc-800 rounded"></div>
+                    <span>No Activity</span>
+                </div>
+            </div>
         </div>
         
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Critical & High</div>
-            <div class="text-3xl font-bold text-red-400">{{ critical_high }}</div>
-            <div class="mt-2 text-xs text-gray-500 font-mono">High priority</div>
-        </div>
-
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Exploited (KEV)</div>
-            <div class="text-3xl font-bold text-orange-400">{{ kev_count }}</div>
-            <div class="mt-2 text-xs text-gray-500 font-mono">Actively exploited</div>
-        </div>
-
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <div class="text-gray-500 text-xs font-mono uppercase mb-2">High EPSS Score</div>
-            <div class="text-3xl font-bold text-yellow-400">{{ high_epss }}</div>
-            <div class="mt-2 text-xs text-gray-500 font-mono">EPSS ≥ 0.7</div>
-        </div>
-
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Fix Rate (30d)</div>
-            <div class="text-3xl font-bold text-emerald-400">{{ fix_rate }}%</div>
-            <div class="mt-2 text-xs text-gray-500 font-mono">Vulnerabilities fixed</div>
-        </div>
-
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <div class="text-gray-500 text-xs font-mono uppercase mb-2">Risk Accepted</div>
-            <div class="text-3xl font-bold text-blue-400">{{ risk_accepted }}</div>
-            <div class="mt-2 text-xs text-gray-500 font-mono">Accepted risks</div>
-        </div>
-    </div>
-
-    <!-- Charts Row 1 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Severity Distribution -->
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <h2 class="text-lg font-bold text-white mb-4">Severity Distribution</h2>
-            <div style="height: 250px; position: relative;">
-                <canvas id="severityChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Status Distribution -->
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <h2 class="text-lg font-bold text-white mb-4">Status Distribution</h2>
-            <div style="height: 250px; position: relative;">
-                <canvas id="statusChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Charts Row 2 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Vulnerability Trends -->
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <h2 class="text-lg font-bold text-white mb-4">Vulnerability Trends (Last 30 Days)</h2>
-            <div style="height: 250px; position: relative;">
-                <canvas id="trendChart"></canvas>
-            </div>
-        </div>
-
-        <!-- KEV Status -->
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <h2 class="text-lg font-bold text-white mb-4">Exploitation Status</h2>
-            <div style="height: 250px; position: relative;">
-                <canvas id="kevChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Charts Row 3 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Top 10 CVEs -->
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <h2 class="text-lg font-bold text-white mb-4">Top 10 CVEs by Occurrence</h2>
-            <div style="height: 300px; position: relative;">
-                <canvas id="topCvesChart"></canvas>
-            </div>
-        </div>
-
-        <!-- EPSS Distribution -->
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <h2 class="text-lg font-bold text-white mb-4">EPSS Score Distribution</h2>
-            <div style="height: 300px; position: relative;">
-                <canvas id="epssChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Charts Row 4 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Vulnerabilities by Product -->
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <h2 class="text-lg font-bold text-white mb-4">Vulnerabilities by Product</h2>
-            <div style="height: 300px; position: relative;">
-                <canvas id="productChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Scanner Coverage -->
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <h2 class="text-lg font-bold text-white mb-4">Scanner Coverage</h2>
-            <div style="height: 300px; position: relative;">
-                <canvas id="scannerChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Component Stats & Recent Activity -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Component Stats -->
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <h2 class="text-lg font-bold text-white mb-4">Component Inventory</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-zinc-900/50 p-4 rounded border border-zinc-800">
-                    <div class="text-gray-500 text-xs uppercase mb-1">Total Components</div>
-                    <div class="text-2xl font-bold text-white">{{ total_components }}</div>
+        <!-- Scrollable Heatmap Container -->
+        <div class="overflow-x-auto pb-4">
+            <div class="inline-flex gap-1 min-w-max">
+                {% for day in heatmap_data %}
+                <div class="flex flex-col items-center gap-1">
+                    <div 
+                        class="w-3 h-3 rounded {% if day.is_green %}bg-emerald-500{% else %}bg-zinc-800{% endif %} {% if day.is_green %}hover:bg-emerald-400{% else %}hover:bg-zinc-700{% endif %} transition-colors cursor-pointer border border-zinc-900"
+                        title="{{ day.date }}: {{ day.fixed_count }} finding{{ day.fixed_count|pluralize }} fixed"
+                    ></div>
+                    {% if forloop.counter0|divisibleby:7 or forloop.first %}
+                    <div class="text-[8px] text-gray-600 font-mono mt-1">{{ day.day_of_week }}</div>
+                    {% endif %}
                 </div>
-                <div class="bg-zinc-900/50 p-4 rounded border border-zinc-800">
-                    <div class="text-gray-500 text-xs uppercase mb-1">New (30d)</div>
-                    <div class="text-2xl font-bold text-emerald-400">{{ new_components }}</div>
-                </div>
-                <div class="bg-zinc-900/50 p-4 rounded border border-zinc-800">
-                    <div class="text-gray-500 text-xs uppercase mb-1">Removed (30d)</div>
-                    <div class="text-2xl font-bold text-red-400">{{ removed_components }}</div>
-                </div>
-                <div class="bg-zinc-900/50 p-4 rounded border border-zinc-800">
-                    <div class="text-gray-500 text-xs uppercase mb-1">With Vulnerabilities</div>
-                    <div class="text-2xl font-bold text-yellow-400">{{ components_with_vulns }}</div>
-                </div>
+                {% endfor %}
             </div>
         </div>
+        
+        <div class="text-xs text-gray-600 font-mono mt-4 text-center">
+            Scroll horizontally to view full timeline
+        </div>
+    </div>
 
-        <!-- Recent Activity -->
-        <div class="bg-[#09090b] border border-[#27272a] p-6 rounded-lg">
-            <h2 class="text-lg font-bold text-white mb-4">Recent Scans</h2>
-            <div class="space-y-3">
-                {% for scan in recent_scans %}
-                <div class="bg-zinc-900/50 p-3 rounded border border-zinc-800">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-sm font-bold text-white">{{ scan.scanner_name }}</div>
-                            <div class="text-xs text-gray-500">{{ scan.release__product__name }} @ {{ scan.release__name }}</div>
+    <!-- Action List (Bottom) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left: Vulnerabilities (CVEs) -->
+        <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-lg font-bold text-white mb-1">Vulnerabilities</h2>
+                    <div class="text-xs text-gray-500 font-mono">Upgrade Versions</div>
+                </div>
+                <a href="{% url 'vulnerabilities_list' %}" class="text-xs text-emerald-400 hover:text-emerald-300 font-mono uppercase tracking-wider">
+                    View All →
+                </a>
+            </div>
+            
+            <div class="space-y-3 max-h-[600px] overflow-y-auto">
+                {% for vuln in top_vulnerabilities %}
+                <div class="bg-zinc-900/50 border border-zinc-800 rounded p-4 hover:border-zinc-700 transition-colors">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold 
+                                    {% if vuln.severity == 'CRITICAL' %}bg-red-500/20 text-red-400 border border-red-500/30
+                                    {% elif vuln.severity == 'HIGH' %}bg-orange-500/20 text-orange-400 border border-orange-500/30
+                                    {% elif vuln.severity == 'MEDIUM' %}bg-yellow-500/20 text-yellow-400 border border-yellow-500/30
+                                    {% elif vuln.severity == 'LOW' %}bg-blue-500/20 text-blue-400 border border-blue-500/30
+                                    {% else %}bg-gray-500/20 text-gray-400 border border-gray-500/30{% endif %}">
+                                    {{ vuln.severity }}
+                                </span>
+                                <a href="https://nvd.nist.gov/vuln/detail/{{ vuln.vulnerability_id }}" target="_blank" class="text-sm font-mono text-white hover:text-emerald-400 transition-colors">
+                                    {{ vuln.vulnerability_id }}
+                                </a>
+                            </div>
+                            <div class="text-xs text-gray-400 mb-2 line-clamp-1">{{ vuln.title|default:"No description" }}</div>
+                            <div class="flex items-center gap-4 text-xs font-mono">
+                                <div>
+                                    <span class="text-gray-500">Package:</span>
+                                    <span class="text-white ml-1">{{ vuln.package_name|default:"N/A" }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Current:</span>
+                                    <span class="text-red-400 ml-1">{{ vuln.package_version|default:"N/A" }}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="text-xs text-gray-500">{{ scan.started_at|date:"M d, H:i" }}</div>
+                    </div>
+                    {% if vuln.fix_version %}
+                    <div class="mt-2 pt-2 border-t border-zinc-800">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500 font-mono">Upgrade to:</span>
+                            <span class="text-xs font-mono text-emerald-400 font-bold">{{ vuln.fix_version }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="mt-2 pt-2 border-t border-zinc-800">
+                        <span class="text-xs text-gray-600 font-mono">No fix version available</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="text-center text-gray-500 text-sm py-12 font-mono">
+                    No active vulnerabilities
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Right: Secrets (API Keys) -->
+        <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-lg font-bold text-white mb-1">Secrets</h2>
+                    <div class="text-xs text-gray-500 font-mono">File Paths</div>
+                </div>
+                <a href="{% url 'vulnerabilities_list' %}?finding_type=SECRET" class="text-xs text-emerald-400 hover:text-emerald-300 font-mono uppercase tracking-wider">
+                    View All →
+                </a>
+            </div>
+            
+            <div class="space-y-3 max-h-[600px] overflow-y-auto">
+                {% for secret in top_secrets %}
+                <div class="bg-zinc-900/50 border border-zinc-800 rounded p-4 hover:border-zinc-700 transition-colors">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                                    {{ secret.severity }}
+                                </span>
+                                <span class="text-sm font-mono text-white">{{ secret.title|truncatewords:8 }}</span>
+                            </div>
+                            <div class="text-xs text-gray-400 mb-2 line-clamp-1">
+                                {% if secret.metadata.secret_preview %}
+                                    Secret: {{ secret.metadata.secret_preview|default:"Secret detected" }}
+                                {% else %}
+                                    Secret detected
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-zinc-800">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span class="text-xs font-mono text-emerald-400 flex-1 truncate">{{ secret.file_path }}</span>
+                            {% if secret.line_number > 0 %}
+                            <span class="text-xs text-gray-600 font-mono">:{{ secret.line_number }}</span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="text-center text-gray-500 text-sm py-8">No recent scans</div>
+                <div class="text-center text-gray-500 text-sm py-12 font-mono">
+                    No active secrets
+                </div>
                 {% endfor %}
             </div>
         </div>
     </div>
 </div>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-<!-- JSON Data -->
-{{ severity_data|json_script:"severity-data" }}
-{{ status_data|json_script:"status-data" }}
-{{ trend_data|json_script:"trend-data" }}
-{{ kev_data|json_script:"kev-data" }}
-{{ top_cves|json_script:"top-cves-data" }}
-{{ epss_data|json_script:"epss-data" }}
-{{ product_vulns|json_script:"product-data" }}
-{{ scanner_data|json_script:"scanner-data" }}
+<!-- Heatmap Data -->
+{{ heatmap_data|json_script:"heatmap-data" }}
 
 <script>
-// Helper function to safely parse JSON
-function safeParseJSON(elementId, defaultValue = []) {
-    try {
-        const element = document.getElementById(elementId);
-        if (!element || !element.textContent) {
-            return defaultValue;
-        }
-        const parsed = JSON.parse(element.textContent);
-        return Array.isArray(parsed) ? parsed : defaultValue;
-    } catch (e) {
-        console.error(`Error parsing ${elementId}:`, e);
-        return defaultValue;
-    }
-}
-
-// Chart colors
-const colors = {
-    critical: 'rgb(239, 68, 68)',
-    high: 'rgb(249, 115, 22)',
-    medium: 'rgb(234, 179, 8)',
-    low: 'rgb(59, 130, 246)',
-    info: 'rgb(107, 114, 128)',
-    active: 'rgb(239, 68, 68)',
-    fixed: 'rgb(34, 197, 94)',
-    false_positive: 'rgb(107, 114, 128)',
-    risk_accepted: 'rgb(59, 130, 246)',
-    duplicate: 'rgb(168, 85, 247)',
-};
-
-// Severity Distribution (Pie Chart)
-const severityData = safeParseJSON('severity-data', []);
-if (severityData.length > 0 && severityData.some(d => d && d.count > 0)) {
-    const severityLabels = severityData.map(d => d.severity);
-    const severityCounts = severityData.map(d => d.count);
-    const severityColors = severityLabels.map(s => {
-        const map = {CRITICAL: colors.critical, HIGH: colors.high, MEDIUM: colors.medium, LOW: colors.low, INFO: colors.info};
-        return map[s] || colors.info;
+// Heatmap interaction (optional enhancement)
+document.addEventListener('DOMContentLoaded', function() {
+    const heatmapSquares = document.querySelectorAll('[title*="fixed"]');
+    heatmapSquares.forEach(square => {
+        square.addEventListener('mouseenter', function() {
+            // Could add tooltip or highlight effect here
+        });
     });
-
-    new Chart(document.getElementById('severityChart'), {
-        type: 'doughnut',
-        data: {
-            labels: severityLabels,
-            datasets: [{
-                data: severityCounts,
-                backgroundColor: severityColors,
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } }
-            }
-        }
-    });
-} else {
-    document.getElementById('severityChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
-}
-
-// Status Distribution (Bar Chart)
-const statusData = safeParseJSON('status-data', []);
-if (statusData.length > 0 && statusData.some(d => d && d.count > 0)) {
-    const statusLabels = statusData.map(d => d.status.replace('_', ' '));
-    const statusCounts = statusData.map(d => d.count);
-    const statusColors = statusData.map(d => {
-        const map = {
-            'ACTIVE': colors.active,
-            'FIXED': colors.fixed,
-            'FALSE_POSITIVE': colors.false_positive,
-            'RISK_ACCEPTED': colors.risk_accepted,
-            'DUPLICATE': colors.duplicate
-        };
-        return map[d.status] || colors.info;
-    });
-
-    new Chart(document.getElementById('statusChart'), {
-        type: 'bar',
-        data: {
-            labels: statusLabels,
-            datasets: [{
-                label: 'Count',
-                data: statusCounts,
-                backgroundColor: statusColors,
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } },
-                x: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } }
-            }
-        }
-    });
-} else {
-    document.getElementById('statusChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
-}
-
-// Vulnerability Trends (Line Chart)
-const trendData = safeParseJSON('trend-data', []);
-if (trendData.length > 0) {
-    const trendDates = trendData.map(d => d.date ? d.date.split('-')[2] : '');
-    const trendNew = trendData.map(d => d.new || 0);
-    const trendFixed = trendData.map(d => d.fixed || 0);
-    const trendActive = trendData.map(d => d.active || 0);
-
-    new Chart(document.getElementById('trendChart'), {
-        type: 'line',
-        data: {
-            labels: trendDates,
-            datasets: [
-                { label: 'New', data: trendNew, borderColor: colors.critical, backgroundColor: colors.critical + '20', tension: 0.4 },
-                { label: 'Fixed', data: trendFixed, borderColor: colors.fixed, backgroundColor: colors.fixed + '20', tension: 0.4 },
-                { label: 'Active', data: trendActive, borderColor: colors.medium, backgroundColor: colors.medium + '20', tension: 0.4 }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } }
-            },
-            scales: {
-                y: { beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } },
-                x: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } }
-            }
-        }
-    });
-} else {
-    document.getElementById('trendChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
-}
-
-// KEV Status (Pie Chart)
-const kevData = safeParseJSON('kev-data', []);
-if (kevData.length > 0 && (kevData[0]?.count > 0 || kevData[1]?.count > 0)) {
-    new Chart(document.getElementById('kevChart'), {
-        type: 'doughnut',
-        data: {
-            labels: kevData.map(d => d.label),
-            datasets: [{
-                data: kevData.map(d => d.count),
-                backgroundColor: [colors.critical, colors.info],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } }
-            }
-        }
-    });
-} else {
-    document.getElementById('kevChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
-}
-
-// Top 10 CVEs (Horizontal Bar Chart)
-const topCvesData = safeParseJSON('top-cves-data', []);
-if (topCvesData.length > 0) {
-    const cveLabels = topCvesData.map(d => d.vulnerability_id || 'N/A');
-    const cveCounts = topCvesData.map(d => d.count);
-    const cveColors = topCvesData.map(d => {
-        const map = {CRITICAL: colors.critical, HIGH: colors.high, MEDIUM: colors.medium, LOW: colors.low, INFO: colors.info};
-        return map[d.severity] || colors.info;
-    });
-
-    new Chart(document.getElementById('topCvesChart'), {
-        type: 'bar',
-        data: {
-            labels: cveLabels,
-            datasets: [{
-                label: 'Occurrences',
-                data: cveCounts,
-                backgroundColor: cveColors,
-                borderWidth: 0
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: { beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } },
-                y: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { display: false } }
-            }
-        }
-    });
-} else {
-    document.getElementById('topCvesChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
-}
-
-// EPSS Distribution (Bar Chart)
-const epssData = safeParseJSON('epss-data', []);
-if (epssData.length > 0 && epssData.some(d => d && d.count > 0)) {
-    new Chart(document.getElementById('epssChart'), {
-        type: 'bar',
-        data: {
-            labels: epssData.map(d => d.range),
-            datasets: [{
-                label: 'Count',
-                data: epssData.map(d => d.count),
-                backgroundColor: [colors.info, colors.low, colors.medium, colors.high, colors.critical],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } },
-                x: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } }
-            }
-        }
-    });
-} else {
-    document.getElementById('epssChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
-}
-
-// Vulnerabilities by Product (Bar Chart)
-const productData = safeParseJSON('product-data', []);
-if (productData.length > 0 && productData.some(d => d && d.vuln_count > 0)) {
-    new Chart(document.getElementById('productChart'), {
-        type: 'bar',
-        data: {
-            labels: productData.map(d => d.name),
-            datasets: [{
-                label: 'Vulnerabilities',
-                data: productData.map(d => d.vuln_count),
-                backgroundColor: colors.high,
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } },
-                x: { ticks: { color: '#9ca3af', font: { size: 10 }, maxRotation: 45, minRotation: 45 }, grid: { display: false } }
-            }
-        }
-    });
-} else {
-    document.getElementById('productChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
-}
-
-// Scanner Coverage (Stacked Bar Chart)
-const scannerData = safeParseJSON('scanner-data', []);
-if (scannerData.length > 0 && scannerData.some(d => d && d.total > 0)) {
-    new Chart(document.getElementById('scannerChart'), {
-        type: 'bar',
-        data: {
-            labels: scannerData.map(d => d.scanner_name),
-            datasets: [
-                { label: 'Critical', data: scannerData.map(d => d.critical || 0), backgroundColor: colors.critical },
-                { label: 'High', data: scannerData.map(d => d.high || 0), backgroundColor: colors.high },
-                { label: 'Medium', data: scannerData.map(d => d.medium || 0), backgroundColor: colors.medium }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } }
-            },
-            scales: {
-                x: { stacked: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } },
-                y: { stacked: true, beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { color: '#27272a' } }
-            }
-        }
-    });
-} else {
-    document.getElementById('scannerChart').parentElement.innerHTML = '<div class="text-center text-gray-500 py-12">No data available</div>';
-}
+});
 </script>
 {% endblock %}

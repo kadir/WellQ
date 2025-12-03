@@ -18,11 +18,14 @@ def dashboard(request):
     last_30_days = now - timedelta(days=30)
     last_90_days = now - timedelta(days=90)
     
-    # === OVERVIEW CARDS ===
+    # === COMMAND CENTER METRICS ===
     active_findings = Finding.objects.filter(status='OPEN').exclude(status='FIXED')
     critical_high = active_findings.filter(severity__in=['CRITICAL', 'HIGH']).count()
     kev_count = active_findings.filter(metadata__kev_status=True).count()
     high_epss = active_findings.filter(metadata__epss_score__gte=0.7).count()
+    
+    # Secrets count
+    secrets_count = active_findings.filter(finding_type=Finding.Type.SECRET).count()
     
     # Fix rate (last 30 days)
     fixed_last_30 = Finding.objects.filter(
@@ -33,6 +36,53 @@ def dashboard(request):
         first_seen__gte=last_30_days
     ).count()
     fix_rate = (fixed_last_30 / total_last_30 * 100) if total_last_30 > 0 else 0
+    
+    # Calculate Security Grade (A, B, C, F)
+    # Grade calculation: Based on critical/high findings, secrets, and fix rate
+    total_active = active_findings.count()
+    grade_score = 100
+    
+    # Deduct points for critical/high findings
+    if critical_high > 0:
+        grade_score -= min(critical_high * 2, 40)  # Max 40 points deduction
+    
+    # Deduct points for secrets (secrets are always critical)
+    if secrets_count > 0:
+        grade_score -= min(secrets_count * 5, 30)  # Max 30 points deduction
+    
+    # Deduct points for low fix rate
+    if fix_rate < 50:
+        grade_score -= (50 - fix_rate) * 0.5  # Max 25 points deduction
+    
+    # Deduct points for KEV findings
+    if kev_count > 0:
+        grade_score -= min(kev_count * 3, 20)  # Max 20 points deduction
+    
+    # Calculate grade letter
+    if grade_score >= 90:
+        security_grade = 'A'
+    elif grade_score >= 75:
+        security_grade = 'B'
+    elif grade_score >= 60:
+        security_grade = 'C'
+    else:
+        security_grade = 'F'
+    
+    # Calculate MTTR (Mean Time to Remediation) in days
+    # Average time from first_seen to last_seen for FIXED findings
+    fixed_findings = Finding.objects.filter(status='FIXED')
+    mttr_days = 0
+    if fixed_findings.exists():
+        from django.db.models import F, ExpressionWrapper, DurationField
+        mttr_avg = fixed_findings.annotate(
+            remediation_time=ExpressionWrapper(
+                F('last_seen') - F('first_seen'),
+                output_field=DurationField()
+            )
+        ).aggregate(avg_time=Avg('remediation_time'))
+        
+        if mttr_avg['avg_time']:
+            mttr_days = round(mttr_avg['avg_time'].total_seconds() / 86400, 1)
     
     risk_accepted = Finding.objects.filter(status='WONT_FIX').count()
     
@@ -113,6 +163,32 @@ def dashboard(request):
         .values('name', 'criticality', 'vuln_count')
     )
     
+    # === REMEDIATION HEATMAP (Last 90 days) ===
+    # Generate heatmap data showing "green days" when bugs were fixed
+    heatmap_data = []
+    start_date = now - timedelta(days=89)  # Start from 90 days ago
+    for i in range(90):
+        date = start_date + timedelta(days=i)
+        date_start = date.replace(hour=0, minute=0, second=0, microsecond=0)
+        date_end = date_start + timedelta(days=1)
+        
+        fixed_count = Finding.objects.filter(
+            status='FIXED',
+            last_seen__gte=date_start,
+            last_seen__lt=date_end
+        ).count()
+        
+        # Green day = at least 1 finding was fixed
+        is_green_day = fixed_count > 0
+        
+        heatmap_data.append({
+            'date': date_start.strftime('%Y-%m-%d'),
+            'fixed_count': fixed_count,
+            'is_green': is_green_day,
+            'day_of_week': date_start.strftime('%a'),
+            'day_of_month': date_start.day
+        })
+    
     # === VULNERABILITY TRENDS (Last 30 days) ===
     trend_data = []
     for i in range(30):
@@ -141,6 +217,37 @@ def dashboard(request):
             'new': new_count,
             'fixed': fixed_count,
             'active': active_count
+        })
+    
+    # === ACTION LIST: TOP VULNERABILITIES (with upgrade versions) ===
+    top_vulnerabilities = list(
+        active_findings.filter(finding_type=Finding.Type.SCA)
+        .exclude(vulnerability_id__isnull=True)
+        .exclude(vulnerability_id='')
+        .values('vulnerability_id', 'title', 'severity', 'package_name', 'package_version', 'fix_version')
+        .annotate(count=Count('id'))
+        .order_by('-severity', '-count')[:10]
+    )
+    
+    # === ACTION LIST: TOP SECRETS (with file paths) ===
+    # Get full Finding objects for secrets to access metadata properly
+    secret_findings = active_findings.filter(
+        finding_type=Finding.Type.SECRET
+    ).exclude(
+        file_path__isnull=True
+    ).exclude(
+        file_path=''
+    ).order_by('-severity', '-first_seen')[:10]
+    
+    top_secrets = []
+    for finding in secret_findings:
+        top_secrets.append({
+            'id': str(finding.id),
+            'title': finding.title,
+            'file_path': finding.file_path,
+            'line_number': finding.line_number,
+            'severity': finding.severity,
+            'metadata': finding.metadata or {},
         })
     
     # === SCANNER COVERAGE ===
@@ -182,15 +289,26 @@ def dashboard(request):
     release_count = Release.objects.count()
     
     context = {
-        # Overview Cards
-        'total_active': active_findings.count(),
+        # Command Center Metrics
+        'security_grade': security_grade,
+        'grade_score': round(grade_score, 1),
         'critical_high': critical_high,
+        'secrets_count': secrets_count,
+        'mttr_days': mttr_days,
+        'fix_rate': round(fix_rate, 1),
+        'total_active': active_findings.count(),
+        
+        # Heatmap Data
+        'heatmap_data': heatmap_data,
+        
+        # Action Lists
+        'top_vulnerabilities': top_vulnerabilities,
+        'top_secrets': top_secrets,
+        
+        # Legacy data (for backward compatibility if needed)
         'kev_count': kev_count,
         'high_epss': high_epss,
-        'fix_rate': round(fix_rate, 1),
         'risk_accepted': risk_accepted,
-        
-        # Charts Data (as Python objects - json_script filter will handle JSON conversion)
         'severity_data': severity_data,
         'status_data': status_data,
         'top_cves': top_cves,
@@ -199,17 +317,11 @@ def dashboard(request):
         'product_vulns': product_vulns,
         'trend_data': trend_data,
         'scanner_data': scanner_data,
-        
-        # Component Stats
         'total_components': total_components,
         'new_components': new_components,
         'removed_components': removed_components,
         'components_with_vulns': components_with_vulns,
-        
-        # Activity
         'recent_scans': list(recent_scans),
-        
-        # General Stats
         'workspace_count': workspace_count,
         'product_count': product_count,
         'release_count': release_count,

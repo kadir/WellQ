@@ -516,7 +516,7 @@ class ReleaseViewSet(viewsets.ReadOnlyModelViewSet):
         if severity_filter:
             findings = findings.filter(severity=severity_filter.upper())
         
-        findings = findings.order_by('-severity', '-created_at')
+        findings = findings.order_by('-severity', '-first_seen')
         serializer = FindingSerializer(findings, many=True)
         return Response(serializer.data)
 

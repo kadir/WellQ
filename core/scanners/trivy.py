@@ -35,9 +35,14 @@ class TrivyScanner(BaseScanner):
 
             # 1. FETCH ALL EXISTING (Map: Hash -> ID)
             # We only need ID and Status to make decisions
+            # CRITICAL: Filter by scanner_name to prevent cross-contamination
+            # Only compare findings from the same scanner tool
             existing_map = {
                 f.hash_id: f 
-                for f in Finding.objects.filter(**dedup_scope)
+                for f in Finding.objects.filter(
+                    **dedup_scope,
+                    scan__scanner_name=scan_instance.scanner_name
+                )
             }
             
             seen_hashes = set()
@@ -116,12 +121,15 @@ class TrivyScanner(BaseScanner):
                 Finding.objects.bulk_update(to_update, ['scan', 'last_seen', 'status'], batch_size=100)
 
             # 3. AUTO-CLOSE LOGIC (1 Query)
+            # CRITICAL: Only mark findings from THIS scanner as FIXED
+            # Prevents cross-contamination (e.g., TruffleHog scan closing Trivy findings)
             all_known_hashes = set(existing_map.keys())
             missing_hashes = all_known_hashes - seen_hashes
             
             if missing_hashes:
                 Finding.objects.filter(
                     **dedup_scope,
+                    scan__scanner_name=scan_instance.scanner_name,  # Tool-scoped resolution
                     hash_id__in=missing_hashes
                 ).exclude(status=Finding.Status.FIXED).update(  # Don't update if already fixed
                     status=Finding.Status.FIXED,

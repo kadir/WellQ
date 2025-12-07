@@ -178,6 +178,7 @@ class Component(models.Model):
     # PURL (Package URL) - The industry standard ID
     purl = models.CharField(max_length=300, blank=True) 
     license = models.CharField(max_length=100, blank=True)
+    license_expression = models.CharField(max_length=255, blank=True, help_text="License expression (e.g. 'MIT OR Apache-2.0')")
     
     # Change tracking
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='UNCHANGED', db_index=True)

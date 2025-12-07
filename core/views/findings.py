@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from core.models import Product, Release, Finding, Component, StatusApprovalRequest
+from core.models import Product, Release, Finding, Component, StatusApprovalRequest, Scan
 from core.forms import ReleaseForm
 from core.services.sbom import digest_sbom
 
@@ -90,6 +90,11 @@ def release_detail(request, release_id):
         elif kev_filter.lower() == 'false' or kev_filter == '0':
             findings = findings.filter(metadata__kev_status=False)
     
+    # Apply scanner filter
+    scanner_filter = request.GET.get('scanner')
+    if scanner_filter:
+        findings = findings.filter(scan__scanner_name=scanner_filter)
+    
     # Calculate statistics using aggregation (single query instead of 6 separate queries)
     stats_queryset = all_findings
     
@@ -159,6 +164,11 @@ def release_detail(request, release_id):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
+    # Get available scanners for filter dropdown (from scans for this release)
+    available_scanners = Scan.objects.filter(
+        Q(release=release) | Q(artifact__in=release.artifacts.all())
+    ).values_list('scanner_name', flat=True).distinct().order_by('scanner_name')
+
     return render(request, 'findings/release_detail.html', {
         'release': release,
         'scans': scans,
@@ -169,12 +179,14 @@ def release_detail(request, release_id):
         'page_obj': page_obj,
         'per_page': per_page,
         'total_components': total_components,
+        'available_scanners': available_scanners,
         'filters': {
             'status': status_filter,
             'severity': severity_filter,
             'cve_id': cve_filter,
             'epss': epss_filter,
             'kev': kev_filter,
+            'scanner': scanner_filter,
         }
     })
 
@@ -311,6 +323,11 @@ def vulnerabilities_list(request):
         elif kev_filter.lower() == 'false' or kev_filter == '0':
             findings = findings.filter(metadata__kev_status=False)
     
+    # Apply scanner filter
+    scanner_filter = request.GET.get('scanner')
+    if scanner_filter:
+        findings = findings.filter(scan__scanner_name=scanner_filter)
+    
     # Order by severity and date
     findings = findings.order_by(
         Case(
@@ -347,6 +364,9 @@ def vulnerabilities_list(request):
         'info': stats_agg['info'],
     }
     
+    # Get available scanners for filter dropdown
+    available_scanners = Scan.objects.values_list('scanner_name', flat=True).distinct().order_by('scanner_name')
+    
     # Pagination
     per_page = request.GET.get('per_page', '50')
     if per_page not in ['20', '50', '100']:
@@ -359,6 +379,7 @@ def vulnerabilities_list(request):
         'findings': page_obj,
         'vuln_stats': vuln_stats,
         'per_page': per_page,
+        'available_scanners': available_scanners,
         'filters': {
             'status': status_filter,
             'severity': severity_filter,
@@ -367,6 +388,7 @@ def vulnerabilities_list(request):
             'workspace': workspace_filter,
             'epss': epss_filter,
             'kev': kev_filter,
+            'scanner': scanner_filter,
         }
     })
 

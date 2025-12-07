@@ -705,7 +705,7 @@ class ReleaseViewSet(viewsets.ReadOnlyModelViewSet):
         from django.utils import timezone
         from datetime import timedelta
         from django.db.models import Q, Count, Max
-        from core.services.release_risk import get_release_findings_queryset
+        from core.services.release_risk import get_release_findings_queryset, get_license_stats, get_toxic_components
         
         release = self.get_object()
         
@@ -877,6 +877,23 @@ class ReleaseViewSet(viewsets.ReadOnlyModelViewSet):
                 'total': active_findings.count()
             })
         
+        # Calculate license compliance stats
+        license_stats = get_license_stats(release)
+        
+        # Format license violations for response
+        license_violations = []
+        for violation in license_stats['violations']:
+            license_violations.append({
+                'component': violation['component'],
+                'version': violation['version'],
+                'license': violation['license'],
+                'forbidden_licenses': violation['forbidden_licenses'],
+                'risk': violation['risk']
+            })
+        
+        # Get toxic components (high-risk dependencies with KEV findings)
+        toxic_components = get_toxic_components(release)
+        
         return Response({
             'risk_score': risk_score,
             'health_grade': health_grade,
@@ -895,7 +912,15 @@ class ReleaseViewSet(viewsets.ReadOnlyModelViewSet):
                 'total': active_findings.count()
             },
             'kill_list': kill_list,
-            'risk_treemap': risk_treemap
+            'risk_treemap': risk_treemap,
+            'license_compliance': {
+                'compliant': license_stats['compliant'],
+                'violations': license_stats['violations'],
+                'unknown': license_stats['unknown'],
+                'total': license_stats['total'],
+                'violation_count': len(license_stats['violations'])
+            },
+            'toxic_components': toxic_components
         }, status=status.HTTP_200_OK)
 
 

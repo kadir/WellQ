@@ -666,6 +666,237 @@ class ReleaseViewSet(viewsets.ReadOnlyModelViewSet):
             'message': f'Linked {len(artifacts)} artifact(s) to release',
             'release': serializer.data
         }, status=status.HTTP_200_OK)
+    
+    @extend_schema(
+        summary='Get release summary',
+        description='Get comprehensive release summary with risk score, compliance status, SLA breaches, kill list, and risk treemap data. This is the primary endpoint for the Release Summary Dashboard.',
+        responses={
+            200: {
+                'description': 'Release summary data',
+                'content': {
+                    'application/json': {
+                        'example': {
+                            'risk_score': 85,
+                            'health_grade': 'B',
+                            'compliance_status': False,
+                            'compliance_blocking_issues': 3,
+                            'sla_breaches': 2,
+                            'kill_list': [],
+                            'risk_treemap': []
+                        }
+                    }
+                }
+            }
+        }
+    )
+    @action(detail=True, methods=['get'])
+    def summary(self, request, pk=None):
+        """
+        Get comprehensive release summary for the Release Summary Dashboard.
+        
+        This implements the Release Summary & Risk Engine feature specification.
+        Calculates:
+        - Enterprise Risk Score (0-100)
+        - EU CRA Compliance Status
+        - SLA Breaches
+        - Kill List (blocking issues)
+        - Risk Treemap (artifact risk breakdown)
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.db.models import Q, Count, Max
+        from core.services.release_risk import get_release_findings_queryset
+        
+        release = self.get_object()
+        
+        # Get all findings for this release (supports both BOM and legacy modes)
+        all_findings = get_release_findings_queryset(release)
+        active_findings = all_findings.filter(status='OPEN')
+        
+        # Get artifact count
+        artifact_count = release.artifacts.count()
+        if artifact_count == 0:
+            # Legacy mode: check if release has direct scans
+            artifact_count = release.scans.count() or 1
+        
+        # Weighting constants
+        W_KEV = 50
+        W_SECRET = 50
+        W_CRITICAL = 10
+        W_HIGH = 2
+        W_MEDIUM = 0.5
+        
+        # Calculate finding counts
+        kev_count = active_findings.filter(metadata__kev_status=True).count()
+        secret_count = active_findings.filter(finding_type='SECRET').count()
+        critical_count = active_findings.filter(severity='CRITICAL').count()
+        high_count = active_findings.filter(severity='HIGH').count()
+        medium_count = active_findings.filter(severity='MEDIUM').count()
+        
+        # Calculate Total Risk Points (TRP)
+        trp = (
+            (kev_count * W_KEV) +
+            (secret_count * W_SECRET) +
+            (critical_count * W_CRITICAL) +
+            (high_count * W_HIGH) +
+            (medium_count * W_MEDIUM)
+        )
+        
+        # Calculate Risk Density
+        risk_density = trp / artifact_count if artifact_count > 0 else trp
+        
+        # Calculate Final Score (Inverse Decay)
+        # Formula: Score = 100 / (1 + Risk Density / 25)
+        sensitivity_factor = 25
+        risk_score = 100 / (1 + (risk_density / sensitivity_factor))
+        risk_score = round(risk_score)
+        
+        # Calculate Health Grade
+        if risk_score >= 90:
+            health_grade = 'A'
+        elif risk_score >= 80:
+            health_grade = 'B'
+        elif risk_score >= 70:
+            health_grade = 'C'
+        else:
+            health_grade = 'F'
+        
+        # Calculate Compliance Status (EU CRA)
+        # Compliant if: KEV count = 0 AND Secret count = 0
+        compliance_status = (kev_count == 0) and (secret_count == 0)
+        compliance_blocking_issues = kev_count + secret_count
+        
+        # Calculate SLA Breaches (CRITICAL findings >7 days old)
+        seven_days_ago = timezone.now() - timedelta(days=7)
+        sla_breaches = active_findings.filter(
+            severity='CRITICAL',
+            first_seen__lt=seven_days_ago
+        ).count()
+        
+        # Build Kill List (blocking issues: KEVs + Secrets)
+        kill_list_findings = active_findings.filter(
+            Q(metadata__kev_status=True) | Q(finding_type='SECRET')
+        ).select_related(
+            'scan__artifact',
+            'scan__release'
+        ).order_by('-severity', '-first_seen')
+        
+        kill_list = []
+        for finding in kill_list_findings:
+            # Determine type icon
+            if finding.metadata and finding.metadata.get('kev_status'):
+                issue_type = 'KEV'
+                type_icon = 'skull'
+            elif finding.finding_type == 'SECRET':
+                issue_type = 'SECRET'
+                type_icon = 'key'
+            else:
+                continue  # Skip if somehow not KEV or SECRET
+            
+            # Get affected component (package name)
+            affected_component = finding.package_name or finding.title or 'N/A'
+            
+            # Get location (artifact name)
+            artifact = finding.scan.artifact if finding.scan and finding.scan.artifact else None
+            location = f"{artifact.name}:{artifact.version}" if artifact else 'Unknown'
+            
+            # Get remediation
+            if finding.finding_type == 'SECRET':
+                remediation = 'Revoke'
+            else:
+                remediation = finding.fix_version or 'Not available'
+            
+            kill_list.append({
+                'id': str(finding.id),
+                'type': issue_type,
+                'type_icon': type_icon,
+                'issue': finding.vulnerability_id or finding.title,
+                'affected_component': affected_component,
+                'location': location,
+                'remediation': remediation,
+                'severity': finding.severity,
+                'first_seen': finding.first_seen.isoformat() if finding.first_seen else None
+            })
+        
+        # Build Risk Treemap (artifact risk breakdown)
+        artifacts = release.artifacts.all()
+        risk_treemap = []
+        
+        if artifacts.exists():
+            # BOM mode: calculate risk per artifact
+            for artifact in artifacts:
+                artifact_findings = Finding.objects.filter(
+                    scan__artifact=artifact,
+                    status='OPEN'
+                )
+                
+                artifact_critical = artifact_findings.filter(severity='CRITICAL').count()
+                artifact_high = artifact_findings.filter(severity='HIGH').count()
+                artifact_medium = artifact_findings.filter(severity='MEDIUM').count()
+                artifact_low = artifact_findings.filter(severity='LOW').count()
+                artifact_total = artifact_findings.count()
+                
+                # Determine max severity for color coding
+                if artifact_critical > 0:
+                    max_severity = 'CRITICAL'
+                    color = 'red'
+                elif artifact_high > 0:
+                    max_severity = 'HIGH'
+                    color = 'orange'
+                elif artifact_medium > 0 or artifact_low > 0:
+                    max_severity = 'MEDIUM'
+                    color = 'yellow'
+                else:
+                    max_severity = 'CLEAN'
+                    color = 'green'
+                
+                risk_treemap.append({
+                    'artifact_id': str(artifact.id),
+                    'artifact_name': artifact.name,
+                    'artifact_version': artifact.version,
+                    'max_severity': max_severity,
+                    'color': color,
+                    'critical': artifact_critical,
+                    'high': artifact_high,
+                    'medium': artifact_medium,
+                    'low': artifact_low,
+                    'total': artifact_total
+                })
+        else:
+            # Legacy mode: treat release as single "artifact"
+            risk_treemap.append({
+                'artifact_id': None,
+                'artifact_name': release.name,
+                'artifact_version': release.commit_hash or 'N/A',
+                'max_severity': 'CRITICAL' if critical_count > 0 else ('HIGH' if high_count > 0 else 'CLEAN'),
+                'color': 'red' if critical_count > 0 else ('orange' if high_count > 0 else 'green'),
+                'critical': critical_count,
+                'high': high_count,
+                'medium': medium_count,
+                'low': active_findings.filter(severity='LOW').count(),
+                'total': active_findings.count()
+            })
+        
+        return Response({
+            'risk_score': risk_score,
+            'health_grade': health_grade,
+            'compliance_status': compliance_status,
+            'compliance_blocking_issues': compliance_blocking_issues,
+            'sla_breaches': sla_breaches,
+            'artifact_count': artifact_count,
+            'finding_counts': {
+                'kev': kev_count,
+                'secrets': secret_count,
+                'critical': critical_count,
+                'high': high_count,
+                'medium': medium_count,
+                'low': active_findings.filter(severity='LOW').count(),
+                'info': active_findings.filter(severity='INFO').count(),
+                'total': active_findings.count()
+            },
+            'kill_list': kill_list,
+            'risk_treemap': risk_treemap
+        }, status=status.HTTP_200_OK)
 
 
 class ScanViewSet(viewsets.ReadOnlyModelViewSet):

@@ -40,7 +40,11 @@
     </div>
 
     <div class="flex items-center gap-6 border-b border-zinc-800 mb-8">
-        <button onclick="switchTab('vuln')" id="btn-vuln" class="pb-3 text-sm font-bold border-b-2 transition-colors text-emerald-500 border-emerald-500">
+        <button onclick="switchTab('summary')" id="btn-summary" class="pb-3 text-sm font-bold border-b-2 transition-colors text-emerald-500 border-emerald-500">
+            Summary
+        </button>
+        
+        <button onclick="switchTab('vuln')" id="btn-vuln" class="pb-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors">
             Vulnerabilities
             <span class="ml-2 bg-zinc-800 text-gray-400 px-1.5 py-0.5 rounded text-[10px]">{{ vuln_stats.total }}</span>
         </button>
@@ -54,6 +58,87 @@
             Scan History
             <span class="ml-2 bg-zinc-800 text-gray-400 px-1.5 py-0.5 rounded text-[10px]">{{ scans.count }}</span>
         </button>
+    </div>
+
+    <!-- Summary Tab (Zone 1, 2, 3) -->
+    <div id="tab-summary" class="block animate-fade-in">
+        <!-- Loading State -->
+        <div id="summary-loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div>
+            <p class="text-gray-400 mt-4">Loading release summary...</p>
+        </div>
+
+        <!-- Content (hidden until loaded) -->
+        <div id="summary-content" class="hidden">
+            <!-- Zone 1: The Verdict (Top Row) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Compliance Badge -->
+                <div id="compliance-badge" class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div id="compliance-icon" class="w-8 h-8 rounded-full flex items-center justify-center">
+                            <!-- Icon will be inserted by JS -->
+                        </div>
+                        <div>
+                            <div id="compliance-text" class="text-lg font-bold text-white"></div>
+                            <div id="compliance-subtext" class="text-xs text-gray-500"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Health Grade -->
+                <div id="health-grade" class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+                    <div class="mb-2">
+                        <div class="text-xs text-gray-500 uppercase font-bold tracking-widest mb-1">Risk Score</div>
+                        <div id="risk-score" class="text-3xl font-bold"></div>
+                    </div>
+                    <div id="grade-badge" class="inline-flex items-center px-3 py-1 rounded text-sm font-bold"></div>
+                </div>
+
+                <!-- SLA Monitor -->
+                <div id="sla-monitor" class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+                    <div class="mb-2">
+                        <div class="text-xs text-gray-500 uppercase font-bold tracking-widest mb-1">SLA Status</div>
+                        <div id="sla-status" class="text-lg font-bold"></div>
+                    </div>
+                    <div id="sla-subtext" class="text-xs text-gray-500"></div>
+                </div>
+            </div>
+
+            <!-- Zone 2: The Kill List (Middle Section) -->
+            <div class="mb-8">
+                <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider">Blocking Issues (Kill List)</h3>
+                <div id="kill-list-container" class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+                    <table class="w-full text-left text-sm text-gray-400">
+                        <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
+                            <tr>
+                                <th class="px-6 py-3 w-20">Type</th>
+                                <th class="px-6 py-3 w-48">Issue</th>
+                                <th class="px-6 py-3">Affected Component</th>
+                                <th class="px-6 py-3">Location</th>
+                                <th class="px-6 py-3 w-48">Remediation</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kill-list-body" class="divide-y divide-zinc-800">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                    <div id="kill-list-empty" class="px-6 py-12 text-center text-gray-500 hidden">
+                        No blocking issues found. Release is compliant.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone 3: Risk Treemap (Bottom Section) -->
+            <div>
+                <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider">Risk Treemap (Artifact Breakdown)</h3>
+                <div id="risk-treemap" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <!-- Populated by JavaScript -->
+                </div>
+                <div id="treemap-empty" class="bg-[#09090b] border border-[#27272a] rounded-lg p-12 text-center text-gray-500 hidden">
+                    No artifacts linked to this release.
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="tab-vuln" class="block animate-fade-in">
@@ -481,32 +566,220 @@
         // 1. Define Styles
         const inactiveClass = "pb-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors";
         const activeClass = "pb-3 text-sm font-bold border-b-2 transition-colors text-emerald-500 border-emerald-500";
-        const buttons = ['btn-vuln', 'btn-sbom', 'btn-scans'];
-        const tabs = ['tab-vuln', 'tab-sbom', 'tab-scans'];
+        const buttons = ['btn-summary', 'btn-vuln', 'btn-sbom', 'btn-scans'];
+        const tabs = ['tab-summary', 'tab-vuln', 'tab-sbom', 'tab-scans'];
 
         // 2. Reset All
-        buttons.forEach(id => document.getElementById(id).className = inactiveClass);
-        tabs.forEach(id => document.getElementById(id).classList.add('hidden'));
+        buttons.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.className = inactiveClass;
+        });
+        tabs.forEach(id => {
+            const tab = document.getElementById(id);
+            if (tab) tab.classList.add('hidden');
+        });
 
         // 3. Activate Selected
-        document.getElementById('btn-' + tabName).className = activeClass;
-        document.getElementById('tab-' + tabName).classList.remove('hidden');
+        const activeBtn = document.getElementById('btn-' + tabName);
+        const activeTab = document.getElementById('tab-' + tabName);
+        if (activeBtn) activeBtn.className = activeClass;
+        if (activeTab) activeTab.classList.remove('hidden');
 
         // 4. Update URL
         const url = new URL(window.location);
         url.searchParams.set('tab', tabName);
         window.history.pushState({}, '', url);
+
+        // 5. Load summary data if switching to summary tab
+        if (tabName === 'summary' && !window.summaryDataLoaded) {
+            loadSummaryData();
+        }
+    }
+
+    // Load summary data from API
+    function loadSummaryData() {
+        const releaseId = '{{ release.id }}';
+        const loadingEl = document.getElementById('summary-loading');
+        const contentEl = document.getElementById('summary-content');
+
+        fetch(`/api/v1/releases/${releaseId}/summary/`)
+            .then(response => response.json())
+            .then(data => {
+                window.summaryDataLoaded = true;
+                loadingEl.classList.add('hidden');
+                contentEl.classList.remove('hidden');
+                renderSummaryData(data);
+            })
+            .catch(error => {
+                console.error('Error loading summary:', error);
+                loadingEl.innerHTML = '<p class="text-red-400">Error loading release summary</p>';
+            });
+    }
+
+    // Render summary data
+    function renderSummaryData(data) {
+        // Zone 1: Verdict Cards
+        renderComplianceBadge(data);
+        renderHealthGrade(data);
+        renderSLAMonitor(data);
+
+        // Zone 2: Kill List
+        renderKillList(data.kill_list);
+
+        // Zone 3: Risk Treemap
+        renderRiskTreemap(data.risk_treemap);
+    }
+
+    function renderComplianceBadge(data) {
+        const badge = document.getElementById('compliance-badge');
+        const icon = document.getElementById('compliance-icon');
+        const text = document.getElementById('compliance-text');
+        const subtext = document.getElementById('compliance-subtext');
+
+        if (data.compliance_status) {
+            icon.innerHTML = '<svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>';
+            text.textContent = 'EU CRA COMPLIANT';
+            text.className = 'text-lg font-bold text-green-500';
+            subtext.textContent = 'No blocking issues';
+            badge.className = 'bg-green-500/5 border border-green-500/20 rounded-lg p-6';
+        } else {
+            icon.innerHTML = '<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+            text.textContent = 'NON-COMPLIANT';
+            text.className = 'text-lg font-bold text-red-500';
+            subtext.textContent = `${data.compliance_blocking_issues} blocking issue(s)`;
+            badge.className = 'bg-red-500/5 border border-red-500/20 rounded-lg p-6';
+        }
+    }
+
+    function renderHealthGrade(data) {
+        const scoreEl = document.getElementById('risk-score');
+        const gradeEl = document.getElementById('grade-badge');
+
+        scoreEl.textContent = data.risk_score;
+        
+        let gradeColor, gradeBg;
+        if (data.health_grade === 'A') {
+            gradeColor = 'text-green-500';
+            gradeBg = 'bg-green-500/10 border-green-500/20';
+        } else if (data.health_grade === 'B') {
+            gradeColor = 'text-blue-500';
+            gradeBg = 'bg-blue-500/10 border-blue-500/20';
+        } else if (data.health_grade === 'C') {
+            gradeColor = 'text-yellow-500';
+            gradeBg = 'bg-yellow-500/10 border-yellow-500/20';
+        } else {
+            gradeColor = 'text-red-500';
+            gradeBg = 'bg-red-500/10 border-red-500/20';
+        }
+
+        scoreEl.className = `text-3xl font-bold ${gradeColor}`;
+        gradeEl.textContent = `Grade: ${data.health_grade}`;
+        gradeEl.className = `inline-flex items-center px-3 py-1 rounded text-sm font-bold border ${gradeColor} ${gradeBg}`;
+    }
+
+    function renderSLAMonitor(data) {
+        const statusEl = document.getElementById('sla-status');
+        const subtextEl = document.getElementById('sla-subtext');
+
+        if (data.sla_breaches === 0) {
+            statusEl.textContent = 'On Track';
+            statusEl.className = 'text-lg font-bold text-green-500';
+            subtextEl.textContent = 'No overdue criticals';
+        } else {
+            statusEl.textContent = 'SLA BREACHED';
+            statusEl.className = 'text-lg font-bold text-red-500';
+            subtextEl.textContent = `${data.sla_breaches} Critical(s) overdue (>7 days)`;
+        }
+    }
+
+    function renderKillList(killList) {
+        const tbody = document.getElementById('kill-list-body');
+        const empty = document.getElementById('kill-list-empty');
+
+        tbody.innerHTML = '';
+
+        if (killList.length === 0) {
+            empty.classList.remove('hidden');
+            return;
+        }
+
+        empty.classList.add('hidden');
+
+        killList.forEach(item => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-zinc-900/50 transition-colors';
+            
+            // Type icon
+            const typeIcon = item.type_icon === 'skull' 
+                ? '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>'
+                : '<svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>';
+
+            row.innerHTML = `
+                <td class="px-6 py-3">${typeIcon}</td>
+                <td class="px-6 py-3 font-mono text-white">${item.issue}</td>
+                <td class="px-6 py-3 text-gray-300">${item.affected_component}</td>
+                <td class="px-6 py-3 text-gray-400 font-mono text-xs">${item.location}</td>
+                <td class="px-6 py-3 text-emerald-400 font-mono text-xs">${item.remediation}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function renderRiskTreemap(treemap) {
+        const container = document.getElementById('risk-treemap');
+        const empty = document.getElementById('treemap-empty');
+
+        container.innerHTML = '';
+
+        if (treemap.length === 0) {
+            empty.classList.remove('hidden');
+            return;
+        }
+
+        empty.classList.add('hidden');
+
+        treemap.forEach(artifact => {
+            const box = document.createElement('div');
+            box.className = `bg-[#09090b] border-2 rounded-lg p-4 cursor-pointer hover:scale-105 transition-transform`;
+            
+            // Color based on max severity
+            if (artifact.color === 'red') {
+                box.className += ' border-red-500/50 bg-red-500/5';
+            } else if (artifact.color === 'orange') {
+                box.className += ' border-orange-500/50 bg-orange-500/5';
+            } else if (artifact.color === 'yellow') {
+                box.className += ' border-yellow-500/50 bg-yellow-500/5';
+            } else {
+                box.className += ' border-green-500/50 bg-green-500/5';
+            }
+
+            const tooltip = `${artifact.artifact_name}: ${artifact.critical} Critical, ${artifact.high} High, ${artifact.medium} Medium`;
+            
+            box.innerHTML = `
+                <div class="font-bold text-white mb-2 truncate" title="${artifact.artifact_name}">${artifact.artifact_name}</div>
+                <div class="text-xs text-gray-400 font-mono mb-3 truncate">${artifact.artifact_version}</div>
+                <div class="flex flex-wrap gap-1 text-[10px]">
+                    ${artifact.critical > 0 ? `<span class="bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">${artifact.critical}C</span>` : ''}
+                    ${artifact.high > 0 ? `<span class="bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded">${artifact.high}H</span>` : ''}
+                    ${artifact.medium > 0 ? `<span class="bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">${artifact.medium}M</span>` : ''}
+                    ${artifact.total === 0 ? '<span class="text-green-400">Clean</span>' : ''}
+                </div>
+            `;
+            
+            box.title = tooltip;
+            container.appendChild(box);
+        });
     }
 
     // Auto-run on page load
     document.addEventListener("DOMContentLoaded", function() {
         const urlParams = new URLSearchParams(window.location.search);
         const activeTab = urlParams.get('tab');
-        if (activeTab && ['vuln', 'sbom', 'scans'].includes(activeTab)) {
+        if (activeTab && ['summary', 'vuln', 'sbom', 'scans'].includes(activeTab)) {
             switchTab(activeTab);
         } else {
-            // Default to vuln tab if no tab specified
-            switchTab('vuln');
+            // Default to summary tab if no tab specified
+            switchTab('summary');
         }
     });
 </script>

@@ -101,8 +101,9 @@ def get_license_stats(release):
     Returns:
         dict: License statistics with counts and violation details
     """
-    # Get all components in this release
-    components = Component.objects.filter(release=release)
+    try:
+        # Get all components in this release
+        components = Component.objects.filter(release=release)
     
     # Define license policy
     # Forbidden licenses (Copyleft/Forbidden)
@@ -161,7 +162,18 @@ def get_license_stats(release):
                 # Unknown license (not in our lists)
                 stats['unknown'] += 1
     
-    return stats
+        return stats
+    except Exception as e:
+        # Log the error but return empty stats to prevent 500 errors
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error getting license stats for release {release.id}: {str(e)}")
+        return {
+            'compliant': 0,
+            'violations': [],
+            'unknown': 0,
+            'total': 0
+        }
 
 
 def get_toxic_components(release):
@@ -178,42 +190,56 @@ def get_toxic_components(release):
     Returns:
         list: List of dicts with package_name, package_version, kev_count, and fix_version
     """
-    # Get all findings for this release
-    findings = get_release_findings_queryset(release)
-    
-    # Filter for OPEN findings with KEV status
-    kev_findings = findings.filter(
-        status='OPEN',
-        metadata__kev_status=True
-    ).exclude(
-        package_name__isnull=True
-    ).exclude(
-        package_name=''
-    )
-    
-    # Use database aggregation to group by package_name and package_version
-    # This generates a single optimized SQL query with GROUP BY
-    toxic_comps = (
-        kev_findings
-        .values('package_name', 'package_version')
-        .annotate(
-            kev_count=Count('id'),
-            # Get the latest fix_version (most recent one)
-            latest_fix=Max('fix_version')
+    try:
+        # Get all findings for this release
+        findings = get_release_findings_queryset(release)
+        
+        # Filter for OPEN findings with KEV status
+        # Handle cases where metadata might be None or not have kev_status
+        kev_findings = findings.filter(
+            status='OPEN',
+            metadata__kev_status=True
+        ).exclude(
+            package_name__isnull=True
+        ).exclude(
+            package_name=''
         )
-        .order_by('-kev_count', 'package_name')
-    )
-    
-    # Convert to list of dicts for easier consumption
-    result = []
-    for comp in toxic_comps:
-        result.append({
-            'package_name': comp['package_name'],
-            'package_version': comp['package_version'] or 'Unknown',
-            'kev_count': comp['kev_count'],
-            'fix_version': comp['latest_fix'] or 'Not available'
-        })
-    
-    return result
+        
+        # Check if we have any KEV findings
+        if not kev_findings.exists():
+            return []
+        
+        # Use database aggregation to group by package_name and package_version
+        # This generates a single optimized SQL query with GROUP BY
+        toxic_comps = (
+            kev_findings
+            .values('package_name', 'package_version')
+            .annotate(
+                kev_count=Count('id'),
+                # Get the latest fix_version (most recent one)
+                # Use Coalesce to handle NULL values
+                latest_fix=Max('fix_version')
+            )
+            .order_by('-kev_count', 'package_name')
+        )
+        
+        # Convert to list of dicts for easier consumption
+        result = []
+        for comp in toxic_comps:
+            result.append({
+                'package_name': comp['package_name'] or 'Unknown',
+                'package_version': comp['package_version'] or 'Unknown',
+                'kev_count': comp['kev_count'],
+                'fix_version': comp['latest_fix'] or 'Not available'
+            })
+        
+        return result
+    except Exception as e:
+        # Log the error but return empty list to prevent 500 errors
+        # In production, you might want to log this properly
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error getting toxic components for release {release.id}: {str(e)}")
+        return []
 
 

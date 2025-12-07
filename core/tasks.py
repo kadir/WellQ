@@ -232,3 +232,46 @@ def enrich_findings_with_threat_intel():
             'error': str(e)
         }
 
+
+@shared_task
+def expire_risk_accepted_findings():
+    """
+    Scheduled task to check for expired risk accepted findings and revert them to OPEN status.
+    Runs daily to automatically revert findings that have passed their expiration date.
+    """
+    from django.utils import timezone
+    from core.models import Finding
+    
+    try:
+        now = timezone.now()
+        
+        # Find all risk accepted findings that have expired
+        expired_findings = Finding.objects.filter(
+            status=Finding.Status.WONT_FIX,
+            risk_accepted_expires_at__isnull=False,
+            risk_accepted_expires_at__lt=now
+        )
+        
+        count = expired_findings.count()
+        
+        if count > 0:
+            # Update each finding individually to preserve triage note and add expiration note
+            for finding in expired_findings:
+                original_note = finding.triage_note or ''
+                expiration_note = f"\n\n[Automatically expired on {now.strftime('%Y-%m-%d %H:%M')}]"
+                finding.triage_note = original_note + expiration_note
+                finding.status = Finding.Status.OPEN
+                finding.risk_accepted_expires_at = None
+                finding.save()
+        
+        return {
+            'success': True,
+            'expired_count': count,
+            'timestamp': now.isoformat()
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+

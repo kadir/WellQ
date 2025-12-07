@@ -1,13 +1,14 @@
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, filters
 from rest_framework.decorators import api_view, permission_classes, action, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle, ScopedRateThrottle
+from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 
-from core.models import Workspace, Product, Release, Scan, Finding, Component
+from core.models import Workspace, Product, Release, Scan, Finding, Component, Repository, Artifact
 
 
 # Custom throttle class for upload endpoints
@@ -19,7 +20,8 @@ class UploadRateThrottle(ScopedRateThrottle):
         return 'upload'
 from core.api.serializers import (
     WorkspaceSerializer, ProductSerializer, ReleaseSerializer,
-    ScanSerializer, FindingSerializer, ScanUploadSerializer, SBOMUploadSerializer
+    ScanSerializer, FindingSerializer, ScanUploadSerializer, SBOMUploadSerializer,
+    RepositorySerializer, ArtifactSerializer
 )
 from core.services.scan_engine import process_scan_upload
 from core.services.sbom import digest_sbom
@@ -555,7 +557,16 @@ class ReleaseViewSet(viewsets.ReadOnlyModelViewSet):
     def findings(self, request, pk=None):
         """Get all findings for this release"""
         release = self.get_object()
-        findings = Finding.objects.filter(scan__release=release)
+        
+        # Support both artifact-based (BOM) and legacy modes
+        artifacts = release.artifacts.all()
+        if artifacts.exists():
+            # BOM mode: get findings from all scans of linked artifacts
+            artifact_ids = artifacts.values_list('id', flat=True)
+            findings = Finding.objects.filter(scan__artifact_id__in=artifact_ids)
+        else:
+            # Legacy mode: get findings from direct release scans
+            findings = Finding.objects.filter(scan__release=release)
         
         # Apply filters
         status_filter = request.query_params.get('status')
@@ -569,6 +580,92 @@ class ReleaseViewSet(viewsets.ReadOnlyModelViewSet):
         findings = findings.order_by('-severity', '-first_seen')
         serializer = FindingSerializer(findings, many=True)
         return Response(serializer.data)
+    
+    @extend_schema(
+        summary='Link artifacts to release',
+        description='Link existing artifacts to a release (Release Composer functionality). This allows building a release BOM by selecting artifacts.',
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'artifact_ids': {
+                        'type': 'array',
+                        'items': {'type': 'string', 'format': 'uuid'},
+                        'description': 'List of artifact UUIDs to link to this release'
+                    },
+                    'replace': {
+                        'type': 'boolean',
+                        'default': False,
+                        'description': 'If true, replace existing links. If false, append to existing links.'
+                    }
+                },
+                'required': ['artifact_ids']
+            }
+        },
+        responses={
+            200: {'description': 'Artifacts linked successfully'},
+            400: {'description': 'Invalid request data'},
+            404: {'description': 'Release or artifact not found'}
+        }
+    )
+    @action(detail=True, methods=['post'])
+    def link_artifacts(self, request, pk=None):
+        """
+        Link artifacts to a release.
+        
+        This implements Requirement 3: The "Release Composer" Endpoint.
+        Allows Product Managers to manually link existing artifacts to a release.
+        """
+        release = self.get_object()
+        artifact_ids = request.data.get('artifact_ids', [])
+        replace = request.data.get('replace', False)
+        
+        if not artifact_ids:
+            return Response(
+                {'error': 'artifact_ids is required and cannot be empty'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not isinstance(artifact_ids, list):
+            return Response(
+                {'error': 'artifact_ids must be a list'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get artifacts
+        try:
+            artifacts = Artifact.objects.filter(id__in=artifact_ids)
+            found_ids = set(str(a.id) for a in artifacts)
+            requested_ids = set(artifact_ids)
+            
+            if found_ids != requested_ids:
+                missing = requested_ids - found_ids
+                return Response(
+                    {'error': f'Artifacts not found: {list(missing)}'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        except Exception as e:
+            return Response(
+                {'error': f'Invalid artifact IDs: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Perform M2M link
+        if replace:
+            # Clear existing links and add new ones
+            release.artifacts.clear()
+            release.artifacts.add(*artifacts)
+        else:
+            # Append to existing links (default behavior)
+            release.artifacts.add(*artifacts)
+        
+        # Return updated release with artifact count
+        serializer = ReleaseSerializer(release)
+        return Response({
+            'success': True,
+            'message': f'Linked {len(artifacts)} artifact(s) to release',
+            'release': serializer.data
+        }, status=status.HTTP_200_OK)
 
 
 class ScanViewSet(viewsets.ReadOnlyModelViewSet):
@@ -691,4 +788,161 @@ class FindingViewSet(viewsets.ReadOnlyModelViewSet):
     )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
+
+
+class RepositoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing repositories.
+    
+    This implements Requirement 1: The Inventory ViewSets.
+    Repositories are typically created via ingestion, not manually.
+    """
+    queryset = Repository.objects.all()
+    serializer_class = RepositorySerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['workspace', 'name']
+    search_fields = ['name', 'url']
+    
+    @extend_schema(
+        summary='List repositories',
+        description='Get a list of all repositories with optional filtering and search',
+        parameters=[
+            OpenApiParameter(
+                name='workspace',
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                description='Filter by workspace ID',
+                required=False
+            ),
+            OpenApiParameter(
+                name='name',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter by repository name',
+                required=False
+            ),
+            OpenApiParameter(
+                name='search',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Search in name and URL fields',
+                required=False
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @extend_schema(
+        summary='Get repository details',
+        description='Get detailed information about a specific repository'
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+
+class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing artifacts.
+    
+    This implements Requirement 1: The Inventory ViewSets.
+    Artifacts represent physical software assets (Docker images, libraries, etc.)
+    """
+    queryset = Artifact.objects.all()
+    serializer_class = ArtifactSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['repository', 'workspace', 'name', 'version', 'type']
+    search_fields = ['name', 'version', 'tag']
+    
+    @extend_schema(
+        summary='List artifacts',
+        description='Get a list of all artifacts with optional filtering and search. Supports partial hash search (e.g., sha256:8f2...)',
+        parameters=[
+            OpenApiParameter(
+                name='repository',
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                description='Filter by repository ID',
+                required=False
+            ),
+            OpenApiParameter(
+                name='workspace',
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                description='Filter by workspace ID',
+                required=False
+            ),
+            OpenApiParameter(
+                name='name',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter by artifact name',
+                required=False
+            ),
+            OpenApiParameter(
+                name='version',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter by artifact version',
+                required=False
+            ),
+            OpenApiParameter(
+                name='type',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter by artifact type (CONTAINER, LIBRARY, PACKAGE, BINARY)',
+                required=False
+            ),
+            OpenApiParameter(
+                name='search',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Search in name, version, and tag fields. Supports partial hash search.',
+                required=False
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # Handle partial hash search (e.g., sha256:8f2...)
+        search_query = request.query_params.get('search', '')
+        if search_query and ':' in search_query:
+            # If search contains a colon, it might be a hash prefix
+            # Search in version field for partial matches
+            queryset = queryset.filter(version__icontains=search_query)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @extend_schema(
+        summary='Get artifact details',
+        description='Get detailed information about a specific artifact'
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @extend_schema(
+        summary='Get artifact scans',
+        description='Get all scans associated with this specific artifact',
+        responses={200: ScanSerializer(many=True)}
+    )
+    @action(detail=True, methods=['get'])
+    def scans(self, request, pk=None):
+        """
+        Get all scans for this artifact.
+        
+        This implements Requirement 1: Action to return scans for an artifact.
+        """
+        artifact = self.get_object()
+        scans = Scan.objects.filter(artifact=artifact).order_by('-started_at')
+        serializer = ScanSerializer(scans, many=True)
+        return Response(serializer.data)
 

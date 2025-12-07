@@ -450,8 +450,31 @@ def update_vulnerability_status(request, finding_id):
     new_status = request.POST.get('status')
     triage_note = request.POST.get('triage_note', '')
     
-    if new_status not in dict(Finding.Status.choices):
+    # Handle expiration date for risk accepted status
+    has_expiration = request.POST.get('has_expiration', '').lower() == 'true'
+    expiration_date_str = request.POST.get('expiration_date', '')
+    expiration_date = None
+    
+    if has_expiration and expiration_date_str:
+        try:
+            from datetime import datetime
+            expiration_date = datetime.strptime(expiration_date_str, '%Y-%m-%d')
+            # Set time to end of day
+            expiration_date = expiration_date.replace(hour=23, minute=59, second=59)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Invalid expiration date format'}, status=400)
+    
+    # Map frontend status names to model status values
+    status_mapping = {
+        'ACTIVE': 'OPEN',
+        'RISK_ACCEPTED': 'WONT_FIX',
+    }
+    mapped_status = status_mapping.get(new_status, new_status)
+    
+    if mapped_status not in dict(Finding.Status.choices):
         return JsonResponse({'error': 'Invalid status'}, status=400)
+    
+    new_status = mapped_status  # Use mapped status for the rest of the function
     
     # If status is OPEN, update directly (no approval needed)
     if new_status == 'OPEN':
@@ -459,6 +482,7 @@ def update_vulnerability_status(request, finding_id):
         finding.triage_note = triage_note
         finding.triage_by = request.user
         finding.triage_at = timezone.now()
+        finding.risk_accepted_expires_at = None  # Clear expiration when status changes
         finding.save()
         
         return JsonResponse({
@@ -476,6 +500,13 @@ def update_vulnerability_status(request, finding_id):
         finding.triage_note = triage_note
         finding.triage_by = request.user
         finding.triage_at = timezone.now()
+        
+        # Set expiration date only for WONT_FIX (risk accepted) status
+        if new_status == 'WONT_FIX':
+            finding.risk_accepted_expires_at = expiration_date
+        else:
+            finding.risk_accepted_expires_at = None  # Clear expiration for other statuses
+        
         finding.save()
         
         return JsonResponse({

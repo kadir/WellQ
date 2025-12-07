@@ -293,6 +293,9 @@ class Finding(models.Model):
     triage_note = models.TextField(blank=True, help_text="Reason for FP or Risk Acceptance")
     triage_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True)
     triage_at = models.DateTimeField(null=True, blank=True)
+    
+    # --- RISK ACCEPTANCE EXPIRATION ---
+    risk_accepted_expires_at = models.DateTimeField(null=True, blank=True, db_index=True, help_text="Expiration date for risk accepted status. If set, status will revert to OPEN after this date.")
 
     class Meta:
         indexes = [
@@ -301,6 +304,7 @@ class Finding(models.Model):
             models.Index(fields=['status', 'severity']),
             models.Index(fields=['finding_type', 'status']),
             models.Index(fields=['vulnerability_id']),
+            models.Index(fields=['status', 'risk_accepted_expires_at']),
         ]
         ordering = ['-first_seen']
 

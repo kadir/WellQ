@@ -16,6 +16,8 @@ router.register(r'products', views.ProductViewSet, basename='product')
 router.register(r'releases', views.ReleaseViewSet, basename='release')
 router.register(r'scans', views.ScanViewSet, basename='scan')
 router.register(r'findings', views.FindingViewSet, basename='finding')
+router.register(r'repositories', views.RepositoryViewSet, basename='repository')
+router.register(r'artifacts', views.ArtifactViewSet, basename='artifact')
 
 urlpatterns = [
     # API v1 routes

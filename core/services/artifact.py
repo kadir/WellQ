@@ -12,6 +12,46 @@ from datetime import timedelta
 from core.models import Artifact, Repository, Workspace, Scan
 
 
+def _clean_repository_url(url):
+    """
+    Clean and normalize repository URL.
+    - Remove .git suffix
+    - Convert ssh:// to https://
+    - Convert git@github.com:user/repo.git to https://github.com/user/repo
+    - Normalize trailing slashes
+    """
+    if not url:
+        return ''
+    
+    url = url.strip()
+    
+    # Remove .git suffix
+    if url.endswith('.git'):
+        url = url[:-4]
+    
+    # Handle SSH URLs (git@github.com:user/repo)
+    if url.startswith('git@'):
+        # Convert git@github.com:user/repo to https://github.com/user/repo
+        url = url.replace('git@', '').replace(':', '/', 1)
+        if not url.startswith('http'):
+            url = f'https://{url}'
+    
+    # Handle ssh:// protocol
+    if url.startswith('ssh://'):
+        url = url.replace('ssh://', 'https://', 1)
+    
+    # Ensure it starts with http:// or https://
+    if url and not url.startswith(('http://', 'https://')):
+        # If it looks like a domain, add https://
+        if '.' in url and not url.startswith('/'):
+            url = f'https://{url}'
+    
+    # Remove trailing slash
+    url = url.rstrip('/')
+    
+    return url
+
+
 def upsert_artifact(
     workspace,
     artifact_name,
@@ -24,6 +64,8 @@ def upsert_artifact(
     """
     Upsert (insert or update) an artifact.
     
+    This function is idempotent - running it twice produces the same result.
+    
     Args:
         workspace: Workspace instance
         artifact_name: Name of the artifact (e.g., "payment-service-image")
@@ -31,7 +73,7 @@ def upsert_artifact(
         artifact_type: Type of artifact (CONTAINER, LIBRARY, PACKAGE, BINARY)
         repository: Repository instance (optional)
         repository_name: Name of repository (will create if doesn't exist)
-        repository_url: URL of repository (will create if doesn't exist)
+        repository_url: URL of repository (will create if doesn't exist, cleaned automatically)
     
     Returns:
         tuple: (artifact_instance, created_artifact, created_repository)
@@ -41,11 +83,20 @@ def upsert_artifact(
     created_repo = False
     
     if not repo_instance and (repository_name or repository_url):
+        # Clean the repository URL
+        cleaned_url = _clean_repository_url(repository_url) if repository_url else ''
+        
+        # Use cleaned URL for lookup/creation
         repo_instance, created_repo = Repository.objects.get_or_create(
             workspace=workspace,
-            name=repository_name or 'unknown',
-            defaults={'url': repository_url or ''}
+            url=cleaned_url if cleaned_url else '',
+            defaults={'name': repository_name or 'unknown'}
         )
+        
+        # If repository already existed but name is different, update it
+        if not created_repo and repository_name and repo_instance.name != repository_name:
+            repo_instance.name = repository_name
+            repo_instance.save()
     
     # Step 2: Upsert Artifact
     artifact, created_artifact = Artifact.objects.get_or_create(
@@ -75,24 +126,26 @@ def get_or_create_scan_for_artifact(
     Get or create a scan for an artifact with deduplication logic.
     
     This implements the deduplication check:
-    - If artifact was scanned by the same scanner recently, return existing scan
+    - If artifact was scanned by the same scanner today, return existing scan
     - Otherwise, create a new scan
+    
+    This function is idempotent - running it twice produces the same result.
     
     Args:
         artifact: Artifact instance
         scanner_name: Name of the scanner (e.g., "Trivy")
-        deduplication_window_hours: Hours within which to consider a scan "recent"
+        deduplication_window_hours: Hours within which to consider a scan "recent" (default: 24, meaning same day)
     
     Returns:
         tuple: (scan_instance, is_new_scan)
     """
-    # Check for recent scan
-    cutoff_time = timezone.now() - timedelta(hours=deduplication_window_hours)
+    # Check for scan created today (same day deduplication)
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
     
     recent_scan = Scan.objects.filter(
         artifact=artifact,
         scanner_name=scanner_name,
-        started_at__gte=cutoff_time,
+        started_at__gte=today_start,
         status__in=['PENDING', 'PROCESSING', 'COMPLETED']
     ).order_by('-started_at').first()
     
@@ -139,4 +192,5 @@ def compose_release_bom(release, artifact_names_and_versions):
             pass
     
     return artifacts
+
 

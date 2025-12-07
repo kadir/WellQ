@@ -363,4 +363,8 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'core.tasks.enrich_findings_with_threat_intel',
         'schedule': crontab(hour=2, minute=0),  # Run daily at 2 AM
     },
+    'expire-risk-accepted-findings': {
+        'task': 'core.tasks.expire_risk_accepted_findings',
+        'schedule': crontab(hour=3, minute=0),  # Run daily at 3 AM
+    },
 }

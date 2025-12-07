@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from core.models import Workspace, Product, Release, Scan, Finding, Artifact
+from core.models import Workspace, Product, Release, Scan, Finding, Artifact, Repository
 from core.scanners import SCANNER_REGISTRY
+from django.db.models import Count
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
@@ -24,32 +25,137 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
 
+class RepositorySerializer(serializers.ModelSerializer):
+    """Serializer for Repository model"""
+    workspace_name = serializers.CharField(source='workspace.name', read_only=True)
+    artifacts_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Repository
+        fields = [
+            'id', 'workspace', 'workspace_name', 'name', 'url', 'created_at', 'artifacts_count'
+        ]
+        read_only_fields = ['id', 'created_at']
+    
+    def get_artifacts_count(self, obj):
+        """Get count of artifacts in this repository"""
+        return obj.artifacts.count()
+
+
+class ArtifactSerializer(serializers.ModelSerializer):
+    """Serializer for Artifact model"""
+    repository_name = serializers.CharField(source='repository.name', read_only=True)
+    workspace_name = serializers.CharField(source='workspace.name', read_only=True)
+    scans_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Artifact
+        fields = [
+            'id', 'repository', 'repository_name', 'workspace', 'workspace_name',
+            'name', 'version', 'type', 'created_at', 'scans_count'
+        ]
+        read_only_fields = ['id', 'created_at']
+    
+    def get_scans_count(self, obj):
+        """Get count of scans for this artifact"""
+        return obj.scan_set.count()
+
+
 class ReleaseSerializer(serializers.ModelSerializer):
     """Serializer for Release model"""
     product_name = serializers.CharField(source='product.name', read_only=True)
+    stats = serializers.SerializerMethodField()
+    artifacts_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Release
         fields = [
             'id', 'product', 'product_name', 'name', 'commit_hash',
-            'sbom_file', 'created_at'
+            'sbom_file', 'created_at', 'stats', 'artifacts_count'
         ]
         read_only_fields = ['id', 'created_at']
+    
+    def get_artifacts_count(self, obj):
+        """Get count of artifacts linked to this release"""
+        return obj.artifacts.count()
+    
+    def get_stats(self, obj):
+        """
+        Calculate risk statistics dynamically from all artifacts linked to this release.
+        This implements Requirement 4: Risk Aggregation Service.
+        """
+        from core.models import Finding
+        from django.db.models import Q, Count
+        
+        # Get all artifacts linked to this release
+        artifacts = obj.artifacts.all()
+        
+        if not artifacts.exists():
+            # Legacy mode: check if release has direct scans
+            findings = Finding.objects.filter(scan__release=obj)
+        else:
+            # BOM mode: get findings from all scans of linked artifacts
+            # Get latest scan for each artifact
+            artifact_ids = artifacts.values_list('id', flat=True)
+            findings = Finding.objects.filter(
+                scan__artifact_id__in=artifact_ids
+            )
+        
+        # Filter to only OPEN findings (exclude FIXED, WONT_FIX, etc.)
+        active_findings = findings.filter(status='OPEN')
+        
+        # Aggregate by severity
+        stats = active_findings.aggregate(
+            critical=Count('id', filter=Q(severity='CRITICAL')),
+            high=Count('id', filter=Q(severity='HIGH')),
+            medium=Count('id', filter=Q(severity='MEDIUM')),
+            low=Count('id', filter=Q(severity='LOW')),
+            info=Count('id', filter=Q(severity='INFO')),
+            total=Count('id')
+        )
+        
+        return {
+            'critical': stats['critical'] or 0,
+            'high': stats['high'] or 0,
+            'medium': stats['medium'] or 0,
+            'low': stats['low'] or 0,
+            'info': stats['info'] or 0,
+            'total': stats['total'] or 0
+        }
 
 
 class ScanSerializer(serializers.ModelSerializer):
     """Serializer for Scan model"""
-    release_name = serializers.CharField(source='release.name', read_only=True)
-    product_name = serializers.CharField(source='release.product.name', read_only=True)
+    release_name = serializers.SerializerMethodField()
+    product_name = serializers.SerializerMethodField()
+    artifact_name = serializers.SerializerMethodField()
+    artifact_version = serializers.SerializerMethodField()
     findings_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Scan
         fields = [
             'id', 'release', 'release_name', 'product_name',
-            'scanner_name', 'started_at', 'findings_count'
+            'artifact', 'artifact_name', 'artifact_version',
+            'scanner_name', 'started_at', 'status', 'findings_count'
         ]
         read_only_fields = ['id', 'started_at']
+    
+    def get_release_name(self, obj):
+        """Get release name if scan is linked to a release (legacy mode)"""
+        return obj.release.name if obj.release else None
+    
+    def get_product_name(self, obj):
+        """Get product name if scan is linked to a release (legacy mode)"""
+        return obj.release.product.name if obj.release and obj.release.product else None
+    
+    def get_artifact_name(self, obj):
+        """Get artifact name if scan is linked to an artifact (BOM mode)"""
+        return obj.artifact.name if obj.artifact else None
+    
+    def get_artifact_version(self, obj):
+        """Get artifact version if scan is linked to an artifact (BOM mode)"""
+        return obj.artifact.version if obj.artifact else None
     
     def get_findings_count(self, obj):
         """Calculate the number of findings for this scan"""

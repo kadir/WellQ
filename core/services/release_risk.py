@@ -104,64 +104,64 @@ def get_license_stats(release):
     try:
         # Get all components in this release
         components = Component.objects.filter(release=release)
-    
-    # Define license policy
-    # Forbidden licenses (Copyleft/Forbidden)
-    FORBIDDEN = ['AGPL-3.0', 'AGPL-3', 'AGPL', 'GPL-3.0', 'GPL-3', 'GPL-2.0', 'GPL-2', 'GPL']
-    
-    # Permissive licenses (safe to use)
-    PERMISSIVE = [
-        'MIT', 'Apache-2.0', 'Apache-2', 'BSD-2-Clause', 'BSD-3-Clause', 'BSD',
-        'ISC', 'Unlicense', 'CC0-1.0', 'CC-BY-4.0', 'MPL-2.0', 'LGPL-2.1', 'LGPL-3.0'
-    ]
-    
-    stats = {
-        'compliant': 0,
-        'violations': [],
-        'unknown': 0,
-        'total': 0
-    }
-    
-    for comp in components:
-        stats['total'] += 1
         
-        # Get license from license_expression or fallback to license field
-        lic = (comp.license_expression or comp.license or '').strip()
+        # Define license policy
+        # Forbidden licenses (Copyleft/Forbidden)
+        FORBIDDEN = ['AGPL-3.0', 'AGPL-3', 'AGPL', 'GPL-3.0', 'GPL-3', 'GPL-2.0', 'GPL-2', 'GPL']
         
-        if not lic or lic.lower() in ['unknown', 'none', 'n/a', '']:
-            stats['unknown'] += 1
-            continue
+        # Permissive licenses (safe to use)
+        PERMISSIVE = [
+            'MIT', 'Apache-2.0', 'Apache-2', 'BSD-2-Clause', 'BSD-3-Clause', 'BSD',
+            'ISC', 'Unlicense', 'CC0-1.0', 'CC-BY-4.0', 'MPL-2.0', 'LGPL-2.1', 'LGPL-3.0'
+        ]
         
-        # Check if license contains any forbidden licenses
-        # Handle license expressions like "MIT OR GPL-3.0" or "GPL-3.0 AND LGPL-2.1"
-        lic_upper = lic.upper()
-        has_forbidden = False
-        forbidden_licenses_found = []
+        stats = {
+            'compliant': 0,
+            'violations': [],
+            'unknown': 0,
+            'total': 0
+        }
         
-        for forbidden in FORBIDDEN:
-            if forbidden.upper() in lic_upper:
-                has_forbidden = True
-                forbidden_licenses_found.append(forbidden)
-        
-        if has_forbidden:
-            # This is a violation
-            stats['violations'].append({
-                'component': comp.name,
-                'version': comp.version,
-                'license': lic,
-                'forbidden_licenses': forbidden_licenses_found,
-                'risk': 'CRITICAL' if 'AGPL' in lic_upper else 'HIGH'
-            })
-        else:
-            # Check if it's a known permissive license
-            is_permissive = any(perm.upper() in lic_upper for perm in PERMISSIVE)
+        for comp in components:
+            stats['total'] += 1
             
-            if is_permissive:
-                stats['compliant'] += 1
-            else:
-                # Unknown license (not in our lists)
+            # Get license from license_expression or fallback to license field
+            lic = (comp.license_expression or comp.license or '').strip()
+            
+            if not lic or lic.lower() in ['unknown', 'none', 'n/a', '']:
                 stats['unknown'] += 1
-    
+                continue
+            
+            # Check if license contains any forbidden licenses
+            # Handle license expressions like "MIT OR GPL-3.0" or "GPL-3.0 AND LGPL-2.1"
+            lic_upper = lic.upper()
+            has_forbidden = False
+            forbidden_licenses_found = []
+            
+            for forbidden in FORBIDDEN:
+                if forbidden.upper() in lic_upper:
+                    has_forbidden = True
+                    forbidden_licenses_found.append(forbidden)
+            
+            if has_forbidden:
+                # This is a violation
+                stats['violations'].append({
+                    'component': comp.name,
+                    'version': comp.version,
+                    'license': lic,
+                    'forbidden_licenses': forbidden_licenses_found,
+                    'risk': 'CRITICAL' if 'AGPL' in lic_upper else 'HIGH'
+                })
+            else:
+                # Check if it's a known permissive license
+                is_permissive = any(perm.upper() in lic_upper for perm in PERMISSIVE)
+                
+                if is_permissive:
+                    stats['compliant'] += 1
+                else:
+                    # Unknown license (not in our lists)
+                    stats['unknown'] += 1
+        
         return stats
     except Exception as e:
         # Log the error but return empty stats to prevent 500 errors

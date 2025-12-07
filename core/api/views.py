@@ -3,8 +3,13 @@ from rest_framework.decorators import api_view, permission_classes, action, thro
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle, ScopedRateThrottle
-from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
+
+# Try to import DjangoFilterBackend, but make it optional
+try:
+    from django_filters.rest_framework import DjangoFilterBackend
+except ImportError:
+    DjangoFilterBackend = None
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 
@@ -1058,7 +1063,7 @@ class RepositoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Repository.objects.all()
     serializer_class = RepositorySerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filter_backends = [filters.SearchFilter] + ([DjangoFilterBackend] if DjangoFilterBackend else [])
     filterset_fields = ['workspace', 'name']
     search_fields = ['name', 'url']
     
@@ -1110,7 +1115,7 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Artifact.objects.all()
     serializer_class = ArtifactSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filter_backends = [filters.SearchFilter] + ([DjangoFilterBackend] if DjangoFilterBackend else [])
     filterset_fields = ['repository', 'workspace', 'name', 'version', 'type']
     search_fields = ['name', 'version', 'tag']
     

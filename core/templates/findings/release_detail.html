@@ -651,7 +651,17 @@
         const contentEl = document.getElementById('summary-content');
 
         fetch(`/api/v1/releases/${releaseId}/summary/`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    // Handle HTTP error responses
+                    return response.json().then(err => {
+                        throw new Error(`HTTP ${response.status}: ${err.detail || err.message || 'Unknown error'}`);
+                    }).catch(() => {
+                        throw new Error(`HTTP ${response.status}: Failed to load release summary`);
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 window.summaryDataLoaded = true;
                 loadingEl.classList.add('hidden');
@@ -660,7 +670,7 @@
             })
             .catch(error => {
                 console.error('Error loading summary:', error);
-                loadingEl.innerHTML = '<p class="text-red-400">Error loading release summary</p>';
+                loadingEl.innerHTML = `<p class="text-red-400">Error loading release summary: ${error.message}</p>`;
             });
     }
 

@@ -13,6 +13,14 @@ from core.forms import ProfileUpdateForm, PasswordChangeForm, APITokenForm
 @login_required
 def profile_settings(request):
     """Profile settings page with personal information and API token management"""
+    # Handle theme toggle
+    if request.method == 'POST' and 'toggle_theme' in request.POST:
+        current_theme = request.session.get('theme', 'light')
+        new_theme = 'dark' if current_theme == 'light' else 'light'
+        request.session['theme'] = new_theme
+        messages.success(request, f'Theme switched to {new_theme} mode.')
+        return redirect('profile_settings')
+    
     # Handle dismiss token notification
     if request.method == 'POST' and 'dismiss_token' in request.POST:
         if 'new_token' in request.session:
@@ -45,10 +53,14 @@ def profile_settings(request):
     else:
         password_form = PasswordChangeForm(user=request.user)
     
+    # Get current theme
+    current_theme = request.session.get('theme', 'light')
+    
     return render(request, 'profile/settings.html', {
         'form': form,
         'password_form': password_form,
         'api_tokens': api_tokens,
+        'current_theme': current_theme,
     })
 
 

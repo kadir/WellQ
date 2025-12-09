@@ -8,9 +8,9 @@
 /* THE GEMINI GLOW INPUT */
 .cra-input {
     width: 100%;
-    background-color: #09090b; /* Deep Black/Zinc-950 */
-    border: 1px solid #27272a; /* Zinc-800 - Subtle default border */
-    color: #f4f4f5;            /* White text */
+    background-color: #ffffff; /* White - Light Mode */
+    border: 1px solid #e4e4e7; /* Zinc-200 - Light Mode */
+    color: #18181b;            /* Zinc-900 - Light Mode */
     font-family: 'Inter', sans-serif; /* Clean font for text */
     font-size: 0.875rem;       /* 14px */
     padding: 0.75rem 1rem;     /* Comfortable padding */
@@ -20,24 +20,49 @@
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.dark .cra-input {
+    background-color: #09090b; /* Deep Black/Zinc-950 - Dark Mode */
+    border-color: #27272a; /* Zinc-800 - Dark Mode */
+    color: #f4f4f5; /* White text - Dark Mode */
+}
+
 /* Placeholder styling */
 .cra-input::placeholder {
-    color: #52525b; /* Zinc-600 */
+    color: #71717a; /* Zinc-500 - Light Mode */
+}
+
+.dark .cra-input::placeholder {
+    color: #52525b; /* Zinc-600 - Dark Mode */
 }
 
 /* Hover State */
 .cra-input:hover {
-    border-color: #3f3f46; /* Zinc-700 */
-    background-color: #0c0c0e;
+    border-color: #d4d4d8; /* Zinc-300 - Light Mode */
+    background-color: #fafafa; /* Zinc-50 - Light Mode */
+}
+
+.dark .cra-input:hover {
+    border-color: #3f3f46; /* Zinc-700 - Dark Mode */
+    background-color: #0c0c0e; /* Dark Mode */
 }
 
 /* FOCUS STATE - The White Outer Glow */
 .cra-input:focus {
     outline: none;
-    background-color: #000000;
-    border-color: #ffffff; /* Pure White Border */
+    background-color: #ffffff; /* White - Light Mode */
+    border-color: #18181b; /* Zinc-900 - Light Mode */
     
-    /* The Glow Effect */
+    /* The Glow Effect - Light Mode */
+    box-shadow: 
+        0 0 0 1px rgba(24, 24, 27, 1), /* Sharp inner ring */
+        0 0 8px rgba(24, 24, 27, 0.2); /* Soft outer glow */
+}
+
+.dark .cra-input:focus {
+    background-color: #000000; /* Dark Mode */
+    border-color: #ffffff; /* Pure White Border - Dark Mode */
+    
+    /* The Glow Effect - Dark Mode */
     box-shadow: 
         0 0 0 1px rgba(255, 255, 255, 1), /* Sharp inner ring */
         0 0 12px rgba(255, 255, 255, 0.3); /* Soft outer glow */
@@ -53,13 +78,17 @@ textarea.cra-input {
 input[type="file"].cra-input {
     padding: 0.5rem;
     cursor: pointer;
-    color: #f4f4f5;
+    color: #18181b; /* Zinc-900 - Light Mode */
+}
+
+.dark input[type="file"].cra-input {
+    color: #f4f4f5; /* Dark Mode */
 }
 
 input[type="file"].cra-input::file-selector-button {
-    background-color: #27272a;
-    color: #f4f4f5;
-    border: 1px solid #3f3f46;
+    background-color: #f4f4f5; /* Zinc-100 - Light Mode */
+    color: #18181b; /* Zinc-900 - Light Mode */
+    border: 1px solid #e4e4e7; /* Zinc-200 - Light Mode */
     padding: 0.5rem 1rem;
     border-radius: 0.375rem;
     margin-right: 1rem;
@@ -68,7 +97,18 @@ input[type="file"].cra-input::file-selector-button {
     transition: all 0.2s;
 }
 
+.dark input[type="file"].cra-input::file-selector-button {
+    background-color: #27272a; /* Dark Mode */
+    color: #f4f4f5; /* Dark Mode */
+    border-color: #3f3f46; /* Dark Mode */
+}
+
 input[type="file"].cra-input::file-selector-button:hover {
-    background-color: #3f3f46;
-    border-color: #52525b;
+    background-color: #e4e4e7; /* Zinc-200 - Light Mode */
+    border-color: #d4d4d8; /* Zinc-300 - Light Mode */
+}
+
+.dark input[type="file"].cra-input::file-selector-button:hover {
+    background-color: #3f3f46; /* Dark Mode */
+    border-color: #52525b; /* Dark Mode */
 }

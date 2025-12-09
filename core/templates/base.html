@@ -12,22 +12,67 @@
     {# For now, we'll use CDN but you should build Tailwind properly for production #}
     <script src="https://cdn.tailwindcss.com"></script>
     {% endif %}
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        base: '#09090b', surface: '#18181b', border: '#27272a', muted: '#71717a'
+                    },
+                    fontFamily: {
+                        sans: ['"Inter"', 'sans-serif'],
+                        mono: ['"Fira Code"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     <link rel="stylesheet" href="{% static 'css/forms.css' %}">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #000; color: #f4f4f5; }
+        body { font-family: 'Inter', sans-serif; }
         .font-mono { font-family: 'Fira Code', monospace; }
     </style>
+    <script>
+        // Theme initialization - light theme is default
+        (function() {
+            const theme = '{{ request.session.theme|default:"light" }}';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+        
+        // Handle theme toggle form submission with instant UI update
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeForms = document.querySelectorAll('form[action*="profile_settings"] input[name="toggle_theme"]');
+            themeForms.forEach(function(form) {
+                const formElement = form.closest('form');
+                if (formElement) {
+                    formElement.addEventListener('submit', function(e) {
+                        // Toggle theme immediately for instant feedback
+                        if (document.documentElement.classList.contains('dark')) {
+                            document.documentElement.classList.remove('dark');
+                        } else {
+                            document.documentElement.classList.add('dark');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
 </head>
-<body>
+<body class="bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-100">
 
     <div class="app-layout">
         
         <aside class="sidebar">
             <div class="mb-8 px-2 mt-2">
-                <span class="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Workspace</span>
-                <h2 class="text-sm font-semibold text-white mt-1">Production-EU</h2>
+                <span class="text-[10px] uppercase tracking-widest text-zinc-500 dark:text-gray-500 font-bold">Workspace</span>
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-white mt-1">Production-EU</h2>
             </div>
 
         <nav class="flex-1 space-y-1">
@@ -38,27 +83,27 @@
             </a>
 
             <div>
-                <button onclick="toggleMenu('inventory-submenu')" class="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-gray-400 hover:bg-[#27272a] hover:text-white transition-colors focus:outline-none">
+                <button onclick="toggleMenu('inventory-submenu')" class="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-zinc-500 dark:text-gray-400 hover:bg-zinc-100 dark:hover:bg-[#27272a] hover:text-zinc-900 dark:hover:text-white transition-colors focus:outline-none">
                     
                     <div class="flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                         <span>Inventory</span>
                     </div>
                     
-                    <svg id="arrow-inventory" class="w-3 h-3 text-gray-500 transition-transform duration-200 {% if 'workspaces' in request.path or 'products' in request.path %}rotate-90{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <svg id="arrow-inventory" class="w-3 h-3 text-zinc-500 dark:text-gray-500 transition-transform duration-200 {% if 'workspaces' in request.path or 'products' in request.path %}rotate-90{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </button>
 
                 <div id="inventory-submenu" class="mt-1 space-y-1 {% if 'workspaces' not in request.path and 'products' not in request.path %}hidden{% endif %}">
                     
-                    <a href="{% url 'workspace_list' %}" class="group flex items-center w-full pl-10 pr-2 py-2 text-xs font-medium rounded-md transition-colors {% if 'workspaces' in request.path %}bg-[#27272a] text-white{% else %}text-gray-400 hover:text-white hover:bg-[#27272a]{% endif %}">
+                    <a href="{% url 'workspace_list' %}" class="group flex items-center w-full pl-10 pr-2 py-2 text-xs font-medium rounded-md transition-colors {% if 'workspaces' in request.path %}bg-zinc-100 dark:bg-[#27272a] text-zinc-900 dark:text-white{% else %}text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#27272a]{% endif %}">
                         Workspaces
                     </a>
 
-                    <a href="{% url 'product_list' %}" class="group flex items-center w-full pl-10 pr-2 py-2 text-xs font-medium rounded-md transition-colors {% if 'products' in request.path %}bg-[#27272a] text-white{% else %}text-gray-400 hover:text-white hover:bg-[#27272a]{% endif %}">
+                    <a href="{% url 'product_list' %}" class="group flex items-center w-full pl-10 pr-2 py-2 text-xs font-medium rounded-md transition-colors {% if 'products' in request.path %}bg-zinc-100 dark:bg-[#27272a] text-zinc-900 dark:text-white{% else %}text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#27272a]{% endif %}">
                         Products
                     </a>
 
-                    <a href="{% url 'asset_inventory' %}" class="group flex items-center w-full pl-10 pr-2 py-2 text-xs font-medium rounded-md transition-colors {% if 'inventory' in request.path and 'products' not in request.path and 'workspaces' not in request.path %}bg-[#27272a] text-white{% else %}text-gray-400 hover:text-white hover:bg-[#27272a]{% endif %}">
+                    <a href="{% url 'asset_inventory' %}" class="group flex items-center w-full pl-10 pr-2 py-2 text-xs font-medium rounded-md transition-colors {% if 'inventory' in request.path and 'products' not in request.path and 'workspaces' not in request.path %}bg-zinc-100 dark:bg-[#27272a] text-zinc-900 dark:text-white{% else %}text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#27272a]{% endif %}">
                         Assets
                     </a>
 
@@ -76,23 +121,23 @@
             </a>
 
             <div>
-                <button onclick="toggleMenu('roles-submenu')" class="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-gray-400 hover:bg-[#27272a] hover:text-white transition-colors focus:outline-none">
+                <button onclick="toggleMenu('roles-submenu')" class="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-zinc-500 dark:text-gray-400 hover:bg-zinc-100 dark:hover:bg-[#27272a] hover:text-zinc-900 dark:hover:text-white transition-colors focus:outline-none">
                     
                     <div class="flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                         <span>Roles</span>
                     </div>
                     
-                    <svg id="arrow-roles" class="w-3 h-3 text-gray-500 transition-transform duration-200 {% if 'users' in request.path or 'roles' in request.path %}rotate-90{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <svg id="arrow-roles" class="w-3 h-3 text-zinc-500 dark:text-gray-500 transition-transform duration-200 {% if 'users' in request.path or 'roles' in request.path %}rotate-90{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </button>
 
                 <div id="roles-submenu" class="mt-1 space-y-1 {% if 'users' not in request.path and 'roles' not in request.path %}hidden{% endif %}">
                     
-                    <a href="{% url 'user_list' %}" class="group flex items-center w-full pl-10 pr-2 py-2 text-xs font-medium rounded-md transition-colors {% if 'users' in request.path %}bg-[#27272a] text-white{% else %}text-gray-400 hover:text-white hover:bg-[#27272a]{% endif %}">
+                    <a href="{% url 'user_list' %}" class="group flex items-center w-full pl-10 pr-2 py-2 text-xs font-medium rounded-md transition-colors {% if 'users' in request.path %}bg-zinc-100 dark:bg-[#27272a] text-zinc-900 dark:text-white{% else %}text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#27272a]{% endif %}">
                         User Management
                     </a>
 
-                    <a href="{% url 'role_list' %}" class="group flex items-center w-full pl-10 pr-2 py-2 text-xs font-medium rounded-md transition-colors {% if 'roles' in request.path and 'users' not in request.path %}bg-[#27272a] text-white{% else %}text-gray-400 hover:text-white hover:bg-[#27272a]{% endif %}">
+                    <a href="{% url 'role_list' %}" class="group flex items-center w-full pl-10 pr-2 py-2 text-xs font-medium rounded-md transition-colors {% if 'roles' in request.path and 'users' not in request.path %}bg-zinc-100 dark:bg-[#27272a] text-zinc-900 dark:text-white{% else %}text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#27272a]{% endif %}">
                         Roles & Permissions
                     </a>
 
@@ -103,7 +148,7 @@
             {% if user.is_authenticated %}
                 {% if user|has_role:"ADMINISTRATOR" or user.is_superuser or user.is_staff %}
                 <div>
-                    <a href="{% url 'platform_settings' %}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {% if 'settings/platform' in request.path %}bg-[#27272a] text-white{% else %}text-gray-400 hover:bg-[#27272a] hover:text-white{% endif %}">
+                    <a href="{% url 'platform_settings' %}" class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {% if 'settings/platform' in request.path %}bg-zinc-100 dark:bg-[#27272a] text-zinc-900 dark:text-white{% else %}text-zinc-600 dark:text-gray-400 hover:bg-zinc-100 dark:hover:bg-[#27272a] hover:text-zinc-900 dark:hover:text-white{% endif %}">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         <span>Platform Settings</span>
                     </a>
@@ -136,16 +181,16 @@
         <header class="topbar">
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
-                    <div class="h-6 w-6 bg-white rounded flex items-center justify-center">
-                        <div class="h-2 w-2 bg-black rounded-full"></div>
+                    <div class="h-6 w-6 bg-white dark:bg-white rounded flex items-center justify-center">
+                        <div class="h-2 w-2 bg-zinc-900 dark:bg-black rounded-full"></div>
                     </div>
-                    <span class="font-bold text-lg tracking-tight">WELLQ</span>
+                    <span class="font-bold text-lg tracking-tight text-zinc-900 dark:text-white">WELLQ</span>
                 </div>
-                <div class="h-4 w-[1px] bg-gray-700 mx-2"></div>
+                <div class="h-4 w-[1px] bg-zinc-300 dark:bg-gray-700 mx-2"></div>
                 
-                <div class="text-sm text-gray-400 font-mono flex items-center gap-2">
+                <div class="text-sm text-zinc-600 dark:text-gray-400 font-mono flex items-center gap-2">
                     {% block breadcrumbs %}
-                    <span class="text-gray-600">/</span>
+                    <span class="text-zinc-500 dark:text-gray-600">/</span>
                     <span>overview</span>
                     {% endblock %}
                 </div>
@@ -153,15 +198,15 @@
 
             <div class="flex items-center gap-4">
                 <div class="text-right hidden md:block">
-                    <div class="text-xs text-gray-400">Signed in as</div>
-                    <div class="text-xs font-mono font-bold">{{ user.username }}</div>
+                    <div class="text-xs text-zinc-600 dark:text-gray-400">Signed in as</div>
+                    <div class="text-xs font-mono font-bold text-zinc-900 dark:text-white">{{ user.username }}</div>
                 </div>
-                <a href="{% url 'profile_settings' %}" class="profile-badge hover:bg-zinc-700 transition-colors" title="Profile Settings">
+                <a href="{% url 'profile_settings' %}" class="profile-badge hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors" title="Profile Settings">
                     {{ user.username|make_list|first|upper }}
                 </a>
                 <form action="{% url 'logout' %}" method="post">
                     {% csrf_token %}
-                    <button type="submit" class="text-gray-400 hover:text-white transition-colors">
+                    <button type="submit" class="text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     </button>
                 </form>

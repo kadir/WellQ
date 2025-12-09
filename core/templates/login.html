@@ -18,6 +18,7 @@
     {% endif %}
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -31,10 +32,20 @@
             }
         }
     </script>
-
+    <script>
+        // Theme initialization for login page - light theme is default
+        (function() {
+            const theme = '{{ request.session.theme|default:"light" }}';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
 </head>
-<body class="bg-base text-gray-200 min-h-screen flex items-center justify-center relative font-sans">
+<body class="bg-zinc-50 dark:bg-base text-zinc-900 dark:text-gray-200 min-h-screen flex items-center justify-center relative font-sans">
 
     <div class="cra-grid-bg"></div>
 
@@ -42,27 +53,27 @@
         
         <div class="mb-6">
             <div class="flex items-center gap-3 mb-1">
-                <div class="h-4 w-4 bg-white rounded-sm"></div> <h1 class="text-lg font-semibold tracking-tight text-white">WELLQ</h1>
-                <span class="text-[10px] bg-border text-muted px-1.5 py-0.5 rounded font-mono border border-white/5">
+                <div class="h-4 w-4 bg-white dark:bg-white rounded-sm"></div> <h1 class="text-lg font-semibold tracking-tight text-zinc-900 dark:text-white">WELLQ</h1>
+                <span class="text-[10px] bg-zinc-100 dark:bg-border text-zinc-600 dark:text-muted px-1.5 py-0.5 rounded font-mono border border-zinc-300 dark:border-white/5">
                     EU-CRA::READY
                 </span>
             </div>
-            <p class="text-muted text-xs font-mono pl-[28px]">Application Security Posture Management</p>
+            <p class="text-zinc-500 dark:text-muted text-xs font-mono pl-[28px]">Application Security Posture Management</p>
         </div>
 
-        <div class="bg-surface border border-border rounded-lg shadow-2xl backdrop-blur-sm">
+        <div class="bg-white dark:bg-surface border border-zinc-200 dark:border-border rounded-lg shadow-2xl dark:shadow-none backdrop-blur-sm">
             <div class="p-6">
                 <form method="post" class="space-y-5">
                     {% csrf_token %}
                     
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-mono text-muted uppercase tracking-wider">Username</label>
-                        <input type="text" name="username" class="cra-input w-full rounded px-3 py-2 text-sm placeholder-gray-700" placeholder="user_x86" autofocus>
+                        <label class="text-[10px] font-mono text-zinc-500 dark:text-muted uppercase tracking-wider">Username</label>
+                        <input type="text" name="username" class="cra-input w-full rounded px-3 py-2 text-sm placeholder-zinc-400 dark:placeholder-gray-700" placeholder="user_x86" autofocus>
                     </div>
 
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-mono text-muted uppercase tracking-wider">Password</label>
-                        <input type="password" name="password" class="cra-input w-full rounded px-3 py-2 text-sm placeholder-gray-700" placeholder="••••••••••••">
+                        <label class="text-[10px] font-mono text-zinc-500 dark:text-muted uppercase tracking-wider">Password</label>
+                        <input type="password" name="password" class="cra-input w-full rounded px-3 py-2 text-sm placeholder-zinc-400 dark:placeholder-gray-700" placeholder="••••••••••••">
                     </div>
 
                     <button type="submit" class="cra-button w-full py-2.5 rounded text-sm mt-2 flex items-center justify-center gap-2 group">
@@ -72,7 +83,7 @@
                 </form>
             </div>
 
-            <div class="bg-black/40 border-t border-border p-3 flex justify-between items-center text-[10px] font-mono text-muted rounded-b-lg">
+            <div class="bg-zinc-100 dark:bg-black/40 border-t border-zinc-200 dark:border-border p-3 flex justify-between items-center text-[10px] font-mono text-zinc-600 dark:text-muted rounded-b-lg">
                 <div class="flex items-center gap-2">
                     <span class="status-dot"></span>
                     <span>AUDIT_LOGGING: ON</span>
@@ -82,7 +93,7 @@
         </div>
 
         <div class="mt-8 text-center opacity-40 hover:opacity-100 transition-opacity duration-500">
-            <p class="text-[9px] text-muted font-mono leading-relaxed">
+            <p class="text-[9px] text-zinc-500 dark:text-muted font-mono leading-relaxed">
                 AUTHORIZED ACCESS ONLY.<br>
                 Compliance with Regulation (EU) 2024/1083 (CRA) enforced.
             </p>

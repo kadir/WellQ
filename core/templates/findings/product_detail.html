@@ -1,21 +1,21 @@
 {% extends 'base.html' %}
 
 {% block breadcrumbs %}
-<span class="text-gray-600">/</span>
-<a href="{% url 'workspace_list' %}" class="hover:text-white">workspaces</a>
-<span class="text-gray-600">/</span>
-<a href="{% url 'workspace_detail' product.workspace.id %}" class="hover:text-white">{{ product.workspace.name|lower }}</a>
-<span class="text-gray-600">/</span>
-<span class="text-white">{{ product.name|lower }}</span>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<a href="{% url 'workspace_list' %}" class="hover:text-zinc-900 dark:hover:text-white">workspaces</a>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<a href="{% url 'workspace_detail' product.workspace.id %}" class="hover:text-zinc-900 dark:hover:text-white">{{ product.workspace.name|lower }}</a>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<span class="text-zinc-900 dark:text-white">{{ product.name|lower }}</span>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
     
-    <div class="mb-8 flex justify-between items-start border-b border-zinc-800 pb-8">
+    <div class="mb-8 flex justify-between items-start border-b border-zinc-200 dark:border-zinc-800 pb-8">
         <div class="flex gap-6">
             
-            <div class="h-16 w-16 bg-zinc-900 rounded-lg flex items-center justify-center border border-zinc-700 shadow-lg shrink-0">
+            <div class="h-16 w-16 bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-900 dark:to-zinc-800 rounded-xl flex items-center justify-center border border-zinc-300 dark:border-zinc-700 shadow-md dark:shadow-lg shrink-0">
                 {% if product.product_type == 'WEB' %}
                     <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
                 {% elif product.product_type == 'IMAGE' %}
@@ -34,44 +34,44 @@
             </div>
 
             <div>
-                <h1 class="text-3xl font-bold text-white mb-1">{{ product.name }}</h1>
-                <div class="flex items-center gap-3 text-sm text-gray-400 font-mono">
-                    <span class="bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700 text-xs">
+                <h1 class="text-3xl font-bold text-zinc-900 dark:text-white mb-1">{{ product.name }}</h1>
+                <div class="flex items-center gap-3 text-sm text-zinc-600 dark:text-gray-400 font-mono">
+                    <span class="bg-gradient-to-r from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 px-2 py-0.5 rounded-md border border-zinc-300 dark:border-zinc-700 text-xs shadow-sm">
                         {{ product.get_product_type_display }}
                     </span>
                     <span>{{ product.workspace.name }}</span>
-                    <span class="text-zinc-600">•</span>
+                    <span class="text-zinc-400 dark:text-zinc-600">•</span>
                     {% if product.criticality == 'CRITICAL' %}
-                        <span class="text-red-500 font-bold text-xs uppercase">Critical</span>
+                        <span class="bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xs uppercase px-2 py-0.5 rounded-md shadow-sm">Critical</span>
                     {% elif product.criticality == 'HIGH' %}
-                        <span class="text-orange-500 font-bold text-xs uppercase">High</span>
+                        <span class="bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-xs uppercase px-2 py-0.5 rounded-md shadow-sm">High</span>
                     {% else %}
-                        <span class="text-gray-500 font-bold text-xs uppercase">{{ product.criticality }}</span>
+                        <span class="text-zinc-600 dark:text-gray-500 font-bold text-xs uppercase">{{ product.criticality }}</span>
                     {% endif %}
                 </div>
-                <p class="text-gray-500 text-sm mt-3 max-w-xl">{{ product.description }}</p>
+                <p class="text-zinc-600 dark:text-gray-500 text-sm mt-3 max-w-xl">{{ product.description }}</p>
             </div>
         </div>
 
         <div class="flex gap-3">
-             <a href="{% url 'product_edit' product.id %}" class="px-3 py-2 border border-zinc-700 rounded text-xs text-gray-300 hover:text-white hover:border-gray-500 transition-colors uppercase font-bold tracking-wider">
+             <a href="{% url 'product_edit' product.id %}" class="px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg text-xs text-zinc-700 dark:text-gray-300 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-400 dark:hover:border-gray-500 transition-colors uppercase font-bold tracking-wider shadow-sm">
                 Edit Product
             </a>
-            <a href="{% url 'release_composer' product.id %}" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider flex items-center gap-2">
+            <a href="{% url 'release_composer' product.id %}" class="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-white dark:to-gray-100 text-white dark:text-black text-xs font-bold px-4 py-2 rounded-lg hover:from-zinc-800 hover:to-zinc-700 dark:hover:from-gray-100 dark:hover:to-gray-200 transition-all uppercase tracking-wider flex items-center gap-2 shadow-md">
                 <span>+ Compose Release</span>
             </a>
         </div>
     </div>
 
-    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
-        <div class="px-6 py-3 border-b border-[#27272a] bg-zinc-900/30 flex justify-between items-center">
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Release History</h3>
-            <span class="text-[10px] font-mono text-gray-500">{{ releases.count }} VERSIONS</span>
+    <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl overflow-hidden shadow-lg dark:shadow-none">
+        <div class="px-6 py-3 border-b border-zinc-200 dark:border-[#27272a] bg-gradient-to-r from-zinc-50 to-white dark:from-zinc-900/30 dark:to-zinc-900/10 flex justify-between items-center">
+            <h3 class="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Release History</h3>
+            <span class="text-[10px] font-mono text-zinc-500 dark:text-gray-500">{{ releases.count }} VERSIONS</span>
         </div>
         
         <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="bg-zinc-900/50 border-b border-zinc-800 text-[10px] uppercase font-mono text-gray-500 tracking-wider">
+                <tr class="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 text-[10px] uppercase font-mono text-zinc-500 dark:text-gray-500 tracking-wider">
                     <th class="px-6 py-3 font-medium w-48">Version</th>
                     <th class="px-6 py-3 font-medium w-48">Git SHA</th>
                     <th class="px-6 py-3 font-medium w-32 text-center">Findings</th>
@@ -79,16 +79,16 @@
                     <th class="px-6 py-3 font-medium text-right">Date Created</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-zinc-800">
+            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {% for release in releases %}
-                <tr class="group hover:bg-zinc-900/40 transition-colors cursor-pointer" onclick="window.location='{% url 'release_detail' release.id %}'">
+                <tr class="group hover:bg-gradient-to-r hover:from-zinc-50 hover:to-white dark:hover:bg-zinc-900/40 transition-all cursor-pointer" onclick="window.location='{% url 'release_detail' release.id %}'">
                     
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-3">
-                             <div class="h-6 w-6 rounded bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 font-mono text-[10px]">
+                             <div class="h-6 w-6 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 dark:from-emerald-500 dark:to-emerald-600 border border-emerald-300 dark:border-emerald-500/20 flex items-center justify-center text-white font-mono text-[10px] shadow-sm">
                                 v
                             </div>
-                            <span class="text-sm font-bold text-gray-200 group-hover:text-emerald-400 transition-colors font-mono">
+                            <span class="text-sm font-bold text-zinc-900 dark:text-gray-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors font-mono">
                                 {{ release.name }}
                             </span>
                         </div>
@@ -97,34 +97,34 @@
                     <td class="px-6 py-4">
                         {% if release.commit_hash %}
                         <div class="flex items-center gap-2">
-                            <svg class="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                            <span class="text-xs text-gray-500 font-mono">{{ release.commit_hash }}</span>
+                            <svg class="w-3 h-3 text-zinc-500 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                            <span class="text-xs text-zinc-600 dark:text-gray-500 font-mono">{{ release.commit_hash }}</span>
                         </div>
                         {% else %}
-                            <span class="text-xs text-zinc-700">-</span>
+                            <span class="text-xs text-zinc-400 dark:text-zinc-700">-</span>
                         {% endif %}
                     </td>
 
                     <td class="px-6 py-4 text-center">
                         {% if release.vuln_count > 0 %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-500/10 text-red-500 border border-red-500/20">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-red-500 to-red-600 dark:from-red-500/20 dark:to-red-600/20 text-white dark:text-red-400 border border-red-400 dark:border-red-500/30 shadow-sm">
                                 {{ release.vuln_count }}
                             </span>
                         {% else %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-500/20 dark:to-emerald-600/20 text-white dark:text-emerald-400 border border-emerald-400 dark:border-emerald-500/30 shadow-sm">
                                 0
                             </span>
                         {% endif %}
                     </td>
 
                     <td class="px-6 py-4 text-center">
-                        <span class="text-xs text-gray-400 font-mono">{{ release.components.count }}</span>
+                        <span class="text-xs text-zinc-600 dark:text-gray-400 font-mono">{{ release.components.count }}</span>
                     </td>
 
                     <td class="px-6 py-4 text-right">
                         <div class="flex items-center justify-end gap-4">
-                            <span class="text-xs text-gray-500 font-mono">{{ release.created_at|date:"M d, Y" }}</span>
-                            <svg class="w-4 h-4 text-zinc-700 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            <span class="text-xs text-zinc-500 dark:text-gray-500 font-mono">{{ release.created_at|date:"M d, Y" }}</span>
+                            <svg class="w-4 h-4 text-zinc-400 dark:text-zinc-700 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </div>
                     </td>
                 </tr>
@@ -132,11 +132,11 @@
                 <tr>
                     <td colspan="5" class="px-6 py-12 text-center">
                         <div class="flex flex-col items-center justify-center">
-                            <div class="h-10 w-10 bg-zinc-900 rounded-full flex items-center justify-center mb-3">
-                                <svg class="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            <div class="h-10 w-10 bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-900 dark:to-zinc-800 rounded-full flex items-center justify-center mb-3 shadow-sm">
+                                <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                             </div>
-                            <p class="text-gray-500 text-sm">No releases tracked for this product.</p>
-                            <a href="{% url 'release_composer' product.id %}" class="text-emerald-500 text-xs font-bold mt-2 hover:underline">Compose first release</a>
+                            <p class="text-zinc-500 dark:text-gray-500 text-sm">No releases tracked for this product.</p>
+                            <a href="{% url 'release_composer' product.id %}" class="text-emerald-600 dark:text-emerald-500 text-xs font-bold mt-2 hover:underline">Compose first release</a>
                         </div>
                     </td>
                 </tr>

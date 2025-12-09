@@ -138,15 +138,15 @@
                     <td class="px-6 py-3">
                         <div class="flex flex-col gap-1">
                             {% if finding.severity == 'CRITICAL' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-500 border-red-200 dark:border-red-500/20 w-fit">CRITICAL</span>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-red-500 via-red-600 to-red-700 dark:from-red-500/20 dark:via-red-600/20 dark:to-red-700/20 text-white dark:text-red-400 border border-red-400 dark:border-red-500/30 w-fit shadow-sm">CRITICAL</span>
                             {% elif finding.severity == 'HIGH' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-500 border-orange-200 dark:border-orange-500/20 w-fit">HIGH</span>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 dark:from-orange-500/20 dark:via-orange-600/20 dark:to-orange-700/20 text-white dark:text-orange-400 border border-orange-400 dark:border-orange-500/30 w-fit shadow-sm">HIGH</span>
                             {% elif finding.severity == 'MEDIUM' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 border-yellow-200 dark:border-yellow-500/20 w-fit">MEDIUM</span>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 dark:from-yellow-500/20 dark:via-yellow-600/20 dark:to-yellow-700/20 text-white dark:text-yellow-400 border border-yellow-400 dark:border-yellow-500/30 w-fit shadow-sm">MEDIUM</span>
                             {% elif finding.severity == 'LOW' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-500 border-blue-200 dark:border-blue-500/20 w-fit">LOW</span>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 dark:from-blue-500/20 dark:via-blue-600/20 dark:to-blue-700/20 text-white dark:text-blue-400 border border-blue-400 dark:border-blue-500/30 w-fit shadow-sm">LOW</span>
                             {% else %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-zinc-100 dark:bg-gray-500/10 text-zinc-700 dark:text-gray-400 border-zinc-200 dark:border-gray-500/20 w-fit">INFO</span>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-100 dark:bg-gray-500/10 text-zinc-700 dark:text-gray-400 border border-zinc-200 dark:border-gray-500/20 w-fit shadow-sm">INFO</span>
                             {% endif %}
                         </div>
                     </td>
@@ -164,7 +164,7 @@
 
                             {% if finding.kev_status %}
                             <div class="inline-flex">
-                                <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-red-600 text-white border border-red-500 animate-pulse tracking-wider">KEV: EXPLOITED</span>
+                                <span class="px-2 py-1 rounded-lg text-[9px] font-bold bg-gradient-to-r from-red-600 to-red-700 dark:from-red-600 dark:to-red-700 text-white border border-red-500 shadow-md animate-pulse tracking-wider">KEV: EXPLOITED</span>
                             </div>
                             {% endif %}
                         </div>
@@ -198,43 +198,43 @@
                                 {{ finding.scan.release.product.name }}
                             </a>
                         </div>
-                        <div class="text-[10px] text-gray-600 font-mono">
-                            <a href="{% url 'release_detail' finding.scan.release.id %}" class="hover:text-emerald-400 transition-colors">
+                        <div class="text-[10px] text-zinc-600 dark:text-gray-600 font-mono">
+                            <a href="{% url 'release_detail' finding.scan.release.id %}" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
                                 {{ finding.scan.release.name }}
                             </a>
                         </div>
-                        <div class="text-[9px] text-gray-700 font-mono mt-1">
+                        <div class="text-[9px] text-zinc-500 dark:text-gray-700 font-mono mt-1">
                             {{ finding.scan.release.product.workspace.name }}
                         </div>
                     </td>
 
-                    <td class="px-6 py-3 font-mono text-emerald-500">{{ finding.fix_version|default:"-" }}</td>
+                    <td class="px-6 py-3 font-mono text-emerald-600 dark:text-emerald-500 font-semibold">{{ finding.fix_version|default:"-" }}</td>
 
                     <!-- Status (Last Column) -->
                     <td class="px-6 py-3">
                         <div class="flex flex-col gap-1">
                             {% if finding.status == 'FIXED' %}
-                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">✓ FIXED</span>
+                                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-500/20 dark:to-emerald-600/20 text-white dark:text-emerald-400 border border-emerald-400 dark:border-emerald-500/30 w-fit shadow-sm">✓ FIXED</span>
                             {% elif finding.status == 'FALSE_POSITIVE' %}
-                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">∅ FALSE POSITIVE</span>
+                                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-100 dark:bg-gray-500/10 text-zinc-700 dark:text-gray-400 border border-zinc-200 dark:border-gray-500/20 w-fit shadow-sm">∅ FALSE POSITIVE</span>
                             {% elif finding.status == 'RISK_ACCEPTED' %}
-                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 w-fit">⚠ ACCEPTED</span>
+                                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-500/20 dark:to-purple-600/20 text-white dark:text-purple-400 border border-purple-400 dark:border-purple-500/30 w-fit shadow-sm">⚠ ACCEPTED</span>
                             {% elif finding.status == 'DUPLICATE' %}
-                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 w-fit">↻ DUPLICATE</span>
+                                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-500/20 dark:to-orange-600/20 text-white dark:text-orange-400 border border-orange-400 dark:border-orange-500/30 w-fit shadow-sm">↻ DUPLICATE</span>
                             {% elif finding.status == 'ACTIVE' or finding.status == 'OPEN' %}
-                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 w-fit">● ACTIVE</span>
+                                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-500/20 dark:to-blue-600/20 text-white dark:text-blue-400 border border-blue-400 dark:border-blue-500/30 w-fit shadow-sm">● ACTIVE</span>
                             {% else %}
-                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">{{ finding.status }}</span>
+                                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-100 dark:bg-gray-500/10 text-zinc-700 dark:text-gray-400 border border-zinc-200 dark:border-gray-500/20 w-fit shadow-sm">{{ finding.status }}</span>
                             {% endif %}
                         </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                    <td colspan="8" class="px-6 py-12 text-center text-zinc-500 dark:text-gray-500">
                         No vulnerabilities found.
                         {% if filters.status or filters.severity or filters.cve_id or filters.product or filters.workspace %}
-                            <a href="{% url 'vulnerabilities_list' %}" class="text-emerald-400 hover:underline ml-2">Clear filters</a>
+                            <a href="{% url 'vulnerabilities_list' %}" class="text-emerald-600 dark:text-emerald-400 hover:underline ml-2">Clear filters</a>
                         {% endif %}
                     </td>
                 </tr>
@@ -246,19 +246,19 @@
     <!-- Pagination -->
     {% if findings.has_other_pages %}
     <div class="mt-6 flex items-center justify-between">
-        <div class="text-sm text-gray-500">
+        <div class="text-sm text-zinc-500 dark:text-gray-500">
             Showing {{ findings.start_index }} to {{ findings.end_index }} of {{ findings.paginator.count }} vulnerabilities
         </div>
         <div class="flex gap-2">
             {% if findings.has_previous %}
                 <a href="?page={{ findings.previous_page_number }}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.severity %}&severity={{ filters.severity }}{% endif %}{% if filters.scanner %}&scanner={{ filters.scanner }}{% endif %}{% if filters.cve_id %}&cve_id={{ filters.cve_id }}{% endif %}{% if filters.product %}&product={{ filters.product }}{% endif %}{% if filters.workspace %}&workspace={{ filters.workspace }}{% endif %}{% if filters.epss %}&epss={{ filters.epss }}{% endif %}{% if filters.kev %}&kev={{ filters.kev }}{% endif %}&per_page={{ per_page }}" 
-                   class="bg-zinc-800 text-white px-4 py-2 rounded text-sm hover:bg-zinc-700 transition-colors">
+                   class="bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white px-4 py-2 rounded-lg text-sm hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors shadow-sm">
                     Previous
                 </a>
             {% endif %}
             {% if findings.has_next %}
                 <a href="?page={{ findings.next_page_number }}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.severity %}&severity={{ filters.severity }}{% endif %}{% if filters.scanner %}&scanner={{ filters.scanner }}{% endif %}{% if filters.cve_id %}&cve_id={{ filters.cve_id }}{% endif %}{% if filters.product %}&product={{ filters.product }}{% endif %}{% if filters.workspace %}&workspace={{ filters.workspace }}{% endif %}{% if filters.epss %}&epss={{ filters.epss }}{% endif %}{% if filters.kev %}&kev={{ filters.kev }}{% endif %}&per_page={{ per_page }}" 
-                   class="bg-zinc-800 text-white px-4 py-2 rounded text-sm hover:bg-zinc-700 transition-colors">
+                   class="bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white px-4 py-2 rounded-lg text-sm hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors shadow-sm">
                     Next
                 </a>
             {% endif %}
@@ -267,16 +267,16 @@
     {% endif %}
 
     <!-- Per Page Selector -->
-    <div class="mt-4 flex items-center gap-2 text-sm text-gray-500">
+    <div class="mt-4 flex items-center gap-2 text-sm text-zinc-500 dark:text-gray-500">
         <span>Show:</span>
         <a href="?{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.severity %}severity={{ filters.severity }}&{% endif %}{% if filters.scanner %}scanner={{ filters.scanner }}&{% endif %}{% if filters.cve_id %}cve_id={{ filters.cve_id }}&{% endif %}{% if filters.product %}product={{ filters.product }}&{% endif %}{% if filters.workspace %}workspace={{ filters.workspace }}&{% endif %}{% if filters.epss %}epss={{ filters.epss }}&{% endif %}{% if filters.kev %}kev={{ filters.kev }}&{% endif %}per_page=20" 
-           class="{% if per_page == '20' %}text-white font-bold{% else %}hover:text-white{% endif %}">20</a>
+           class="{% if per_page == '20' %}text-zinc-900 dark:text-white font-bold{% else %}hover:text-zinc-900 dark:hover:text-white{% endif %}">20</a>
         <span>|</span>
         <a href="?{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.severity %}severity={{ filters.severity }}&{% endif %}{% if filters.scanner %}scanner={{ filters.scanner }}&{% endif %}{% if filters.cve_id %}cve_id={{ filters.cve_id }}&{% endif %}{% if filters.product %}product={{ filters.product }}&{% endif %}{% if filters.workspace %}workspace={{ filters.workspace }}&{% endif %}{% if filters.epss %}epss={{ filters.epss }}&{% endif %}{% if filters.kev %}kev={{ filters.kev }}&{% endif %}per_page=50" 
-           class="{% if per_page == '50' %}text-white font-bold{% else %}hover:text-white{% endif %}">50</a>
+           class="{% if per_page == '50' %}text-zinc-900 dark:text-white font-bold{% else %}hover:text-zinc-900 dark:hover:text-white{% endif %}">50</a>
         <span>|</span>
         <a href="?{% if filters.status %}status={{ filters.status }}&{% endif %}{% if filters.severity %}severity={{ filters.severity }}&{% endif %}{% if filters.scanner %}scanner={{ filters.scanner }}&{% endif %}{% if filters.cve_id %}cve_id={{ filters.cve_id }}&{% endif %}{% if filters.product %}product={{ filters.product }}&{% endif %}{% if filters.workspace %}workspace={{ filters.workspace }}&{% endif %}{% if filters.epss %}epss={{ filters.epss }}&{% endif %}{% if filters.kev %}kev={{ filters.kev }}&{% endif %}per_page=100" 
-           class="{% if per_page == '100' %}text-white font-bold{% else %}hover:text-white{% endif %}">100</a>
+           class="{% if per_page == '100' %}text-zinc-900 dark:text-white font-bold{% else %}hover:text-zinc-900 dark:hover:text-white{% endif %}">100</a>
     </div>
 
 </div>

@@ -3,80 +3,80 @@
 {% block title %}Asset Inventory{% endblock %}
 
 {% block breadcrumbs %}
-<span class="text-gray-600">/</span>
-<a href="{% url 'asset_inventory' %}" class="hover:text-white">inventory</a>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<a href="{% url 'asset_inventory' %}" class="hover:text-zinc-900 dark:hover:text-white">inventory</a>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
     
-    <div class="mb-8 flex justify-between items-start border-b border-zinc-800 pb-8">
+    <div class="mb-8 flex justify-between items-start border-b border-zinc-200 dark:border-zinc-800 pb-8">
         <div>
-            <h1 class="text-3xl font-bold text-white mb-1">Asset Inventory</h1>
-            <p class="text-gray-500 text-sm mt-2">Manage repositories and view artifacts produced by your CI/CD pipelines</p>
+            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white mb-1">Asset Inventory</h1>
+            <p class="text-zinc-600 dark:text-gray-500 text-sm mt-2">Manage repositories and view artifacts produced by your CI/CD pipelines</p>
         </div>
         
-        <button onclick="openRepoModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded transition-colors uppercase tracking-wider flex items-center gap-2">
+        <button onclick="openRepoModal()" class="bg-gradient-to-r from-emerald-600 to-emerald-700 dark:from-emerald-500 dark:to-emerald-600 hover:from-emerald-700 hover:to-emerald-800 dark:hover:from-emerald-600 dark:hover:to-emerald-700 text-white font-bold px-4 py-2 rounded-lg transition-all uppercase tracking-wider flex items-center gap-2 shadow-md">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
             Connect Repository
         </button>
     </div>
 
-    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
-        <div class="px-6 py-3 border-b border-[#27272a] bg-zinc-900/30 flex justify-between items-center">
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Repositories</h3>
-            <span class="text-[10px] font-mono text-gray-500">{{ repositories.count }} REPOS</span>
+    <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl overflow-hidden shadow-lg dark:shadow-none">
+        <div class="px-6 py-3 border-b border-zinc-200 dark:border-[#27272a] bg-gradient-to-r from-zinc-50 to-white dark:from-zinc-900/30 dark:to-zinc-900/10 flex justify-between items-center">
+            <h3 class="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Repositories</h3>
+            <span class="text-[10px] font-mono text-zinc-500 dark:text-gray-500">{{ repositories.count }} REPOS</span>
         </div>
         
         {% if repositories %}
-        <div class="divide-y divide-zinc-800">
+        <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
             {% for repo in repositories %}
             <div class="repo-row" data-repo-id="{{ repo.id }}">
-                <div class="px-6 py-4 hover:bg-zinc-900/30 cursor-pointer transition-colors flex items-center justify-between" onclick="toggleRepoArtifacts({{ repo.id }})">
+                <div class="px-6 py-4 hover:bg-gradient-to-r hover:from-zinc-50 hover:to-white dark:hover:bg-zinc-900/30 cursor-pointer transition-all flex items-center justify-between" onclick="toggleRepoArtifacts({{ repo.id }})">
                     <div class="flex items-center gap-4">
-                        <svg class="w-5 h-5 text-zinc-500 transition-transform" id="arrow-{{ repo.id }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <svg class="w-5 h-5 text-zinc-500 dark:text-zinc-500 transition-transform" id="arrow-{{ repo.id }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         <div>
-                            <div class="text-sm font-bold text-white">{{ repo.name }}</div>
-                            <div class="text-xs text-zinc-500 font-mono mt-1">{{ repo.url|default:"No URL" }}</div>
+                            <div class="text-sm font-bold text-zinc-900 dark:text-white">{{ repo.name }}</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-500 font-mono mt-1">{{ repo.url|default:"No URL" }}</div>
                         </div>
                     </div>
-                    <div class="text-xs text-zinc-500 font-mono">
+                    <div class="text-xs text-zinc-500 dark:text-zinc-500 font-mono">
                         {{ repo.workspace.name }}
                     </div>
                 </div>
                 
-                <div id="artifacts-{{ repo.id }}" class="hidden px-6 py-4 bg-zinc-950/50 border-t border-zinc-800">
-                    <div class="text-xs text-zinc-500 uppercase font-mono mb-3">Latest Artifacts</div>
+                <div id="artifacts-{{ repo.id }}" class="hidden px-6 py-4 bg-zinc-50 dark:bg-zinc-950/50 border-t border-zinc-200 dark:border-zinc-800">
+                    <div class="text-xs text-zinc-500 dark:text-zinc-500 uppercase font-mono mb-3">Latest Artifacts</div>
                     {% if repo.artifacts.all %}
                         <div class="space-y-2">
                             {% for artifact in repo.artifacts.all|slice:":5" %}
-                            <div class="flex justify-between items-center bg-zinc-900/50 border border-zinc-800 p-3 rounded">
+                            <div class="flex justify-between items-center bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg shadow-sm">
                                 <div class="flex items-center gap-3">
-                                    <div class="h-8 w-8 bg-blue-500/20 rounded flex items-center justify-center text-blue-400 font-mono text-xs">
+                                    <div class="h-8 w-8 bg-gradient-to-br from-blue-400 to-blue-600 dark:from-blue-500/20 dark:to-blue-600/20 rounded-lg flex items-center justify-center text-white dark:text-blue-400 font-mono text-xs shadow-sm border border-blue-300 dark:border-blue-500/30">
                                         {{ artifact.type|slice:":3"|upper }}
                                     </div>
                                     <div>
-                                        <div class="text-sm text-white font-bold">{{ artifact.name }}</div>
-                                        <div class="text-xs text-zinc-500 font-mono">{{ artifact.version|truncatechars:20 }}</div>
+                                        <div class="text-sm text-zinc-900 dark:text-white font-bold">{{ artifact.name }}</div>
+                                        <div class="text-xs text-zinc-500 dark:text-zinc-500 font-mono">{{ artifact.version|truncatechars:20 }}</div>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-4">
                                     {% if artifact.latest_scan_status == 'COMPLETED' %}
-                                        <span class="text-xs text-emerald-500 font-mono">Scanned</span>
+                                        <span class="text-xs text-emerald-600 dark:text-emerald-500 font-mono font-semibold">Scanned</span>
                                     {% elif artifact.latest_scan_status == 'NO_SCAN' %}
-                                        <span class="text-xs text-zinc-600 font-mono">Not Scanned</span>
+                                        <span class="text-xs text-zinc-500 dark:text-zinc-600 font-mono">Not Scanned</span>
                                     {% else %}
-                                        <span class="text-xs text-yellow-500 font-mono">{{ artifact.latest_scan_status }}</span>
+                                        <span class="text-xs text-yellow-600 dark:text-yellow-500 font-mono">{{ artifact.latest_scan_status }}</span>
                                     {% endif %}
                                     {% if artifact.findings_count > 0 %}
-                                        <span class="text-xs text-red-500 font-bold">{{ artifact.findings_count }} findings</span>
+                                        <span class="text-xs bg-gradient-to-r from-red-500 to-red-600 dark:from-red-500/20 dark:to-red-600/20 text-white dark:text-red-400 font-bold px-2 py-0.5 rounded-md shadow-sm border border-red-400 dark:border-red-500/30">{{ artifact.findings_count }} findings</span>
                                     {% endif %}
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
                     {% else %}
-                        <div class="text-sm text-zinc-600 italic">No artifacts found for this repository</div>
+                        <div class="text-sm text-zinc-600 dark:text-zinc-600 italic">No artifacts found for this repository</div>
                     {% endif %}
                 </div>
             </div>
@@ -84,20 +84,20 @@
         </div>
         {% else %}
         <div class="px-6 py-12 text-center">
-            <svg class="w-12 h-12 text-zinc-700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-            <p class="text-zinc-500 text-sm mb-4">No repositories found</p>
-            <button onclick="openRepoModal()" class="text-emerald-500 text-xs font-bold hover:underline">Connect your first repository</button>
+            <svg class="w-12 h-12 text-zinc-600 dark:text-zinc-700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            <p class="text-zinc-500 dark:text-zinc-500 text-sm mb-4">No repositories found</p>
+            <button onclick="openRepoModal()" class="text-emerald-600 dark:text-emerald-500 text-xs font-bold hover:underline">Connect your first repository</button>
         </div>
         {% endif %}
     </div>
 </div>
 
 <!-- Repository Modal -->
-<div id="repoModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
-    <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-xl w-96 max-w-full mx-4">
+<div id="repoModal" class="hidden fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-xl w-96 max-w-full mx-4 shadow-2xl">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-white font-bold">Connect Repository</h3>
-            <button onclick="closeRepoModal()" class="text-zinc-500 hover:text-white">
+            <h3 class="text-zinc-900 dark:text-white font-bold">Connect Repository</h3>
+            <button onclick="closeRepoModal()" class="text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>

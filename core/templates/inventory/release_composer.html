@@ -3,67 +3,67 @@
 {% block title %}Compose Release{% endblock %}
 
 {% block breadcrumbs %}
-<span class="text-gray-600">/</span>
-<a href="{% url 'workspace_list' %}" class="hover:text-white">workspaces</a>
-<span class="text-gray-600">/</span>
-<a href="{% url 'workspace_detail' product.workspace.id %}" class="hover:text-white">{{ product.workspace.name|lower }}</a>
-<span class="text-gray-600">/</span>
-<a href="{% url 'product_detail' product.id %}" class="hover:text-white">{{ product.name|lower }}</a>
-<span class="text-gray-600">/</span>
-<span class="text-white">compose</span>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<a href="{% url 'workspace_list' %}" class="hover:text-zinc-900 dark:hover:text-white">workspaces</a>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<a href="{% url 'workspace_detail' product.workspace.id %}" class="hover:text-zinc-900 dark:hover:text-white">{{ product.workspace.name|lower }}</a>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<a href="{% url 'product_detail' product.id %}" class="hover:text-zinc-900 dark:hover:text-white">{{ product.name|lower }}</a>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<span class="text-zinc-900 dark:text-white">compose</span>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
     
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-white mb-2">Compose New Release</h1>
-        <p class="text-gray-500 text-sm">Select artifacts to bundle into this release</p>
+        <h1 class="text-3xl font-bold text-zinc-900 dark:text-white mb-2">Compose New Release</h1>
+        <p class="text-zinc-600 dark:text-gray-500 text-sm">Select artifacts to bundle into this release</p>
     </div>
 
-    <form method="POST" action="{% url 'release_composer' product.id %}" class="bg-zinc-900 border border-zinc-800 p-8 rounded-xl">
+    <form method="POST" action="{% url 'release_composer' product.id %}" class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-xl shadow-lg dark:shadow-none">
         {% csrf_token %}
         
         <div class="mb-6">
-            <label class="text-xs text-zinc-500 uppercase font-mono mb-2 block">Release Tag</label>
+            <label class="text-xs text-zinc-500 dark:text-zinc-500 uppercase font-mono mb-2 block">Release Tag</label>
             {{ form.name }}
             {% if form.name.errors %}
-                <div class="text-red-500 text-xs mt-1">{{ form.name.errors }}</div>
+                <div class="text-red-600 dark:text-red-500 text-xs mt-1">{{ form.name.errors }}</div>
             {% endif %}
         </div>
 
         <div class="mb-4">
-            <label class="text-xs text-zinc-500 uppercase font-mono mb-2 block">Bill of Materials (BOM)</label>
+            <label class="text-xs text-zinc-500 dark:text-zinc-500 uppercase font-mono mb-2 block">Bill of Materials (BOM)</label>
             
             <div class="relative mb-4">
                 <input 
                     type="text" 
                     id="artifact-search" 
-                    class="w-full bg-black border border-zinc-700 text-white p-3 rounded pl-10" 
+                    class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white p-3 rounded-lg pl-10 shadow-sm" 
                     placeholder="Search artifacts (e.g. backend:v1)..."
                     autocomplete="off"
                 >
-                <svg class="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-zinc-500 dark:text-zinc-500 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
             </div>
 
-            <div id="search-results" class="hidden absolute z-10 w-full bg-zinc-900 border border-zinc-700 rounded mt-1 max-h-64 overflow-y-auto"></div>
+            <div id="search-results" class="hidden absolute z-10 w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg mt-1 max-h-64 overflow-y-auto shadow-lg"></div>
 
             <div id="selected-artifacts" class="mt-4 space-y-2 min-h-[100px]">
-                <div class="text-sm text-zinc-600 italic text-center py-8" id="empty-state">
+                <div class="text-sm text-zinc-500 dark:text-zinc-600 italic text-center py-8" id="empty-state">
                     No artifacts selected. Search and select artifacts above.
                 </div>
             </div>
         </div>
 
         <div class="mb-6">
-            <label class="text-xs text-zinc-500 uppercase font-mono mb-2 block">Commit Hash (Optional)</label>
+            <label class="text-xs text-zinc-500 dark:text-zinc-500 uppercase font-mono mb-2 block">Commit Hash (Optional)</label>
             {{ form.commit_hash }}
         </div>
 
-        <div id="risk-preview" class="bg-zinc-950 border border-zinc-800 p-4 rounded mb-6 flex gap-4 items-center hidden">
-            <div class="text-xs text-zinc-500">Estimated Risk:</div>
+        <div id="risk-preview" class="bg-gradient-to-r from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-lg mb-6 flex gap-4 items-center hidden shadow-sm">
+            <div class="text-xs text-zinc-500 dark:text-zinc-500">Estimated Risk:</div>
             <div id="risk-stats" class="flex gap-4">
                 <!-- Risk stats will be populated by JavaScript -->
             </div>
@@ -72,10 +72,10 @@
         <input type="hidden" name="artifact_ids" id="artifact-ids" value="">
 
         <div class="flex gap-3">
-            <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded transition-colors">
+            <button type="submit" class="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-700 dark:from-emerald-500 dark:to-emerald-600 hover:from-emerald-700 hover:to-emerald-800 dark:hover:from-emerald-600 dark:hover:to-emerald-700 text-white dark:text-black font-bold py-3 rounded-lg transition-all shadow-md">
                 Publish Release
             </button>
-            <a href="{% url 'product_detail' product.id %}" class="px-4 py-3 border border-zinc-700 rounded text-gray-300 hover:text-white hover:border-gray-500 transition-colors">
+            <a href="{% url 'product_detail' product.id %}" class="px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-700 dark:text-gray-300 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-400 dark:hover:border-gray-500 transition-colors shadow-sm">
                 Cancel
             </a>
         </div>

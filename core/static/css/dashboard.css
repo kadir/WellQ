@@ -73,7 +73,11 @@
 /* 3. Main Content Area */
 .main-content {
     grid-area: content;
-    background-color: #f9fafb; /* Zinc-50 - Light Mode */
+    background-color: #fafafa; /* Slightly warmer than zinc-50 for premium feel */
+    background-image: 
+        linear-gradient(to right, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+    background-size: 24px 24px;
     padding: 2rem;
     overflow-y: auto;
     position: relative;
@@ -81,6 +85,10 @@
 
 .dark .main-content {
     background-color: #000000; /* Deep Black - Dark Mode */
+    background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 24px 24px;
 }
 
 /* Utility: Profile Dropdown (Simple) */

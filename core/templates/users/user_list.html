@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 
 {% block breadcrumbs %}
-<span class="text-gray-600">/</span>
-<span class="text-emerald-400">Roles</span>
-<span class="text-gray-600">/</span>
-<span class="text-emerald-400">User Management</span>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<span class="text-emerald-600 dark:text-emerald-400">Roles</span>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<span class="text-emerald-600 dark:text-emerald-400">User Management</span>
 {% endblock %}
 
 {% block content %}
@@ -13,20 +13,20 @@
     {% if messages %}
     <div class="mb-6">
         {% for message in messages %}
-        <div class="{% if message.tags == 'error' %}bg-red-500/10 border-red-500/30 text-red-400{% elif message.tags == 'success' %}bg-green-500/10 border-green-500/30 text-green-400{% else %}bg-blue-500/10 border-blue-500/30 text-blue-400{% endif %} border rounded-lg px-4 py-3 text-sm">
+        <div class="{% if message.tags == 'error' %}bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400{% elif message.tags == 'success' %}bg-emerald-50 dark:bg-green-500/10 border-emerald-200 dark:border-green-500/30 text-emerald-700 dark:text-green-400{% else %}bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-400{% endif %} border rounded-lg px-4 py-3 text-sm">
             {{ message }}
         </div>
         {% endfor %}
     </div>
     {% endif %}
 
-    <div class="mb-6 border-b border-zinc-800 pb-6">
+    <div class="mb-6 border-b border-zinc-200 dark:border-zinc-800 pb-6">
         <div class="flex justify-between items-start">
             <div>
-                <h1 class="text-3xl font-bold text-white mb-1">User Management</h1>
-                <p class="text-sm text-gray-400 mt-2">Manage users, roles, and permissions</p>
+                <h1 class="text-3xl font-bold text-zinc-900 dark:text-white mb-1">User Management</h1>
+                <p class="text-sm text-zinc-600 dark:text-gray-400 mt-2">Manage users, roles, and permissions</p>
             </div>
-            <a href="{% url 'user_create' %}" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider flex items-center gap-2">
+            <a href="{% url 'user_create' %}" class="bg-zinc-900 dark:bg-white text-white dark:text-black text-xs font-bold px-4 py-2 rounded hover:bg-zinc-800 dark:hover:bg-gray-200 transition-colors uppercase tracking-wider flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 Create User
             </a>
@@ -34,29 +34,29 @@
     </div>
 
     <!-- Search -->
-    <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-4 mb-6">
+    <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-lg p-4 mb-6 shadow-sm dark:shadow-none">
         <form method="get" class="flex items-center gap-4">
-            <input type="text" name="search" value="{{ search_query|default:'' }}" placeholder="Search by username, email, or name..." class="flex-1 bg-black border border-zinc-800 rounded px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500">
-            <button type="submit" class="bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-600 transition-colors uppercase tracking-wider">
+            <input type="text" name="search" value="{{ search_query|default:'' }}" placeholder="Search by username, email, or name..." class="flex-1 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded px-4 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-gray-500 focus:outline-none focus:border-emerald-600 dark:focus:border-emerald-500">
+            <button type="submit" class="bg-emerald-600 dark:bg-emerald-500 text-white dark:text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors uppercase tracking-wider">
                 Search
             </button>
             {% if search_query %}
-            <a href="{% url 'user_list' %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors uppercase tracking-wider">
+            <a href="{% url 'user_list' %}" class="bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors uppercase tracking-wider">
                 Clear
             </a>
             {% endif %}
         </form>
     </div>
 
-    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
-        <div class="px-6 py-3 border-b border-[#27272a] bg-zinc-900/30 flex justify-between items-center">
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Users</h3>
-            <span class="text-[10px] font-mono text-gray-500">{{ total_count }} users</span>
+    <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-lg overflow-hidden shadow-sm dark:shadow-none">
+        <div class="px-6 py-3 border-b border-zinc-200 dark:border-[#27272a] bg-zinc-50 dark:bg-zinc-900/30 flex justify-between items-center">
+            <h3 class="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Users</h3>
+            <span class="text-[10px] font-mono text-zinc-500 dark:text-gray-500">{{ total_count }} users</span>
         </div>
         
         <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="bg-zinc-900/50 border-b border-zinc-800 text-[10px] uppercase font-mono text-gray-500 tracking-wider">
+                <tr class="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 text-[10px] uppercase font-mono text-zinc-500 dark:text-gray-500 tracking-wider">
                     <th class="px-6 py-3 font-medium">Username</th>
                     <th class="px-6 py-3 font-medium">Email</th>
                     <th class="px-6 py-3 font-medium">Full Name</th>
@@ -67,26 +67,26 @@
                     <th class="px-6 py-3 font-medium text-center">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-zinc-800">
+            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {% for user in users %}
-                <tr class="group hover:bg-zinc-900/40 transition-colors">
+                <tr class="group hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors">
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-3">
-                            <div class="h-8 w-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-xs">
+                            <div class="h-8 w-8 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-400 font-bold text-xs">
                                 {{ user.username|make_list|first|upper }}
                             </div>
-                            <span class="text-sm font-bold text-gray-200">{{ user.username }}</span>
+                            <span class="text-sm font-bold text-zinc-900 dark:text-gray-200">{{ user.username }}</span>
                         </div>
                     </td>
                     <td class="px-6 py-4">
-                        <span class="text-sm text-gray-400">{{ user.email|default:"—" }}</span>
+                        <span class="text-sm text-zinc-600 dark:text-gray-400">{{ user.email|default:"—" }}</span>
                     </td>
                     <td class="px-6 py-4">
-                        <span class="text-sm text-gray-300">
+                        <span class="text-sm text-zinc-900 dark:text-gray-300">
                             {% if user.first_name or user.last_name %}
                                 {{ user.first_name }} {{ user.last_name }}
                             {% else %}
-                                <span class="text-gray-600">—</span>
+                                <span class="text-zinc-600 dark:text-gray-600">—</span>
                             {% endif %}
                         </span>
                     </td>
@@ -94,18 +94,18 @@
                         <div class="flex flex-wrap gap-1">
                             {% if user.profile.roles.all %}
                                 {% for role in user.profile.roles.all %}
-                                    <span class="bg-blue-500/20 text-blue-400 text-[9px] font-bold px-2 py-0.5 rounded border border-blue-500/30 uppercase">{{ role.get_name_display|truncatewords:1 }}</span>
+                                    <span class="bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 text-[9px] font-bold px-2 py-0.5 rounded border border-blue-200 dark:border-blue-500/30 uppercase">{{ role.get_name_display|truncatewords:1 }}</span>
                                 {% endfor %}
                             {% else %}
-                                <span class="text-gray-600 text-xs">No roles</span>
+                                <span class="text-zinc-600 dark:text-gray-600 text-xs">No roles</span>
                             {% endif %}
                         </div>
                     </td>
                     <td class="px-6 py-4 text-center">
                         {% if user.is_staff %}
-                            <span class="bg-blue-500/20 text-blue-400 text-[10px] font-bold px-2 py-1 rounded border border-blue-500/30 uppercase">Yes</span>
+                            <span class="bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 text-[10px] font-bold px-2 py-1 rounded border border-blue-200 dark:border-blue-500/30 uppercase">Yes</span>
                         {% else %}
-                            <span class="text-gray-600 text-xs">—</span>
+                            <span class="text-zinc-600 dark:text-gray-600 text-xs">—</span>
                         {% endif %}
                     </td>
                     <td class="px-6 py-4 text-center">

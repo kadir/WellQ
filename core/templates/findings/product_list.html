@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
 {% block breadcrumbs %}
-<span class="text-gray-600">/</span>
-<span class="text-white">products</span>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<span class="text-zinc-900 dark:text-white">products</span>
 {% endblock %}
 
 {% block content %}
@@ -10,18 +10,18 @@
     
     <div class="flex justify-between items-end mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-white tracking-tight">Products</h1>
-            <p class="text-sm text-gray-500 font-mono mt-1">Global asset inventory.</p>
+            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">Products</h1>
+            <p class="text-sm text-zinc-500 dark:text-gray-500 font-mono mt-1">Global asset inventory.</p>
         </div>
-        <a href="{% url 'product_create' %}" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+        <a href="{% url 'product_create' %}" class="bg-zinc-900 dark:bg-white text-white dark:text-black text-xs font-bold px-4 py-2 rounded hover:bg-zinc-800 dark:hover:bg-gray-200 transition-colors uppercase tracking-wider">
             + Create Product
         </a>
     </div>
 
-    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
+    <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-lg overflow-hidden shadow-sm dark:shadow-none">
         <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="bg-zinc-900/50 border-b border-zinc-800 text-[10px] uppercase font-mono text-gray-500 tracking-wider">
+                <tr class="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 text-[10px] uppercase font-mono text-zinc-500 dark:text-gray-500 tracking-wider">
                     <th class="px-6 py-3 font-medium">Product Name</th>
                     <th class="px-6 py-3 font-medium w-32">Criticality</th>
                     <th class="px-6 py-3 font-medium w-48">Workspace</th>
@@ -30,13 +30,13 @@
                     <th class="px-6 py-3 font-medium text-right w-32">Created</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-zinc-800">
+            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {% for product in products %}
-                <tr class="group hover:bg-zinc-900/40 transition-colors cursor-pointer" onclick="window.location='{% url 'product_detail' product.id %}'">
+                <tr class="group hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer" onclick="window.location='{% url 'product_detail' product.id %}'">
                     
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-3">
-                            <div class="h-8 w-8 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+                            <div class="h-8 w-8 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shrink-0">
                                 {% if product.product_type == 'WEB' %}
                                     <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
                                 {% elif product.product_type == 'IMAGE' %}
@@ -55,10 +55,10 @@
                             </div>
                             
                             <div>
-                                <div class="text-sm font-bold text-gray-200 group-hover:text-emerald-400 transition-colors">
+                                <div class="text-sm font-bold text-zinc-900 dark:text-gray-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                                     {{ product.name }}
                                 </div>
-                                <div class="text-[10px] text-gray-500 font-mono truncate max-w-[200px]">
+                                <div class="text-[10px] text-zinc-500 dark:text-gray-500 font-mono truncate max-w-[200px]">
                                     {{ product.description|default:"-" }}
                                 </div>
                             </div>
@@ -67,37 +67,37 @@
 
                     <td class="px-6 py-4">
                         {% if product.criticality == 'CRITICAL' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">CRITICAL</span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-500 border-red-200 dark:border-red-500/20">CRITICAL</span>
                         {% elif product.criticality == 'HIGH' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20">HIGH</span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-500 border-orange-200 dark:border-orange-500/20">HIGH</span>
                         {% elif product.criticality == 'MEDIUM' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">MEDIUM</span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 border-yellow-200 dark:border-yellow-500/20">MEDIUM</span>
                         {% else %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-gray-400 border border-zinc-700">LOW</span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-gray-400 border-zinc-200 dark:border-zinc-700">LOW</span>
                         {% endif %}
                     </td>
 
                     <td class="px-6 py-4">
-                        <span class="text-xs text-gray-400 font-mono bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
+                        <span class="text-xs text-zinc-600 dark:text-gray-400 font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800">
                             {{ product.workspace.name }}
                         </span>
                     </td>
 
-                    <td class="px-6 py-4 text-xs text-gray-400 font-mono">
+                    <td class="px-6 py-4 text-xs text-zinc-600 dark:text-gray-400 font-mono">
                         {{ product.product_type }}
                     </td>
 
                     <td class="px-6 py-4">
-                        <span class="text-white font-bold">{{ product.releases.count }}</span>
+                        <span class="text-zinc-900 dark:text-white font-bold">{{ product.releases.count }}</span>
                     </td>
 
-                    <td class="px-6 py-4 text-right text-xs text-gray-500 font-mono">
+                    <td class="px-6 py-4 text-right text-xs text-zinc-500 dark:text-gray-500 font-mono">
                         {{ product.created_at|date:"M d" }}
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                    <td colspan="6" class="px-6 py-12 text-center text-zinc-500 dark:text-gray-500">
                         No products found.
                     </td>
                 </tr>

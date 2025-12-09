@@ -4,18 +4,18 @@
 {% block title %}Vulnerabilities{% endblock %}
 
 {% block breadcrumbs %}
-<span class="text-gray-600">/</span>
-<span class="text-emerald-400">vulnerabilities</span>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<span class="text-emerald-600 dark:text-emerald-400">vulnerabilities</span>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
 
-    <div class="mb-6 border-b border-zinc-800 pb-6">
+    <div class="mb-6 border-b border-zinc-200 dark:border-zinc-800 pb-6">
         <div class="flex justify-between items-start">
             <div>
-                <h1 class="text-3xl font-bold text-white mb-1">All Vulnerabilities</h1>
-                <div class="text-xs font-mono text-gray-500 mt-2">
+                <h1 class="text-3xl font-bold text-zinc-900 dark:text-white mb-1">All Vulnerabilities</h1>
+                <div class="text-xs font-mono text-zinc-500 dark:text-gray-500 mt-2">
                     Comprehensive view of all security findings across all products
                 </div>
             </div>
@@ -24,34 +24,34 @@
 
     <!-- Statistics Cards -->
     <div class="grid grid-cols-5 gap-4 mb-8">
-        <div class="bg-red-500/5 border border-red-500/20 p-4 rounded-lg">
-            <div class="text-red-500 text-[10px] uppercase font-bold tracking-widest mb-1">Critical</div>
-            <div class="text-2xl font-bold text-white">{{ vuln_stats.critical }}</div>
+        <div class="bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 p-4 rounded-lg shadow-sm dark:shadow-none">
+            <div class="text-red-700 dark:text-red-500 text-[10px] uppercase font-bold tracking-widest mb-1">Critical</div>
+            <div class="text-2xl font-bold text-zinc-900 dark:text-white">{{ vuln_stats.critical }}</div>
         </div>
-        <div class="bg-orange-500/5 border border-orange-500/20 p-4 rounded-lg">
-            <div class="text-orange-500 text-[10px] uppercase font-bold tracking-widest mb-1">High</div>
-            <div class="text-2xl font-bold text-white">{{ vuln_stats.high }}</div>
+        <div class="bg-orange-50 dark:bg-orange-500/5 border border-orange-200 dark:border-orange-500/20 p-4 rounded-lg shadow-sm dark:shadow-none">
+            <div class="text-orange-700 dark:text-orange-500 text-[10px] uppercase font-bold tracking-widest mb-1">High</div>
+            <div class="text-2xl font-bold text-zinc-900 dark:text-white">{{ vuln_stats.high }}</div>
         </div>
-        <div class="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-lg">
-            <div class="text-yellow-500 text-[10px] uppercase font-bold tracking-widest mb-1">Medium</div>
-            <div class="text-2xl font-bold text-white">{{ vuln_stats.medium }}</div>
+        <div class="bg-yellow-50 dark:bg-yellow-500/5 border border-yellow-200 dark:border-yellow-500/20 p-4 rounded-lg shadow-sm dark:shadow-none">
+            <div class="text-yellow-700 dark:text-yellow-500 text-[10px] uppercase font-bold tracking-widest mb-1">Medium</div>
+            <div class="text-2xl font-bold text-zinc-900 dark:text-white">{{ vuln_stats.medium }}</div>
         </div>
-        <div class="bg-blue-500/5 border border-blue-500/20 p-4 rounded-lg">
-            <div class="text-blue-500 text-[10px] uppercase font-bold tracking-widest mb-1">Low</div>
-            <div class="text-2xl font-bold text-white">{{ vuln_stats.low }}</div>
+        <div class="bg-blue-50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-500/20 p-4 rounded-lg shadow-sm dark:shadow-none">
+            <div class="text-blue-700 dark:text-blue-500 text-[10px] uppercase font-bold tracking-widest mb-1">Low</div>
+            <div class="text-2xl font-bold text-zinc-900 dark:text-white">{{ vuln_stats.low }}</div>
         </div>
-        <div class="bg-gray-500/5 border border-gray-500/20 p-4 rounded-lg">
-            <div class="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">Info</div>
-            <div class="text-2xl font-bold text-white">{{ vuln_stats.info }}</div>
+        <div class="bg-zinc-50 dark:bg-gray-500/5 border border-zinc-200 dark:border-gray-500/20 p-4 rounded-lg shadow-sm dark:shadow-none">
+            <div class="text-zinc-600 dark:text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">Info</div>
+            <div class="text-2xl font-bold text-zinc-900 dark:text-white">{{ vuln_stats.info }}</div>
         </div>
     </div>
 
     <!-- Filters -->
-    <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-4 mb-6">
+    <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-lg p-4 mb-6 shadow-sm dark:shadow-none">
         <form method="get" class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4">
             <div>
-                <label class="block text-xs text-gray-500 mb-1">Status</label>
-                <select name="status" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Status</label>
+                <select name="status" class="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded px-3 py-2 text-sm text-zinc-900 dark:text-white">
                     <option value="">All</option>
                     <option value="ACTIVE" {% if filters.status == 'ACTIVE' or filters.status == 'OPEN' %}selected{% endif %}>Active</option>
                     <option value="FIXED" {% if filters.status == 'FIXED' %}selected{% endif %}>Fixed</option>
@@ -61,8 +61,8 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">Severity</label>
-                <select name="severity" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Severity</label>
+                <select name="severity" class="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded px-3 py-2 text-sm text-zinc-900 dark:text-white">
                     <option value="">All</option>
                     <option value="CRITICAL" {% if filters.severity == 'CRITICAL' %}selected{% endif %}>Critical</option>
                     <option value="HIGH" {% if filters.severity == 'HIGH' %}selected{% endif %}>High</option>
@@ -72,8 +72,8 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">Scanner</label>
-                <select name="scanner" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Scanner</label>
+                <select name="scanner" class="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded px-3 py-2 text-sm text-zinc-900 dark:text-white">
                     <option value="">All</option>
                     {% for scanner in available_scanners %}
                     <option value="{{ scanner }}" {% if filters.scanner == scanner %}selected{% endif %}>{{ scanner }}</option>
@@ -81,34 +81,34 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">EPSS Score (Min)</label>
-                <input type="number" name="epss" value="{{ filters.epss|default:'' }}" placeholder="0.0-1.0" step="0.01" min="0" max="1" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white font-mono">
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">EPSS Score (Min)</label>
+                <input type="number" name="epss" value="{{ filters.epss|default:'' }}" placeholder="0.0-1.0" step="0.01" min="0" max="1" class="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded px-3 py-2 text-sm text-zinc-900 dark:text-white font-mono">
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">KEV Status</label>
-                <select name="kev" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">KEV Status</label>
+                <select name="kev" class="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded px-3 py-2 text-sm text-zinc-900 dark:text-white">
                     <option value="">All</option>
                     <option value="true" {% if filters.kev == 'true' or filters.kev == '1' %}selected{% endif %}>KEV Only</option>
                     <option value="false" {% if filters.kev == 'false' or filters.kev == '0' %}selected{% endif %}>Non-KEV</option>
                 </select>
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">CVE ID</label>
-                <input type="text" name="cve_id" value="{{ filters.cve_id|default:'' }}" placeholder="CVE-2024-..." class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white font-mono">
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">CVE ID</label>
+                <input type="text" name="cve_id" value="{{ filters.cve_id|default:'' }}" placeholder="CVE-2024-..." class="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded px-3 py-2 text-sm text-zinc-900 dark:text-white font-mono">
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">Product</label>
-                <input type="text" name="product" value="{{ filters.product|default:'' }}" placeholder="Product name" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Product</label>
+                <input type="text" name="product" value="{{ filters.product|default:'' }}" placeholder="Product name" class="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded px-3 py-2 text-sm text-zinc-900 dark:text-white">
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">Workspace</label>
-                <input type="text" name="workspace" value="{{ filters.workspace|default:'' }}" placeholder="Workspace name" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Workspace</label>
+                <input type="text" name="workspace" value="{{ filters.workspace|default:'' }}" placeholder="Workspace name" class="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded px-3 py-2 text-sm text-zinc-900 dark:text-white">
             </div>
             <div class="md:col-span-4 lg:col-span-8 flex gap-2">
-                <button type="submit" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+                <button type="submit" class="bg-zinc-900 dark:bg-white text-white dark:text-black text-xs font-bold px-4 py-2 rounded hover:bg-zinc-800 dark:hover:bg-gray-200 transition-colors uppercase tracking-wider">
                     Apply Filters
                 </button>
-                <a href="{% url 'vulnerabilities_list' %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors uppercase tracking-wider">
+                <a href="{% url 'vulnerabilities_list' %}" class="bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors uppercase tracking-wider">
                     Clear
                 </a>
             </div>
@@ -116,9 +116,9 @@
     </div>
 
     <!-- Vulnerabilities Table -->
-    <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
-        <table class="w-full text-left text-sm text-gray-400">
-            <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
+    <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-lg overflow-hidden shadow-sm dark:shadow-none">
+        <table class="w-full text-left text-sm text-zinc-600 dark:text-gray-400">
+            <thead class="bg-zinc-50 dark:bg-black text-[10px] uppercase font-mono text-zinc-500 dark:text-gray-500">
                 <tr>
                     <th class="px-6 py-3 w-32">Severity</th>
                     <th class="px-6 py-3 w-32">EPSS / Risk</th>
@@ -130,23 +130,23 @@
                     <th class="px-6 py-3 w-32">Status</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-zinc-800">
+            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {% for finding in findings %}
-                <tr onclick="openVulnerabilityModal('{{ finding.id }}')" class="hover:bg-zinc-900/50 transition-colors group cursor-pointer {% if finding.status == 'FIXED' %}opacity-60 bg-zinc-900/20{% endif %}">
+                <tr onclick="openVulnerabilityModal('{{ finding.id }}')" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors group cursor-pointer {% if finding.status == 'FIXED' %}opacity-60 bg-zinc-50/50 dark:bg-zinc-900/20{% endif %}">
                     
                     <!-- Severity (First Column) -->
                     <td class="px-6 py-3">
                         <div class="flex flex-col gap-1">
                             {% if finding.severity == 'CRITICAL' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 w-fit">CRITICAL</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-500 border-red-200 dark:border-red-500/20 w-fit">CRITICAL</span>
                             {% elif finding.severity == 'HIGH' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20 w-fit">HIGH</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-500 border-orange-200 dark:border-orange-500/20 w-fit">HIGH</span>
                             {% elif finding.severity == 'MEDIUM' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 w-fit">MEDIUM</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 border-yellow-200 dark:border-yellow-500/20 w-fit">MEDIUM</span>
                             {% elif finding.severity == 'LOW' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20 w-fit">LOW</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-500 border-blue-200 dark:border-blue-500/20 w-fit">LOW</span>
                             {% else %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">INFO</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border bg-zinc-100 dark:bg-gray-500/10 text-zinc-700 dark:text-gray-400 border-zinc-200 dark:border-gray-500/20 w-fit">INFO</span>
                             {% endif %}
                         </div>
                     </td>
@@ -155,10 +155,10 @@
                         <div class="flex flex-col gap-1.5 w-full max-w-[120px]">
                             {% if finding.epss_score > 0 %}
                             <div class="flex items-center gap-2" title="Exploit Probability: {{ finding.epss_score }}">
-                                <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                                    <div class="h-full {% if finding.epss_score > 0.5 %}bg-red-500{% else %}bg-blue-500{% endif %}" style="width: {% widthratio finding.epss_score 1 100 %}%"></div> 
+                                <div class="flex-1 h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                    <div class="h-full {% if finding.epss_score > 0.5 %}bg-red-600 dark:bg-red-500{% else %}bg-blue-600 dark:bg-blue-500{% endif %}" style="width: {% widthratio finding.epss_score 1 100 %}%"></div> 
                                 </div>
-                                <span class="text-[9px] font-mono text-gray-400">{{ finding.epss_score|floatformat:3 }}</span>
+                                <span class="text-[9px] font-mono text-zinc-600 dark:text-gray-400">{{ finding.epss_score|floatformat:3 }}</span>
                             </div>
                             {% endif %}
 
@@ -170,31 +170,31 @@
                         </div>
                     </td>
 
-                    <td class="px-6 py-3 font-mono text-white group-hover:text-emerald-400">
+                    <td class="px-6 py-3 font-mono text-zinc-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                         {% if finding.vulnerability_id %}
                         <a href="https://nvd.nist.gov/vuln/detail/{{ finding.vulnerability_id }}" target="_blank" class="hover:underline">
                             {{ finding.vulnerability_id }}
                         </a>
                         {% else %}
-                        <span class="text-gray-600">{{ finding.vulnerability_id|default:"N/A" }}</span>
+                        <span class="text-zinc-600 dark:text-gray-600">{{ finding.vulnerability_id|default:"N/A" }}</span>
                         {% endif %}
                     </td>
 
                     <td class="px-6 py-3">
-                        <div class="text-gray-300">{{ finding.package_name }}</div>
-                        <div class="text-[10px] text-gray-600 font-mono">{{ finding.package_version }}</div>
+                        <div class="text-zinc-900 dark:text-gray-300">{{ finding.package_name }}</div>
+                        <div class="text-[10px] text-zinc-600 dark:text-gray-600 font-mono">{{ finding.package_version }}</div>
                     </td>
 
                     <!-- Scan Type -->
                     <td class="px-6 py-3">
-                        <span class="text-xs text-gray-400 font-mono">
+                        <span class="text-xs text-zinc-600 dark:text-gray-400 font-mono">
                             {{ finding.scan.scanner_name|get_scanner_type }}
                         </span>
                     </td>
 
                     <td class="px-6 py-3">
-                        <div class="text-gray-300">
-                            <a href="{% url 'product_detail' finding.scan.release.product.id %}" class="hover:text-emerald-400 transition-colors">
+                        <div class="text-zinc-900 dark:text-gray-300">
+                            <a href="{% url 'product_detail' finding.scan.release.product.id %}" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
                                 {{ finding.scan.release.product.name }}
                             </a>
                         </div>

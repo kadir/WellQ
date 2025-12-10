@@ -1,7 +1,10 @@
 from rest_framework import serializers
-from core.models import Workspace, Product, Release, Scan, Finding, Artifact, Repository, AuditLog
+from core.models import Workspace, Product, Release, Scan, Finding, Artifact, Repository, AuditLog, Team
 from core.scanners import SCANNER_REGISTRY
 from django.db.models import Count
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
@@ -15,14 +18,25 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     """Serializer for Product model"""
     workspace_name = serializers.CharField(source='workspace.name', read_only=True)
+    team_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Team.objects.all(),
+        source='teams',
+        required=False,
+        allow_empty=True
+    )
+    team_names = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
         fields = [
             'id', 'workspace', 'workspace_name', 'name', 'description',
-            'product_type', 'criticality', 'tags', 'created_at'
+            'product_type', 'criticality', 'tags', 'team_ids', 'team_names', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
+    
+    def get_team_names(self, obj):
+        return [team.name for team in obj.teams.all()]
 
 
 class RepositorySerializer(serializers.ModelSerializer):
@@ -391,4 +405,29 @@ class AuditLogSerializer(serializers.ModelSerializer):
             'changes', 'ip_address', 'user_agent', 'timestamp'
         ]
         read_only_fields = '__all__'  # All fields are read-only
+
+
+class TeamMemberSerializer(serializers.ModelSerializer):
+    """Serializer for team members (User model)"""
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+
+
+class TeamSerializer(serializers.ModelSerializer):
+    """Serializer for Team model"""
+    workspace_name = serializers.CharField(source='workspace.name', read_only=True)
+    member_count = serializers.SerializerMethodField()
+    members = TeamMemberSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Team
+        fields = [
+            'id', 'workspace', 'workspace_name', 'name', 'description',
+            'members', 'member_count', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_member_count(self, obj):
+        return obj.members.count()
 

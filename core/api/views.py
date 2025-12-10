@@ -13,7 +13,7 @@ except ImportError:
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 
-from core.models import Workspace, Product, Release, Scan, Finding, Component, Repository, Artifact, AuditLog
+from core.models import Workspace, Product, Release, Scan, Finding, Component, Repository, Artifact, AuditLog, Team
 
 
 # Custom throttle class for upload endpoints
@@ -26,7 +26,7 @@ class UploadRateThrottle(ScopedRateThrottle):
 from core.api.serializers import (
     WorkspaceSerializer, ProductSerializer, ReleaseSerializer,
     ScanSerializer, FindingSerializer, ScanUploadSerializer, SBOMUploadSerializer,
-    RepositorySerializer, ArtifactSerializer, AuditLogSerializer
+    RepositorySerializer, ArtifactSerializer, AuditLogSerializer, TeamSerializer
 )
 from core.services.scan_engine import process_scan_upload
 from core.services.sbom import digest_sbom
@@ -476,9 +476,33 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
     
+    def get_queryset(self):
+        """Apply scope filtering if requested"""
+        queryset = super().get_queryset()
+        
+        # Check for scope parameter
+        scope = self.request.query_params.get('scope')
+        if scope == 'my_teams':
+            user = self.request.user
+            # Get all teams where user is a member
+            user_teams = Team.objects.filter(members=user)
+            # Get all products assigned to those teams
+            queryset = queryset.filter(teams__in=user_teams).distinct()
+        
+        return queryset
+    
     @extend_schema(
         summary='List products',
-        description='Get a list of all products'
+        description='Get a list of all products. Use ?scope=my_teams to filter by user\'s teams.',
+        parameters=[
+            OpenApiParameter(
+                name='scope',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter scope: "my_teams" to show only products assigned to user\'s teams',
+                required=False
+            )
+        ]
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -502,6 +526,73 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         releases = product.releases.all().order_by('-created_at')
         serializer = ReleaseSerializer(releases, many=True)
         return Response(serializer.data)
+    
+    @extend_schema(
+        summary='Assign teams to product',
+        description='Add or remove teams from a product',
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'team_ids': {
+                        'type': 'array',
+                        'items': {'type': 'string', 'format': 'uuid'},
+                        'description': 'List of team UUIDs'
+                    },
+                    'action': {
+                        'type': 'string',
+                        'enum': ['add', 'remove'],
+                        'description': 'Action to perform: add or remove teams'
+                    }
+                },
+                'required': ['team_ids', 'action']
+            }
+        }
+    )
+    @action(detail=True, methods=['post'])
+    def teams(self, request, pk=None):
+        """Add or remove teams from a product"""
+        product = self.get_object()
+        team_ids = request.data.get('team_ids', [])
+        action = request.data.get('action', 'add')
+        
+        if not team_ids:
+            return Response(
+                {'error': 'team_ids is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if action not in ['add', 'remove']:
+            return Response(
+                {'error': 'action must be "add" or "remove"'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            teams = Team.objects.filter(id__in=team_ids)
+            
+            # Security: Verify all teams belong to the same workspace as the product
+            invalid_teams = teams.exclude(workspace=product.workspace)
+            if invalid_teams.exists():
+                return Response(
+                    {'error': 'All teams must belong to the same workspace as the product'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if action == 'add':
+                product.teams.add(*teams)
+            else:
+                product.teams.remove(*teams)
+            
+            return Response(
+                ProductSerializer(product).data,
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class ReleaseViewSet(viewsets.ReadOnlyModelViewSet):
@@ -986,9 +1077,26 @@ class FindingViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = FindingSerializer
     permission_classes = [IsAuthenticated]
     
+    def get_queryset(self):
+        """Apply scope filtering if requested"""
+        queryset = super().get_queryset()
+        
+        # Check for scope parameter
+        scope = self.request.query_params.get('scope')
+        if scope == 'my_teams':
+            user = self.request.user
+            # Get all teams where user is a member
+            user_teams = Team.objects.filter(members=user)
+            # Get all products assigned to those teams
+            scope_products = Product.objects.filter(teams__in=user_teams).distinct()
+            # Filter findings to only those linked to scope products
+            queryset = queryset.filter(scan__release__product__in=scope_products)
+        
+        return queryset
+    
     @extend_schema(
         summary='List findings',
-        description='Get a list of all findings with optional filtering',
+        description='Get a list of all findings with optional filtering. Use ?scope=my_teams to filter by user\'s teams.',
         parameters=[
             OpenApiParameter(
                 name='status',
@@ -1016,6 +1124,13 @@ class FindingViewSet(viewsets.ReadOnlyModelViewSet):
                 type=OpenApiTypes.BOOL,
                 location=OpenApiParameter.QUERY,
                 description='Filter by KEV status (true for exploited)',
+                required=False
+            ),
+            OpenApiParameter(
+                name='scope',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter scope: "my_teams" to show only findings for products assigned to user\'s teams',
                 required=False
             )
         ]
@@ -1108,6 +1223,180 @@ class RepositoryViewSet(viewsets.ReadOnlyModelViewSet):
     )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
+
+
+class TeamViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing teams.
+    
+    CRUD operations for teams within a workspace.
+    """
+    serializer_class = TeamSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter teams by workspace from query parameter or user's workspace"""
+        queryset = Team.objects.select_related('workspace').prefetch_related('members')
+        
+        # Get workspace from query parameter
+        workspace_id = self.request.query_params.get('workspace')
+        if workspace_id:
+            try:
+                workspace = Workspace.objects.get(id=workspace_id)
+                queryset = queryset.filter(workspace=workspace)
+            except Workspace.DoesNotExist:
+                queryset = queryset.none()
+        else:
+            # If no workspace specified, show all teams (admin can see all)
+            # For regular users, you might want to filter by their workspace
+            pass
+        
+        return queryset.order_by('workspace__name', 'name')
+    
+    @extend_schema(
+        summary='List teams',
+        description='Get a list of all teams, optionally filtered by workspace',
+        parameters=[
+            OpenApiParameter(
+                name='workspace',
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                description='Filter by workspace ID',
+                required=False
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @extend_schema(
+        summary='Create team',
+        description='Create a new team in a workspace',
+        request=TeamSerializer
+    )
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Ensure workspace exists and user has access
+        workspace_id = request.data.get('workspace')
+        if not workspace_id:
+            return Response(
+                {'error': 'workspace is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            workspace = Workspace.objects.get(id=workspace_id)
+        except Workspace.DoesNotExist:
+            return Response(
+                {'error': 'Workspace not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        team = serializer.save(workspace=workspace)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            TeamSerializer(team).data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+    
+    @extend_schema(
+        summary='Update team',
+        description='Update team name and description'
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    
+    @extend_schema(
+        summary='Delete team',
+        description='Delete a team. Members and product assignments are automatically cleaned up.'
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+    
+    @extend_schema(
+        summary='Add members to team',
+        description='Add one or more users to a team',
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'user_ids': {
+                        'type': 'array',
+                        'items': {'type': 'string', 'format': 'uuid'},
+                        'description': 'List of user UUIDs to add to the team'
+                    }
+                },
+                'required': ['user_ids']
+            }
+        }
+    )
+    @action(detail=True, methods=['post'])
+    def members(self, request, pk=None):
+        """Add members to a team"""
+        team = self.get_object()
+        user_ids = request.data.get('user_ids', [])
+        
+        if not user_ids:
+            return Response(
+                {'error': 'user_ids is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verify all users belong to the same workspace
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        try:
+            users = User.objects.filter(id__in=user_ids)
+            if users.count() != len(user_ids):
+                return Response(
+                    {'error': 'One or more users not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Security: Verify users are in the same workspace (if workspace association exists)
+            # For now, we'll allow adding any user, but you can add workspace validation here
+            
+            # Add users to team
+            team.members.add(*users)
+            
+            return Response(
+                TeamSerializer(team).data,
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    @extend_schema(
+        summary='Remove member from team',
+        description='Remove a user from a team'
+    )
+    @action(detail=True, methods=['delete'], url_path='members/(?P<user_id>[^/.]+)')
+    def remove_member(self, request, pk=None, user_id=None):
+        """Remove a member from a team"""
+        team = self.get_object()
+        
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        try:
+            user = User.objects.get(id=user_id)
+            team.members.remove(user)
+            return Response(
+                TeamSerializer(team).data,
+                status=status.HTTP_200_OK
+            )
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 
 class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):

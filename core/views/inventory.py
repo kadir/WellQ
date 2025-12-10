@@ -14,6 +14,7 @@ def dashboard(request):
     from django.utils import timezone
     from datetime import timedelta
     from django.db.models.functions import TruncDate
+    from core.models import Team, Product
     
     # Time ranges
     now = timezone.now()
@@ -21,8 +22,22 @@ def dashboard(request):
     last_30_days = now - timedelta(days=30)
     last_90_days = now - timedelta(days=90)
     
+    # === SCOPE FILTERING ===
+    scope = request.GET.get('scope', 'all')
+    scope_products = None
+    
+    if scope == 'my_teams':
+        # Get all teams where user is a member
+        user_teams = Team.objects.filter(members=request.user)
+        # Get all products assigned to those teams
+        scope_products = Product.objects.filter(teams__in=user_teams).distinct()
+    
     # === COMMAND CENTER METRICS ===
     active_findings = Finding.objects.filter(status='OPEN').exclude(status='FIXED')
+    
+    # Apply scope filtering to findings
+    if scope_products is not None:
+        active_findings = active_findings.filter(scan__release__product__in=scope_products)
     critical_high = active_findings.filter(severity__in=['CRITICAL', 'HIGH']).count()
     kev_count = active_findings.filter(metadata__kev_status=True).count()
     high_epss = active_findings.filter(metadata__epss_score__gte=0.7).count()
@@ -31,13 +46,18 @@ def dashboard(request):
     secrets_count = active_findings.filter(finding_type=Finding.Type.SECRET).count()
     
     # Fix rate (last 30 days)
-    fixed_last_30 = Finding.objects.filter(
+    fixed_last_30_qs = Finding.objects.filter(
         status='FIXED',
         last_seen__gte=last_30_days
-    ).count()
-    total_last_30 = Finding.objects.filter(
+    )
+    total_last_30_qs = Finding.objects.filter(
         first_seen__gte=last_30_days
-    ).count()
+    )
+    if scope_products is not None:
+        fixed_last_30_qs = fixed_last_30_qs.filter(scan__release__product__in=scope_products)
+        total_last_30_qs = total_last_30_qs.filter(scan__release__product__in=scope_products)
+    fixed_last_30 = fixed_last_30_qs.count()
+    total_last_30 = total_last_30_qs.count()
     fix_rate = (fixed_last_30 / total_last_30 * 100) if total_last_30 > 0 else 0
     
     # Calculate Security Grade (A, B, C, F)
@@ -74,6 +94,8 @@ def dashboard(request):
     # Calculate MTTR (Mean Time to Remediation) in days
     # Average time from first_seen to last_seen for FIXED findings
     fixed_findings = Finding.objects.filter(status='FIXED')
+    if scope_products is not None:
+        fixed_findings = fixed_findings.filter(scan__release__product__in=scope_products)
     mttr_days = 0
     if fixed_findings.exists():
         from django.db.models import F, ExpressionWrapper, DurationField
@@ -87,7 +109,10 @@ def dashboard(request):
         if mttr_avg['avg_time']:
             mttr_days = round(mttr_avg['avg_time'].total_seconds() / 86400, 1)
     
-    risk_accepted = Finding.objects.filter(status='WONT_FIX').count()
+    risk_accepted_qs = Finding.objects.filter(status='WONT_FIX')
+    if scope_products is not None:
+        risk_accepted_qs = risk_accepted_qs.filter(scan__release__product__in=scope_products)
+    risk_accepted = risk_accepted_qs.count()
     
     # === SEVERITY DISTRIBUTION ===
     severity_data = list(
@@ -155,42 +180,58 @@ def dashboard(request):
     ]
     
     # === VULNERABILITIES BY PRODUCT ===
+    product_vulns_qs = Product.objects.annotate(
+        vuln_count=Count('releases__scans__findings', filter=Q(
+            releases__scans__findings__status='OPEN'
+        ))
+    )
+    if scope_products is not None:
+        product_vulns_qs = product_vulns_qs.filter(id__in=scope_products.values_list('id', flat=True))
     product_vulns = list(
-        Product.objects.annotate(
-            vuln_count=Count('releases__scans__findings', filter=Q(
-                releases__scans__findings__status='OPEN'
-            ))
-        )
-        .filter(vuln_count__gt=0)
+        product_vulns_qs.filter(vuln_count__gt=0)
         .order_by('-vuln_count')[:10]
         .values('name', 'criticality', 'vuln_count')
     )
     
     # === REMEDIATION HEATMAP (Last 90 days) ===
     # Generate heatmap data showing "green days" when bugs were fixed
+    # Split into 3 rows of 30 days each
     heatmap_data = []
     start_date = now - timedelta(days=89)  # Start from 90 days ago
+    
+    # Generate data for all 90 days
+    all_days = []
     for i in range(90):
         date = start_date + timedelta(days=i)
         date_start = date.replace(hour=0, minute=0, second=0, microsecond=0)
         date_end = date_start + timedelta(days=1)
         
-        fixed_count = Finding.objects.filter(
+        fixed_qs = Finding.objects.filter(
             status='FIXED',
             last_seen__gte=date_start,
             last_seen__lt=date_end
-        ).count()
+        )
+        if scope_products is not None:
+            fixed_qs = fixed_qs.filter(scan__release__product__in=scope_products)
+        fixed_count = fixed_qs.count()
         
         # Green day = at least 1 finding was fixed
         is_green_day = fixed_count > 0
         
-        heatmap_data.append({
+        all_days.append({
             'date': date_start.strftime('%Y-%m-%d'),
             'fixed_count': fixed_count,
             'is_green': is_green_day,
             'day_of_week': date_start.strftime('%a'),
             'day_of_month': date_start.day
         })
+    
+    # Split into 3 rows of 30 days each
+    heatmap_data = [
+        all_days[0:30],   # First 30 days (oldest)
+        all_days[30:60],  # Middle 30 days
+        all_days[60:90]   # Last 30 days (most recent)
+    ]
     
     # === VULNERABILITY TRENDS (Last 30 days) ===
     trend_data = []
@@ -292,6 +333,10 @@ def dashboard(request):
     release_count = Release.objects.count()
     
     context = {
+        # Scope information
+        'scope': scope,
+        'scope_filter_active': scope == 'my_teams',
+        
         # Command Center Metrics
         'security_grade': security_grade,
         'grade_score': round(grade_score, 1),
@@ -392,24 +437,40 @@ def product_create(request):
         initial['workspace'] = request.GET.get('workspace')
         
     if request.method == 'POST':
-        form = ProductForm(request.POST)
+        form = ProductForm(request.POST, initial=initial)
         if form.is_valid():
             product = form.save()
+            # Log audit event
+            from core.services.audit import log_audit_event
+            log_audit_event(request, 'PRODUCT_CREATE', product, {
+                'teams': [team.name for team in product.teams.all()]
+            })
             return redirect('product_detail', product_id=product.id)
     else:
         form = ProductForm(initial=initial)
+        # Filter teams by workspace if provided
+        if initial.get('workspace'):
+            from core.models import Team
+            form.fields['teams'].queryset = Team.objects.filter(workspace_id=initial['workspace'])
     return render(request, 'findings/product_form.html', {'form': form})
 
 @login_required
 def product_edit(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
+    product = get_object_or_404(Product.objects.prefetch_related('teams'), id=product_id)
     if request.method == 'POST':
         form = ProductForm(request.POST, instance=product)
         if form.is_valid():
-            form.save()
+            product = form.save()
+            # Log audit event for team assignment changes
+            from core.services.audit import log_audit_event
+            log_audit_event(request, 'PRODUCT_UPDATE', product, {
+                'teams': [team.name for team in product.teams.all()]
+            })
             return redirect('product_detail', product_id=product.id)
     else:
         form = ProductForm(instance=product)
+        # Filter teams by product's workspace
+        form.fields['teams'].queryset = Team.objects.filter(workspace=product.workspace)
     return render(request, 'findings/product_form.html', {'form': form, 'title': f'Edit {product.name}'})
 
 @login_required

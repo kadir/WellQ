@@ -7,7 +7,7 @@ from django.conf.urls.static import static
 import os
 
 # Import from the new views package
-from core.views import inventory, findings, ingestion, profile, users, roles, settings
+from core.views import inventory, findings, ingestion, profile, users, roles, settings, teams
 
 urlpatterns = [
     # Health check endpoint (for Docker/Kubernetes)
@@ -88,6 +88,13 @@ urlpatterns = [
     
     # Audit Logs (Admin and Auditor Only)
     path('settings/audit-logs/', settings.audit_logs, name='audit_logs'),
+    
+    # Team Management
+    path('settings/teams/', teams.team_list, name='team_list'),
+    path('settings/teams/create/', teams.team_create, name='team_create'),
+    path('settings/teams/<uuid:team_id>/', teams.team_detail, name='team_detail'),
+    path('settings/teams/<uuid:team_id>/edit/', teams.team_edit, name='team_edit'),
+    path('settings/teams/<uuid:team_id>/delete/', teams.team_delete, name='team_delete'),
 ]
 
 # WhiteNoise handles static files automatically - no need for static() function

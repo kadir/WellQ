@@ -114,6 +114,23 @@
                     </div>
                 </div>
 
+                {% if form.teams %}
+                <div class="border-t border-zinc-200 dark:border-zinc-800 pt-6">
+                    <div>
+                        <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-3 uppercase tracking-wider">Assign to Teams</label>
+                        <div class="bg-gradient-to-r from-zinc-50 to-white dark:from-zinc-900/50 dark:to-zinc-900/30 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 shadow-sm">
+                            {{ form.teams }}
+                            {% if form.teams.errors %}
+                                <p class="text-red-600 dark:text-red-400 text-xs mt-1">{{ form.teams.errors.0 }}</p>
+                            {% endif %}
+                            {% if form.teams.help_text %}
+                                <p class="text-zinc-500 dark:text-gray-500 text-xs mt-2">{{ form.teams.help_text }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="border-t border-zinc-200 dark:border-zinc-800 pt-6">
                     <div class="space-y-4">
                         <div class="flex items-center gap-3">

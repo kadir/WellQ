@@ -474,9 +474,9 @@
             });
         </script>
 
-        <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
-            <table class="w-full text-left text-xs text-gray-400">
-                <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
+        <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-lg overflow-hidden">
+            <table class="w-full text-left text-xs text-zinc-600 dark:text-gray-400">
+                <thead class="bg-zinc-50 dark:bg-black text-[10px] uppercase font-mono text-zinc-500 dark:text-gray-500 border-b border-zinc-200 dark:border-zinc-800">
                     <tr>
                         <th class="px-6 py-3">Component</th>
                         <th class="px-6 py-3">Version</th>
@@ -486,41 +486,41 @@
                         <th class="px-6 py-3">Status</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-800">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     {% for comp in page_obj %}
-                    <tr>
-                        <td class="px-6 py-3 font-bold text-white">{{ comp.name }}</td>
-                        <td class="px-6 py-3 font-mono text-emerald-500">{{ comp.version }}</td>
-                        <td class="px-6 py-3">{{ comp.type }}</td>
+                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                        <td class="px-6 py-3 font-bold text-zinc-900 dark:text-white">{{ comp.name }}</td>
+                        <td class="px-6 py-3 font-mono text-emerald-600 dark:text-emerald-500">{{ comp.version }}</td>
+                        <td class="px-6 py-3 text-zinc-600 dark:text-gray-400">{{ comp.type }}</td>
                         <td class="px-6 py-3">
                             {% if comp.license == 'Unknown' or not comp.license %}
-                                <span class="text-gray-600 italic">Unknown</span>
+                                <span class="text-zinc-500 dark:text-gray-600 italic">Unknown</span>
                             {% else %}
-                                <span class="bg-zinc-900 px-2 py-1 rounded border border-zinc-800">{{ comp.license }}</span>
+                                <span class="bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white">{{ comp.license }}</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-3 font-mono text-[9px] text-gray-600 truncate max-w-[150px]">{{ comp.purl }}</td>
+                        <td class="px-6 py-3 font-mono text-[9px] text-zinc-500 dark:text-gray-600 truncate max-w-[150px]">{{ comp.purl }}</td>
                         <td class="px-6 py-3">
                             {% if comp.status == 'NEW' %}
-                                <span class="bg-green-500/20 text-green-400 text-[10px] font-bold px-2 py-1 rounded border border-green-500/30 uppercase">New</span>
+                                <span class="bg-green-500/20 text-green-600 dark:text-green-400 text-[10px] font-bold px-2 py-1 rounded border border-green-500/30 uppercase">New</span>
                             {% elif comp.status == 'REMOVED' %}
-                                <span class="bg-red-500/20 text-red-400 text-[10px] font-bold px-2 py-1 rounded border border-red-500/30 uppercase">Removed</span>
+                                <span class="bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-bold px-2 py-1 rounded border border-red-500/30 uppercase">Removed</span>
                             {% else %}
-                                <span class="text-gray-500 text-[10px]">—</span>
+                                <span class="text-zinc-500 dark:text-gray-500 text-[10px]">—</span>
                             {% endif %}
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="6" class="px-6 py-12 text-center">No components found.</td></tr>
+                    <tr><td colspan="6" class="px-6 py-12 text-center text-zinc-500 dark:text-gray-500">No components found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
 
-            <div class="px-6 py-4 border-t border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
-                <form method="get" id="paginationForm" class="flex items-center gap-2 text-xs text-gray-500">
+            <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/30 flex justify-between items-center">
+                <form method="get" id="paginationForm" class="flex items-center gap-2 text-xs text-zinc-500 dark:text-gray-500">
                     <input type="hidden" name="tab" value="sbom"> 
                     <span>Show</span>
-                    <select name="per_page" onchange="document.getElementById('paginationForm').submit()" class="bg-zinc-900 border border-zinc-700 text-white rounded px-2 py-1 outline-none focus:border-emerald-500">
+                    <select name="per_page" onchange="document.getElementById('paginationForm').submit()" class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded px-2 py-1 outline-none focus:border-emerald-500">
                         <option value="20" {% if per_page == '20' %}selected{% endif %}>20</option>
                         <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
                         <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
@@ -530,15 +530,15 @@
 
                 <div class="flex items-center gap-2">
                     {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">Previous</a>
+                        <a href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 text-xs transition-colors">Previous</a>
                     {% else %}
-                        <span class="px-3 py-1 bg-zinc-900 border border-zinc-800 text-gray-600 rounded text-xs cursor-not-allowed">Previous</span>
+                        <span class="px-3 py-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-gray-600 rounded text-xs cursor-not-allowed">Previous</span>
                     {% endif %}
-                    <span class="text-xs text-gray-500 font-mono">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                    <span class="text-xs text-zinc-500 dark:text-gray-500 font-mono">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-800 border border-zinc-700 text-white rounded hover:bg-zinc-700 text-xs transition-colors">Next</a>
+                        <a href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 text-xs transition-colors">Next</a>
                     {% else %}
-                        <span class="px-3 py-1 bg-zinc-900 border border-zinc-800 text-gray-600 rounded text-xs cursor-not-allowed">Next</span>
+                        <span class="px-3 py-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-gray-600 rounded text-xs cursor-not-allowed">Next</span>
                     {% endif %}
                 </div>
             </div>
@@ -547,13 +547,13 @@
 
     <div id="tab-scans" class="hidden animate-fade-in">
         
-        <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
-            <div class="px-6 py-3 border-b border-[#27272a] bg-zinc-900/30 flex justify-between items-center">
-                <h3 class="text-xs font-bold text-white uppercase tracking-wider">Executed Scans</h3>
+        <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-lg overflow-hidden">
+            <div class="px-6 py-3 border-b border-zinc-200 dark:border-[#27272a] bg-zinc-50 dark:bg-zinc-900/30 flex justify-between items-center">
+                <h3 class="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Executed Scans</h3>
             </div>
 
-            <table class="w-full text-left text-sm text-gray-400">
-                <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
+            <table class="w-full text-left text-sm text-zinc-600 dark:text-gray-400">
+                <thead class="bg-zinc-50 dark:bg-black text-[10px] uppercase font-mono text-zinc-500 dark:text-gray-500 border-b border-zinc-200 dark:border-zinc-800">
                     <tr>
                         <th class="px-6 py-3 w-48">Scanner Source</th>
                         <th class="px-6 py-3 w-48">Executed At</th>
@@ -562,45 +562,45 @@
                         <th class="px-6 py-3 text-right">Context</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-800">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     {% for scan in scans %}
-                    <tr class="hover:bg-zinc-900/50 transition-colors">
+                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
                         
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
-                                <div class="h-8 w-8 bg-zinc-900 rounded flex items-center justify-center border border-zinc-800 text-white">
+                                <div class="h-8 w-8 bg-zinc-100 dark:bg-zinc-900 rounded flex items-center justify-center border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white">
                                     {% if 'Trivy' in scan.scanner_name %}
-                                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     {% else %}
-                                        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+                                        <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
                                     {% endif %}
                                 </div>
-                                <span class="font-bold text-white">{{ scan.scanner_name }}</span>
+                                <span class="font-bold text-zinc-900 dark:text-white">{{ scan.scanner_name }}</span>
                             </div>
                         </td>
 
-                        <td class="px-6 py-4 font-mono text-xs">
+                        <td class="px-6 py-4 font-mono text-xs text-zinc-600 dark:text-gray-400">
                             {{ scan.started_at|date:"Y-m-d H:i" }}
                         </td>
 
                         <td class="px-6 py-4">
-                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-zinc-800 text-white border border-zinc-700">
+                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700">
                                 {{ scan.findings_count }}
                             </span>
                         </td>
 
                         <td class="px-6 py-4 text-center">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border border-emerald-500/20">
                                 COMPLETED
                             </span>
                         </td>
                         
-                        <td class="px-6 py-4 text-right font-mono text-xs text-zinc-600">
+                        <td class="px-6 py-4 text-right font-mono text-xs text-zinc-500 dark:text-gray-600">
                             {{ scan.id|slice:":8" }}
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">No scans executed.</td></tr>
+                    <tr><td colspan="5" class="px-6 py-12 text-center text-zinc-500 dark:text-gray-500">No scans executed.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

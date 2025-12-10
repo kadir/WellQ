@@ -111,10 +111,46 @@ class Product(models.Model):
     
     criticality = models.CharField(max_length=20, choices=IMPACT_CHOICES, default='MEDIUM')
     tags = models.JSONField(default=dict, blank=True)
+    
+    # Teams assigned to this product (Many-to-Many)
+    teams = models.ManyToManyField(
+        'Team',
+        related_name='products',
+        blank=True,
+        help_text='Teams responsible for this product'
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
+
+# 2.6. TEAM (Group of Users within a Workspace)
+class Team(models.Model):
+    """
+    Represents a group of users within a workspace.
+    Teams can be assigned to products to enable responsibility filtering.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='teams')
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='teams',
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('workspace', 'name')
+        indexes = [
+            models.Index(fields=['workspace', 'name']),
+        ]
+    
+    def __str__(self):
+        return f"{self.workspace.name} / {self.name}"
 
 # 3. RELEASE (The Version - v1.0)
 class Release(models.Model):

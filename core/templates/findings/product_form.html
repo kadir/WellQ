@@ -9,42 +9,43 @@
 
 {% block content %}
 <div class="max-w-xl mx-auto mt-10">
-    <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-8 shadow-2xl">
+    <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-lg p-8 shadow-2xl">
         
         <div class="mb-6">
-            <h1 class="text-xl font-bold text-white">{{ title|default:"Register New Product" }}</h1>
-            <p class="text-xs text-gray-500 font-mono mt-1">Define asset governance levels.</p>
+            <h1 class="text-xl font-bold text-zinc-900 dark:text-white">{{ title|default:"Register New Product" }}</h1>
+            <p class="text-xs text-zinc-500 dark:text-gray-500 font-mono mt-1">Define asset governance levels.</p>
         </div>
 
         <form method="post" class="space-y-6">
             {% csrf_token %}
             
             <div>
-                <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Owning Workspace</label>
+                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Owning Workspace</label>
                 {{ form.workspace }}
+                <p class="text-[10px] text-zinc-500 dark:text-gray-500 mt-1">Select workspace first to see available teams</p>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Product Name</label>
+                    <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Product Name</label>
                     {{ form.name }}
                 </div>
                 
                 <div>
-                    <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Asset Type</label>
+                    <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Asset Type</label>
                     {{ form.product_type }}
                 </div>
             </div>
 
             <div>
-                <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Description</label>
+                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Description</label>
                 {{ form.description }}
             </div>
 
             <div>
-                <label class="block text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-2">Business Criticality</label>
+                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Business Criticality</label>
                 {{ form.criticality }}
-                <p class="text-[10px] text-gray-600 mt-2 leading-relaxed">
+                <p class="text-[10px] text-zinc-600 dark:text-gray-600 mt-2 leading-relaxed">
                     <strong class="text-red-500">Critical:</strong> Core Revenue / PII Data.<br>
                     <strong class="text-orange-500">High:</strong> Internal Business Logic.<br>
                     <strong class="text-yellow-500">Medium:</strong> Support Tools.<br>
@@ -52,11 +53,24 @@
                 </p>
             </div>
 
+            {% if form.teams %}
+            <div>
+                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Assigned Teams</label>
+                {{ form.teams }}
+                {% if form.teams.help_text %}
+                    <p class="text-[10px] text-zinc-500 dark:text-gray-500 mt-1">{{ form.teams.help_text }}</p>
+                {% endif %}
+                {% if form.teams.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.teams.errors.0 }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
             <div class="pt-4 flex gap-3">
-                <button type="submit" class="flex-1 bg-white text-black font-bold py-2.5 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider text-xs">
+                <button type="submit" class="flex-1 bg-zinc-900 dark:bg-white text-white dark:text-black font-bold py-2.5 rounded hover:bg-zinc-800 dark:hover:bg-gray-200 transition-colors uppercase tracking-wider text-xs">
                     Save Product
                 </button>
-                <a href="{% url 'product_list' %}" class="px-4 py-2.5 rounded border border-zinc-700 text-gray-400 hover:text-white hover:border-zinc-500 text-xs uppercase font-bold transition-all">
+                <a href="{% url 'product_list' %}" class="px-4 py-2.5 rounded border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-500 dark:hover:border-zinc-500 text-xs uppercase font-bold transition-all">
                     Cancel
                 </a>
             </div>

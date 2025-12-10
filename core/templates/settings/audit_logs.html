@@ -116,7 +116,17 @@
                     </td>
                     <td class="px-6 py-3">
                         <div class="text-sm text-zinc-900 dark:text-white font-semibold">{{ log.resource_type }}</div>
-                        <div class="text-xs text-zinc-500 dark:text-gray-500 font-mono">{{ log.resource_id|truncatechars:40 }}</div>
+                        <div class="text-xs text-zinc-500 dark:text-gray-500 font-mono">
+                            {% if log.resource_type == 'User' %}
+                                {% if log.target_username %}
+                                    {{ log.target_username }}
+                                {% else %}
+                                    {{ log.resource_id|truncatechars:40 }}
+                                {% endif %}
+                            {% else %}
+                                {{ log.resource_id|truncatechars:40 }}
+                            {% endif %}
+                        </div>
                     </td>
                     <td class="px-6 py-3 font-mono text-xs text-zinc-600 dark:text-gray-400">
                         {{ log.ip_address|default:"—" }}
@@ -124,7 +134,7 @@
                     <td class="px-6 py-3">
                         {% if log.changes %}
                         <button onclick="showChangesModal('{{ log.id }}')" 
-                                data-changes='{{ log.changes|safe }}'
+                                data-changes='{{ log.changes_json|escape }}'
                                 class="text-emerald-600 dark:text-emerald-400 hover:underline text-xs font-semibold">
                             View Diff
                         </button>
@@ -209,12 +219,18 @@ function showChangesModal(logId) {
     const content = document.getElementById('changesContent');
     const button = event.target.closest('button');
     const changesJson = button.getAttribute('data-changes');
-    let changes;
+    
+    let changes = {};
     try {
-        changes = JSON.parse(changesJson);
+        if (changesJson) {
+            changes = JSON.parse(changesJson);
+        }
     } catch(e) {
-        changes = changesJson || '{}';
+        console.error('Failed to parse changes JSON:', e);
+        changes = {};
     }
+    
+    // Format and display the JSON
     content.textContent = JSON.stringify(changes, null, 2);
     modal.classList.remove('hidden');
 }

@@ -12,6 +12,7 @@ from core.api import views
 # Create router and register viewsets
 router = DefaultRouter()
 router.register(r'workspaces', views.WorkspaceViewSet, basename='workspace')
+router.register(r'teams', views.TeamViewSet, basename='team')
 router.register(r'products', views.ProductViewSet, basename='product')
 router.register(r'releases', views.ReleaseViewSet, basename='release')
 router.register(r'scans', views.ScanViewSet, basename='scan')

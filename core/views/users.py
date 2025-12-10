@@ -60,12 +60,17 @@ def user_create(request):
             if not hasattr(user, 'profile'):
                 UserProfile.objects.create(user=user)
             # Assign roles
-            roles = form.cleaned_data['roles']
+            roles = form.cleaned_data.get('roles', [])
             user.profile.roles.set(roles)
+            
+            # Assign teams
+            teams = form.cleaned_data.get('teams', [])
+            user.teams.set(teams)
             
             # Log audit event
             changes = {
                 'roles': [role.name for role in roles],
+                'teams': [team.name for team in teams],
                 'email': user.email,
                 'is_staff': user.is_staff,
                 'is_active': user.is_active
@@ -98,6 +103,7 @@ def user_edit(request, user_id):
         if form.is_valid():
             # Store old values for audit log
             old_roles = set(user.profile.roles.all())
+            old_teams = set(user.teams.all())
             old_is_staff = user.is_staff
             old_is_active = user.is_active
             
@@ -105,21 +111,24 @@ def user_edit(request, user_id):
             
             # Get new values
             new_roles = set(user.profile.roles.all())
+            new_teams = set(user.teams.all())
             
             # Log audit event
             changes = {
                 'old': {
                     'roles': [role.name for role in old_roles],
+                    'teams': [team.name for team in old_teams],
                     'is_staff': old_is_staff,
                     'is_active': old_is_active
                 },
                 'new': {
                     'roles': [role.name for role in new_roles],
+                    'teams': [team.name for team in new_teams],
                     'is_staff': user.is_staff,
                     'is_active': user.is_active
                 }
             }
-            log_user_action(request, 'ROLE_UPDATE', user, changes)
+            log_user_action(request, 'USER_UPDATE', user, changes)
             
             messages.success(request, f'User "{user.username}" updated successfully.')
             return redirect('user_list')

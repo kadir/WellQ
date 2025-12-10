@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 
 {% block breadcrumbs %}
-<span class="text-gray-600">/</span>
-<a href="{% url 'workspace_list' %}" class="hover:text-white">workspaces</a>
-<span class="text-gray-600">/</span>
-<span class="text-white">{{ title|lower }}</span>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<a href="{% url 'team_list' %}" class="hover:text-zinc-900 dark:hover:text-white">Teams</a>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<span class="text-emerald-600 dark:text-emerald-400">{{ title|lower }}</span>
 {% endblock %}
 
 {% block content %}
@@ -17,7 +17,15 @@
             {% csrf_token %}
             
             <div>
-                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Workspace Name</label>
+                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Workspace *</label>
+                {{ form.workspace }}
+                {% if form.workspace.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.workspace.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Team Name *</label>
                 {{ form.name }}
                 {% if form.name.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.name.errors.0 }}</p>
@@ -31,9 +39,9 @@
 
             <div class="pt-4 flex gap-3">
                 <button type="submit" class="flex-1 bg-zinc-900 dark:bg-white text-white dark:text-black font-bold py-2.5 rounded hover:bg-zinc-800 dark:hover:bg-gray-200 transition-colors uppercase tracking-wider text-xs">
-                    Save Workspace
+                    Save Team
                 </button>
-                <a href="{% url 'workspace_list' %}" class="px-4 py-2.5 rounded border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-500 dark:hover:border-zinc-500 text-xs uppercase font-bold transition-all">
+                <a href="{% url 'team_list' %}" class="px-4 py-2.5 rounded border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-500 dark:hover:border-zinc-500 text-xs uppercase font-bold transition-all">
                     Cancel
                 </a>
             </div>
@@ -41,3 +49,4 @@
     </div>
 </div>
 {% endblock %}
+

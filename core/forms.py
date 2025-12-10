@@ -1,5 +1,5 @@
 from django import forms
-from core.models import Workspace, Product, Release, Role, PlatformSettings, Repository, Artifact
+from core.models import Workspace, Product, Release, Role, PlatformSettings, Repository, Artifact, Team
 from core.scanners import SCANNER_REGISTRY
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm as DjangoPasswordChangeForm
 from django.contrib.auth import get_user_model
@@ -21,6 +21,13 @@ class WorkspaceForm(forms.ModelForm):
 
 # Product Form
 class ProductForm(forms.ModelForm):
+    teams = forms.ModelMultipleChoiceField(
+        queryset=Team.objects.all(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'cra-input', 'size': '5'}),
+        help_text="Assign teams responsible for this product"
+    )
+    
     class Meta:
         model = Product
         fields = ['name', 'product_type', 'workspace', 'description', 'criticality']
@@ -31,6 +38,28 @@ class ProductForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'cra-input', 'rows': 4}),
             'criticality': forms.Select(attrs={'class': 'cra-input'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        initial = kwargs.get('initial', {})
+        super().__init__(*args, **kwargs)
+        # Filter teams by workspace
+        if self.instance and self.instance.pk and self.instance.workspace:
+            # Existing product - filter by its workspace
+            self.fields['teams'].queryset = Team.objects.filter(workspace=self.instance.workspace)
+            self.fields['teams'].initial = self.instance.teams.all()
+        elif initial.get('workspace'):
+            # New product with workspace in initial data
+            workspace_id = initial['workspace']
+            self.fields['teams'].queryset = Team.objects.filter(workspace_id=workspace_id)
+        else:
+            # No workspace yet - show all teams (will be filtered when workspace is selected)
+            self.fields['teams'].queryset = Team.objects.all()
+    
+    def save(self, commit=True):
+        product = super().save(commit=commit)
+        if commit and 'teams' in self.cleaned_data:
+            product.teams.set(self.cleaned_data['teams'])
+        return product
 
 
 # Release Form
@@ -153,6 +182,12 @@ class UserCreateForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'space-y-2'}),
         help_text="Select roles for this user"
     )
+    teams = forms.ModelMultipleChoiceField(
+        queryset=Team.objects.all(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'cra-input', 'size': '5'}),
+        help_text="Assign user to teams (optional)"
+    )
     
     class Meta:
         model = User
@@ -181,6 +216,9 @@ class UserCreateForm(forms.ModelForm):
             # Assign roles
             if hasattr(user, 'profile'):
                 user.profile.roles.set(self.cleaned_data['roles'])
+            # Assign teams
+            if 'teams' in self.cleaned_data:
+                user.teams.set(self.cleaned_data['teams'])
         return user
 
 
@@ -191,6 +229,12 @@ class UserEditForm(forms.ModelForm):
         required=False,
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'space-y-2'}),
         help_text="Select roles for this user"
+    )
+    teams = forms.ModelMultipleChoiceField(
+        queryset=Team.objects.all(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'cra-input', 'size': '5'}),
+        help_text="Assign user to teams (optional)"
     )
     
     class Meta:
@@ -214,11 +258,19 @@ class UserEditForm(forms.ModelForm):
         # Set initial roles if user has a profile
         if self.instance and hasattr(self.instance, 'profile'):
             self.fields['roles'].initial = self.instance.profile.roles.all()
+        
+        # Set initial teams
+        if self.instance:
+            self.fields['teams'].initial = self.instance.teams.all()
     
     def save(self, commit=True):
         user = super().save(commit=commit)
-        if commit and hasattr(user, 'profile'):
-            user.profile.roles.set(self.cleaned_data['roles'])
+        if commit:
+            if hasattr(user, 'profile'):
+                user.profile.roles.set(self.cleaned_data['roles'])
+            # Assign teams
+            if 'teams' in self.cleaned_data:
+                user.teams.set(self.cleaned_data['teams'])
         return user
 
 
@@ -270,6 +322,19 @@ class PlatformSettingsForm(forms.ModelForm):
         cleaned_data = super().clean()
         # Model's clean() method will handle URL validation
         return cleaned_data
+
+
+# Team Form
+class TeamForm(forms.ModelForm):
+    """Form for creating/editing teams"""
+    class Meta:
+        model = Team
+        fields = ['workspace', 'name', 'description']
+        widgets = {
+            'workspace': forms.Select(attrs={'class': 'cra-input'}),
+            'name': forms.TextInput(attrs={'class': 'cra-input'}),
+            'description': forms.Textarea(attrs={'class': 'cra-input', 'rows': 4}),
+        }
 
 
 # Repository Form

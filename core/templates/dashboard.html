@@ -10,6 +10,31 @@
 
 {% block content %}
 <div class="max-w-[1920px] mx-auto px-6 py-8">
+    
+    <!-- Scope Filter Dropdown -->
+    <div class="mb-6 flex justify-end">
+        <div class="relative">
+            <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-2 uppercase tracking-wider">View Scope</label>
+            <select id="scopeFilter" onchange="updateScope()" class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-emerald-500 shadow-sm">
+                <option value="all" {% if scope == 'all' or not scope %}selected{% endif %}>All Workspace</option>
+                <option value="my_teams" {% if scope == 'my_teams' %}selected{% endif %}>My Teams</option>
+            </select>
+        </div>
+    </div>
+    
+    <script>
+    function updateScope() {
+        const scope = document.getElementById('scopeFilter').value;
+        const url = new URL(window.location);
+        if (scope === 'all') {
+            url.searchParams.delete('scope');
+        } else {
+            url.searchParams.set('scope', scope);
+        }
+        window.location.href = url.toString();
+    }
+    </script>
+    
     <!-- Top Section: Grade + Key Metrics -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Security Grade (Top Left) -->
@@ -66,10 +91,11 @@
             </div>
         </div>
         
-        <!-- Scrollable Heatmap Container -->
-        <div class="overflow-x-auto pb-4">
-            <div class="inline-flex gap-1 min-w-max">
-                {% for day in heatmap_data %}
+        <!-- Heatmap Container - 3 rows of 30 days -->
+        <div class="space-y-2">
+            {% for row in heatmap_data|slice:":3" %}
+            <div class="flex items-center gap-1">
+                {% for day in row %}
                 <div class="flex flex-col items-center gap-1">
                     <div 
                         class="w-3 h-3 rounded {% if day.is_green %}bg-emerald-600 dark:bg-emerald-500{% else %}bg-zinc-200 dark:bg-zinc-800{% endif %} {% if day.is_green %}hover:bg-emerald-700 dark:hover:bg-emerald-400{% else %}hover:bg-zinc-300 dark:hover:bg-zinc-700{% endif %} transition-colors cursor-pointer border border-zinc-300 dark:border-zinc-900"
@@ -81,10 +107,7 @@
                 </div>
                 {% endfor %}
             </div>
-        </div>
-        
-        <div class="text-xs text-zinc-600 dark:text-gray-600 font-mono mt-4 text-center">
-            Scroll horizontally to view full timeline
+            {% endfor %}
         </div>
     </div>
 

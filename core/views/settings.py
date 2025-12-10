@@ -6,6 +6,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from io import StringIO
 import sys
+import json
 
 from core.models import PlatformSettings, UserProfile, AuditLog
 from core.forms import PlatformSettingsForm
@@ -138,6 +139,8 @@ def audit_logs(request):
     date_to = request.GET.get('date_to', '')
     
     # Build queryset
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
     queryset = AuditLog.objects.all().select_related('actor', 'workspace').order_by('-timestamp')
     
     # Apply filters
@@ -179,6 +182,60 @@ def audit_logs(request):
     unique_actions = AuditLog.objects.values_list('action', flat=True).distinct().order_by('action')
     unique_resource_types = AuditLog.objects.values_list('resource_type', flat=True).distinct().order_by('resource_type')
     unique_actors = AuditLog.objects.values_list('actor_email', flat=True).distinct().order_by('actor_email')[:50]  # Limit to 50
+    
+    # Fetch target user info for User resource types
+    target_user_map = {}
+    user_logs = [log for log in page_obj if log.resource_type == 'User']
+    if user_logs:
+        user_ids = []
+        for log in user_logs:
+            # Try to extract user ID from resource_id (could be just ID or "ID (name)")
+            resource_id = log.resource_id
+            # Extract just the ID part if it's in format "ID (name)"
+            if ' (' in resource_id:
+                resource_id = resource_id.split(' (')[0]
+            # Try to convert to UUID if it's a valid UUID string
+            try:
+                import uuid as uuid_lib
+                # Validate it's a UUID
+                uuid_lib.UUID(resource_id)
+                user_ids.append(resource_id)
+            except (ValueError, AttributeError):
+                # Not a valid UUID, skip
+                pass
+        
+        if user_ids:
+            # Fetch users
+            try:
+                users = User.objects.filter(id__in=user_ids).values('id', 'username', 'email')
+                for user in users:
+                    target_user_map[str(user['id'])] = user['username'] or user['email'] or str(user['id'])
+            except Exception:
+                # If query fails, just continue without user mapping
+                pass
+    
+    # Attach target_username and JSON string to each log object
+    for log in page_obj:
+        if log.resource_type == 'User':
+            resource_id = log.resource_id
+            if ' (' in resource_id:
+                resource_id = resource_id.split(' (')[0]
+            # Try to get username from map
+            try:
+                import uuid as uuid_lib
+                uuid_lib.UUID(resource_id)  # Validate UUID
+                log.target_username = target_user_map.get(resource_id, None)
+            except (ValueError, AttributeError):
+                log.target_username = None
+        
+        # Convert changes dict to JSON string for template
+        if log.changes:
+            try:
+                log.changes_json = json.dumps(log.changes)
+            except (TypeError, ValueError):
+                log.changes_json = '{}'
+        else:
+            log.changes_json = '{}'
     
     return render(request, 'settings/audit_logs.html', {
         'logs': page_obj,

@@ -2,10 +2,10 @@
 {% load scanners %}
 
 {% block breadcrumbs %}
-<span class="text-gray-600">/</span>
-<a href="{% url 'product_detail' release.product.id %}" class="hover:text-white">{{ release.product.name|lower }}</a>
-<span class="text-gray-600">/</span>
-<span class="text-emerald-400">{{ release.name }}</span>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<a href="{% url 'product_detail' release.product.id %}" class="hover:text-zinc-900 dark:hover:text-white">{{ release.product.name|lower }}</a>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<span class="text-emerald-600 dark:text-emerald-400">{{ release.name }}</span>
 {% endblock %}
 
 {% block content %}
@@ -14,49 +14,49 @@
     {% if messages %}
     <div class="mb-6">
         {% for message in messages %}
-        <div class="{% if message.tags == 'error' %}bg-red-500/10 border-red-500/30 text-red-400{% elif message.tags == 'success' %}bg-green-500/10 border-green-500/30 text-green-400{% else %}bg-blue-500/10 border-blue-500/30 text-blue-400{% endif %} border rounded-lg px-4 py-3 text-sm">
+        <div class="{% if message.tags == 'error' %}bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400{% elif message.tags == 'success' %}bg-emerald-50 dark:bg-green-500/10 border-emerald-200 dark:border-green-500/30 text-emerald-700 dark:text-green-400{% else %}bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-400{% endif %} border rounded-lg px-4 py-3 text-sm shadow-sm">
             {{ message }}
         </div>
         {% endfor %}
     </div>
     {% endif %}
 
-    <div class="mb-6 border-b border-zinc-800 pb-6">
+    <div class="mb-6 border-b border-zinc-200 dark:border-zinc-800 pb-6">
         <div class="flex justify-between items-start">
             <div>
-                <h1 class="text-3xl font-bold text-white mb-1">{{ release.name }}</h1>
-                <div class="flex items-center gap-4 text-xs font-mono text-gray-500">
-                    <span class="bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
+                <h1 class="text-3xl font-bold text-zinc-900 dark:text-white mb-1">{{ release.name }}</h1>
+                <div class="flex items-center gap-4 text-xs font-mono text-zinc-500 dark:text-gray-500">
+                    <span class="bg-gradient-to-r from-zinc-100 to-zinc-200 dark:from-zinc-900 dark:to-zinc-800 px-2 py-1 rounded-lg border border-zinc-300 dark:border-zinc-800 shadow-sm">
                         SHA: {{ release.commit_hash|default:"HEAD" }}
                     </span>
                     <span>Created {{ release.created_at|date:"M d, Y H:i" }}</span>
                 </div>
             </div>
             
-            <a href="{% url 'upload_scan' %}?release_id={{ release.id }}" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+            <a href="{% url 'upload_scan' %}?release_id={{ release.id }}" class="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-white dark:to-gray-100 text-white dark:text-black text-xs font-bold px-4 py-2 rounded-lg hover:from-zinc-800 hover:to-zinc-700 dark:hover:from-gray-100 dark:hover:to-gray-200 transition-all uppercase tracking-wider shadow-md">
                 + Add Scan
             </a>
         </div>
     </div>
 
-    <div class="flex items-center gap-6 border-b border-zinc-800 mb-8">
-        <button onclick="switchTab('summary')" id="btn-summary" class="pb-3 text-sm font-bold border-b-2 transition-colors text-emerald-500 border-emerald-500">
+    <div class="flex items-center gap-6 border-b border-zinc-200 dark:border-zinc-800 mb-8">
+        <button onclick="switchTab('summary')" id="btn-summary" class="pb-3 text-sm font-bold border-b-2 transition-colors text-emerald-600 dark:text-emerald-500 border-emerald-600 dark:border-emerald-500">
             Summary
         </button>
         
-        <button onclick="switchTab('vuln')" id="btn-vuln" class="pb-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors">
+        <button onclick="switchTab('vuln')" id="btn-vuln" class="pb-3 text-sm font-bold text-zinc-500 dark:text-gray-500 border-b-2 border-transparent hover:text-zinc-900 dark:hover:text-white transition-colors">
             Vulnerabilities
-            <span class="ml-2 bg-zinc-800 text-gray-400 px-1.5 py-0.5 rounded text-[10px]">{{ vuln_stats.total }}</span>
+            <span class="ml-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-gray-400 px-1.5 py-0.5 rounded-lg text-[10px] shadow-sm">{{ vuln_stats.total }}</span>
         </button>
         
-        <button onclick="switchTab('sbom')" id="btn-sbom" class="pb-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors">
+        <button onclick="switchTab('sbom')" id="btn-sbom" class="pb-3 text-sm font-bold text-zinc-500 dark:text-gray-500 border-b-2 border-transparent hover:text-zinc-900 dark:hover:text-white transition-colors">
             SBOM & Compliance
-            <span class="ml-2 bg-zinc-800 text-gray-400 px-1.5 py-0.5 rounded text-[10px]">{{ total_components }}</span>
+            <span class="ml-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-gray-400 px-1.5 py-0.5 rounded-lg text-[10px] shadow-sm">{{ total_components }}</span>
         </button>
 
-        <button onclick="switchTab('scans')" id="btn-scans" class="pb-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors">
+        <button onclick="switchTab('scans')" id="btn-scans" class="pb-3 text-sm font-bold text-zinc-500 dark:text-gray-500 border-b-2 border-transparent hover:text-zinc-900 dark:hover:text-white transition-colors">
             Scan History
-            <span class="ml-2 bg-zinc-800 text-gray-400 px-1.5 py-0.5 rounded text-[10px]">{{ scans.count }}</span>
+            <span class="ml-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-gray-400 px-1.5 py-0.5 rounded-lg text-[10px] shadow-sm">{{ scans.count }}</span>
         </button>
     </div>
 
@@ -64,8 +64,8 @@
     <div id="tab-summary" class="block animate-fade-in">
         <!-- Loading State -->
         <div id="summary-loading" class="text-center py-12">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div>
-            <p class="text-gray-400 mt-4">Loading release summary...</p>
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 dark:border-emerald-400"></div>
+            <p class="text-zinc-600 dark:text-gray-400 mt-4">Loading release summary...</p>
         </div>
 
         <!-- Content (hidden until loaded) -->
@@ -73,62 +73,62 @@
             <!-- Zone 1: The Verdict (Top Row) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <!-- Compliance Badge -->
-                <div id="compliance-badge" class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+                <div id="compliance-badge" class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl p-6 shadow-lg dark:shadow-none">
                     <div class="flex items-center gap-3 mb-2">
                         <div id="compliance-icon" class="w-8 h-8 rounded-full flex items-center justify-center">
                             <!-- Icon will be inserted by JS -->
                         </div>
                         <div>
-                            <div id="compliance-text" class="text-lg font-bold text-white"></div>
-                            <div id="compliance-subtext" class="text-xs text-gray-500"></div>
+                            <div id="compliance-text" class="text-lg font-bold text-zinc-900 dark:text-white"></div>
+                            <div id="compliance-subtext" class="text-xs text-zinc-500 dark:text-gray-500"></div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Health Grade -->
-                <div id="health-grade" class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+                <div id="health-grade" class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl p-6 shadow-lg dark:shadow-none">
                     <div class="mb-2">
-                        <div class="text-xs text-gray-500 uppercase font-bold tracking-widest mb-1">Risk Score</div>
+                        <div class="text-xs text-zinc-500 dark:text-gray-500 uppercase font-bold tracking-widest mb-1">Risk Score</div>
                         <div id="risk-score" class="text-3xl font-bold"></div>
                     </div>
-                    <div id="grade-badge" class="inline-flex items-center px-3 py-1 rounded text-sm font-bold"></div>
+                    <div id="grade-badge" class="inline-flex items-center px-3 py-1 rounded-lg text-sm font-bold shadow-sm"></div>
                 </div>
 
                 <!-- SLA Monitor -->
-                <div id="sla-monitor" class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+                <div id="sla-monitor" class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl p-6 shadow-lg dark:shadow-none">
                     <div class="mb-2">
-                        <div class="text-xs text-gray-500 uppercase font-bold tracking-widest mb-1">SLA Status</div>
+                        <div class="text-xs text-zinc-500 dark:text-gray-500 uppercase font-bold tracking-widest mb-1">SLA Status</div>
                         <div id="sla-status" class="text-lg font-bold"></div>
                     </div>
-                    <div id="sla-subtext" class="text-xs text-gray-500"></div>
+                    <div id="sla-subtext" class="text-xs text-zinc-500 dark:text-gray-500"></div>
                 </div>
             </div>
 
             <!-- High-Risk Dependencies Section -->
             <div id="toxic-components-section" class="mb-8">
-                <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider">Critical Upgrade Path</h3>
-                <p class="text-xs text-gray-500 mb-4">The following components contain active exploits. Upgrading them will resolve the highest risk.</p>
+                <h3 class="text-sm font-bold text-zinc-900 dark:text-white mb-4 uppercase tracking-wider">Critical Upgrade Path</h3>
+                <p class="text-xs text-zinc-600 dark:text-gray-500 mb-4">The following components contain active exploits. Upgrading them will resolve the highest risk.</p>
                 <div id="toxic-components-container" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- Cards will be populated by JavaScript -->
                 </div>
-                <div id="toxic-components-empty" class="bg-[#09090b] border border-[#27272a] rounded-lg p-12 text-center text-gray-500 hidden">
+                <div id="toxic-components-empty" class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl p-12 text-center text-zinc-500 dark:text-gray-500 hidden shadow-lg dark:shadow-none">
                     No high-risk dependencies found. All components are up to date.
                 </div>
             </div>
 
             <!-- License Compliance Section -->
             <div id="license-compliance-section" class="mb-8">
-                <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider">License Compliance</h3>
-                <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-6">
+                <h3 class="text-sm font-bold text-zinc-900 dark:text-white mb-4 uppercase tracking-wider">License Compliance</h3>
+                <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl p-6 shadow-lg dark:shadow-none">
                     <!-- Alert for violations -->
-                    <div id="license-alert" class="hidden mb-4 p-4 rounded-lg border"></div>
+                    <div id="license-alert" class="hidden mb-4 p-4 rounded-lg border shadow-sm"></div>
                     
                     <!-- Stacked Bar Chart -->
                     <div class="mb-4">
-                        <div id="license-chart" class="h-8 bg-zinc-900 rounded overflow-hidden flex">
+                        <div id="license-chart" class="h-8 bg-zinc-200 dark:bg-zinc-900 rounded-lg overflow-hidden flex shadow-sm">
                             <!-- Segments will be populated by JavaScript -->
                         </div>
-                        <div class="flex justify-between text-xs text-gray-500 mt-2">
+                        <div class="flex justify-between text-xs text-zinc-500 dark:text-gray-500 mt-2">
                             <span id="license-compliant-label">Permissive: 0</span>
                             <span id="license-violations-label">Copyleft/Forbidden: 0</span>
                             <span id="license-unknown-label">Unknown/None: 0</span>
@@ -136,18 +136,18 @@
                     </div>
                     
                     <!-- Total count -->
-                    <div class="text-xs text-gray-400">
-                        Total Components: <span id="license-total" class="text-white font-bold">0</span>
+                    <div class="text-xs text-zinc-600 dark:text-gray-400">
+                        Total Components: <span id="license-total" class="text-zinc-900 dark:text-white font-bold">0</span>
                     </div>
                 </div>
             </div>
 
             <!-- Zone 2: The Kill List (Middle Section) -->
             <div class="mb-8">
-                <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider">Blocking Issues (Kill List)</h3>
-                <div id="kill-list-container" class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
-                    <table class="w-full text-left text-sm text-gray-400">
-                        <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
+                <h3 class="text-sm font-bold text-zinc-900 dark:text-white mb-4 uppercase tracking-wider">Blocking Issues (Kill List)</h3>
+                <div id="kill-list-container" class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl overflow-hidden shadow-lg dark:shadow-none">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-gradient-to-r from-zinc-50 to-white dark:from-black dark:to-zinc-900 text-[10px] uppercase font-mono text-zinc-500 dark:text-gray-500 border-b border-zinc-200 dark:border-zinc-800">
                             <tr>
                                 <th class="px-6 py-3 w-20">Type</th>
                                 <th class="px-6 py-3 w-48">Issue</th>
@@ -156,11 +156,11 @@
                                 <th class="px-6 py-3 w-48">Remediation</th>
                             </tr>
                         </thead>
-                        <tbody id="kill-list-body" class="divide-y divide-zinc-800">
+                        <tbody id="kill-list-body" class="divide-y divide-zinc-200 dark:divide-zinc-800">
                             <!-- Populated by JavaScript -->
                         </tbody>
                     </table>
-                    <div id="kill-list-empty" class="px-6 py-12 text-center text-gray-500 hidden">
+                    <div id="kill-list-empty" class="px-6 py-12 text-center text-zinc-500 dark:text-gray-500 hidden">
                         No blocking issues found. Release is compliant.
                     </div>
                 </div>
@@ -168,11 +168,11 @@
 
             <!-- Zone 3: Risk Treemap (Bottom Section) -->
             <div>
-                <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider">Risk Treemap (Artifact Breakdown)</h3>
+                <h3 class="text-sm font-bold text-zinc-900 dark:text-white mb-4 uppercase tracking-wider">Risk Treemap (Artifact Breakdown)</h3>
                 <div id="risk-treemap" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <!-- Populated by JavaScript -->
                 </div>
-                <div id="treemap-empty" class="bg-[#09090b] border border-[#27272a] rounded-lg p-12 text-center text-gray-500 hidden">
+                <div id="treemap-empty" class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl p-12 text-center text-zinc-500 dark:text-gray-500 hidden shadow-lg dark:shadow-none">
                     No artifacts linked to this release.
                 </div>
             </div>
@@ -182,36 +182,36 @@
     <div id="tab-vuln" class="block animate-fade-in">
         
         <div class="grid grid-cols-5 gap-4 mb-6">
-            <div class="bg-red-500/5 border border-red-500/20 p-4 rounded-lg">
-                <div class="text-red-500 text-[10px] uppercase font-bold tracking-widest mb-1">Critical</div>
-                <div class="text-2xl font-bold text-white">{{ vuln_stats.critical }}</div>
+            <div class="bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 p-4 rounded-xl shadow-sm">
+                <div class="text-red-700 dark:text-red-500 text-[10px] uppercase font-bold tracking-widest mb-1">Critical</div>
+                <div class="text-2xl font-bold text-zinc-900 dark:text-white">{{ vuln_stats.critical }}</div>
             </div>
-            <div class="bg-orange-500/5 border border-orange-500/20 p-4 rounded-lg">
-                <div class="text-orange-500 text-[10px] uppercase font-bold tracking-widest mb-1">High</div>
-                <div class="text-2xl font-bold text-white">{{ vuln_stats.high }}</div>
+            <div class="bg-orange-50 dark:bg-orange-500/5 border border-orange-200 dark:border-orange-500/20 p-4 rounded-xl shadow-sm">
+                <div class="text-orange-700 dark:text-orange-500 text-[10px] uppercase font-bold tracking-widest mb-1">High</div>
+                <div class="text-2xl font-bold text-zinc-900 dark:text-white">{{ vuln_stats.high }}</div>
             </div>
-            <div class="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-lg">
-                <div class="text-yellow-500 text-[10px] uppercase font-bold tracking-widest mb-1">Medium</div>
-                <div class="text-2xl font-bold text-white">{{ vuln_stats.medium }}</div>
+            <div class="bg-yellow-50 dark:bg-yellow-500/5 border border-yellow-200 dark:border-yellow-500/20 p-4 rounded-xl shadow-sm">
+                <div class="text-yellow-700 dark:text-yellow-500 text-[10px] uppercase font-bold tracking-widest mb-1">Medium</div>
+                <div class="text-2xl font-bold text-zinc-900 dark:text-white">{{ vuln_stats.medium }}</div>
             </div>
-            <div class="bg-blue-500/5 border border-blue-500/20 p-4 rounded-lg">
-                <div class="text-blue-500 text-[10px] uppercase font-bold tracking-widest mb-1">Low</div>
-                <div class="text-2xl font-bold text-white">{{ vuln_stats.low }}</div>
+            <div class="bg-blue-50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-500/20 p-4 rounded-xl shadow-sm">
+                <div class="text-blue-700 dark:text-blue-500 text-[10px] uppercase font-bold tracking-widest mb-1">Low</div>
+                <div class="text-2xl font-bold text-zinc-900 dark:text-white">{{ vuln_stats.low }}</div>
             </div>
-             <div class="bg-gray-500/5 border border-gray-500/20 p-4 rounded-lg">
-                <div class="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">Info</div>
-                <div class="text-2xl font-bold text-white">{{ vuln_stats.info }}</div>
+             <div class="bg-zinc-50 dark:bg-gray-500/5 border border-zinc-200 dark:border-gray-500/20 p-4 rounded-xl shadow-sm">
+                <div class="text-zinc-600 dark:text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">Info</div>
+                <div class="text-2xl font-bold text-zinc-900 dark:text-white">{{ vuln_stats.info }}</div>
             </div>
         </div>
 
         <!-- Filters -->
-        <div class="bg-[#09090b] border border-[#27272a] rounded-lg p-4 mb-6">
+        <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl p-4 mb-6 shadow-lg dark:shadow-none">
             <form method="get" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <input type="hidden" name="tab" value="vuln">
                 <input type="hidden" name="vuln_per_page" value="{{ vuln_per_page }}">
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1">Status</label>
-                    <select name="status" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Status</label>
+                    <select name="status" class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white shadow-sm">
                         <option value="">All</option>
                         <option value="ACTIVE" {% if filters.status == 'ACTIVE' or filters.status == 'OPEN' %}selected{% endif %}>Active</option>
                         <option value="FIXED" {% if filters.status == 'FIXED' %}selected{% endif %}>Fixed</option>
@@ -221,8 +221,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1">Severity</label>
-                    <select name="severity" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Severity</label>
+                    <select name="severity" class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white shadow-sm">
                         <option value="">All</option>
                         <option value="CRITICAL" {% if filters.severity == 'CRITICAL' %}selected{% endif %}>Critical</option>
                         <option value="HIGH" {% if filters.severity == 'HIGH' %}selected{% endif %}>High</option>
@@ -232,8 +232,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1">Scanner</label>
-                    <select name="scanner" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Scanner</label>
+                    <select name="scanner" class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white shadow-sm">
                         <option value="">All</option>
                         {% for scanner in available_scanners %}
                         <option value="{{ scanner }}" {% if filters.scanner == scanner %}selected{% endif %}>{{ scanner }}</option>
@@ -241,35 +241,35 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1">EPSS Score (Min)</label>
-                    <input type="number" name="epss" value="{{ filters.epss|default:'' }}" placeholder="0.0-1.0" step="0.01" min="0" max="1" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white font-mono">
+                    <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">EPSS Score (Min)</label>
+                    <input type="number" name="epss" value="{{ filters.epss|default:'' }}" placeholder="0.0-1.0" step="0.01" min="0" max="1" class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white font-mono shadow-sm">
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1">KEV Status</label>
-                    <select name="kev" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">KEV Status</label>
+                    <select name="kev" class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white shadow-sm">
                         <option value="">All</option>
                         <option value="true" {% if filters.kev == 'true' or filters.kev == '1' %}selected{% endif %}>KEV Only</option>
                         <option value="false" {% if filters.kev == 'false' or filters.kev == '0' %}selected{% endif %}>Non-KEV</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1">CVE ID</label>
-                    <input type="text" name="cve_id" value="{{ filters.cve_id|default:'' }}" placeholder="CVE-2024-..." class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white font-mono">
+                    <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">CVE ID</label>
+                    <input type="text" name="cve_id" value="{{ filters.cve_id|default:'' }}" placeholder="CVE-2024-..." class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white font-mono shadow-sm">
                 </div>
                 <div class="md:col-span-3 lg:col-span-6 flex gap-2">
-                    <button type="submit" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-gray-200 transition-colors uppercase tracking-wider">
+                    <button type="submit" class="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-white dark:to-gray-100 text-white dark:text-black text-xs font-bold px-4 py-2 rounded-lg hover:from-zinc-800 hover:to-zinc-700 dark:hover:from-gray-100 dark:hover:to-gray-200 transition-all uppercase tracking-wider shadow-md">
                         Apply Filters
                     </button>
-                    <a href="{% url 'release_detail' release.id %}?tab=vuln" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-zinc-700 transition-colors uppercase tracking-wider">
+                    <a href="{% url 'release_detail' release.id %}?tab=vuln" class="bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors uppercase tracking-wider shadow-sm">
                         Clear
                     </a>
                 </div>
             </form>
         </div>
 
-        <div class="bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden">
-            <table class="w-full text-left text-sm text-gray-400">
-                <thead class="bg-black text-[10px] uppercase font-mono text-gray-500">
+        <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl overflow-hidden shadow-lg dark:shadow-none">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-gradient-to-r from-zinc-50 to-white dark:from-black dark:to-zinc-900 text-[10px] uppercase font-mono text-zinc-500 dark:text-gray-500 border-b border-zinc-200 dark:border-zinc-800">
                     <tr>
                         <th class="px-6 py-3 w-32">Severity</th>
                         <th class="px-6 py-3 w-32">EPSS / Risk</th>
@@ -280,23 +280,23 @@
                         <th class="px-6 py-3 w-32">Status</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-800">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     {% for finding in findings %}
-                    <tr onclick="openVulnerabilityModal('{{ finding.id }}')" class="hover:bg-zinc-900/50 transition-colors group cursor-pointer {% if finding.status == 'FIXED' %}opacity-60 bg-zinc-900/20{% endif %}">
+                    <tr onclick="openVulnerabilityModal('{{ finding.id }}')" class="hover:bg-gradient-to-r hover:from-zinc-50 hover:to-white dark:hover:bg-zinc-900/50 transition-all group cursor-pointer {% if finding.status == 'FIXED' %}opacity-60 bg-zinc-50/50 dark:bg-zinc-900/20{% endif %}">
                         
                         <!-- Severity (First Column) -->
                         <td class="px-6 py-3">
                             <div class="flex flex-col gap-1">
                                 {% if finding.severity == 'CRITICAL' %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 w-fit">CRITICAL</span>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-red-500 via-red-600 to-red-700 dark:from-red-500/20 dark:via-red-600/20 dark:to-red-700/20 text-white dark:text-red-400 border border-red-400 dark:border-red-500/30 w-fit shadow-sm">CRITICAL</span>
                                 {% elif finding.severity == 'HIGH' %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20 w-fit">HIGH</span>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 dark:from-orange-500/20 dark:via-orange-600/20 dark:to-orange-700/20 text-white dark:text-orange-400 border border-orange-400 dark:border-orange-500/30 w-fit shadow-sm">HIGH</span>
                                 {% elif finding.severity == 'MEDIUM' %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 w-fit">MEDIUM</span>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 dark:from-yellow-500/20 dark:via-yellow-600/20 dark:to-yellow-700/20 text-white dark:text-yellow-400 border border-yellow-400 dark:border-yellow-500/30 w-fit shadow-sm">MEDIUM</span>
                                 {% elif finding.severity == 'LOW' %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20 w-fit">LOW</span>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 dark:from-blue-500/20 dark:via-blue-600/20 dark:to-blue-700/20 text-white dark:text-blue-400 border border-blue-400 dark:border-blue-500/30 w-fit shadow-sm">LOW</span>
                                 {% else %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">INFO</span>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-100 dark:bg-gray-500/10 text-zinc-700 dark:text-gray-400 border border-zinc-200 dark:border-gray-500/20 w-fit shadow-sm">INFO</span>
                                 {% endif %}
                             </div>
                         </td>
@@ -305,67 +305,67 @@
                             <div class="flex flex-col gap-1.5 w-full max-w-[120px]">
                                 {% if finding.epss_score > 0 %}
                                 <div class="flex items-center gap-2" title="Exploit Probability: {{ finding.epss_score }}">
-                                    <div class="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                                        <div class="h-full {% if finding.epss_score > 0.5 %}bg-red-500{% else %}bg-blue-500{% endif %}" style="width: {% widthratio finding.epss_score 1 100 %}%"></div> 
+                                    <div class="flex-1 h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                        <div class="h-full {% if finding.epss_score > 0.5 %}bg-red-600 dark:bg-red-500{% else %}bg-blue-600 dark:bg-blue-500{% endif %}" style="width: {% widthratio finding.epss_score 1 100 %}%"></div> 
                                     </div>
-                                    <span class="text-[9px] font-mono text-gray-400">{{ finding.epss_score|floatformat:3 }}</span>
+                                    <span class="text-[9px] font-mono text-zinc-600 dark:text-gray-400">{{ finding.epss_score|floatformat:3 }}</span>
                                 </div>
                                 {% endif %}
 
                                 {% if finding.kev_status %}
                                 <div class="inline-flex">
-                                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-red-600 text-white border border-red-500 animate-pulse tracking-wider">KEV: EXPLOITED</span>
+                                    <span class="px-2 py-1 rounded-lg text-[9px] font-bold bg-gradient-to-r from-red-600 to-red-700 dark:from-red-600 dark:to-red-700 text-white border border-red-500 shadow-md animate-pulse tracking-wider">KEV: EXPLOITED</span>
                                 </div>
                                 {% endif %}
                             </div>
                         </td>
 
-                        <td class="px-6 py-3 font-mono text-white group-hover:text-emerald-400">
+                        <td class="px-6 py-3 font-mono text-zinc-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                             {% if finding.vulnerability_id %}
                             <a href="https://nvd.nist.gov/vuln/detail/{{ finding.vulnerability_id }}" target="_blank" class="hover:underline">
                                 {{ finding.vulnerability_id }}
                             </a>
                             {% else %}
-                            <span class="text-gray-600">{{ finding.vulnerability_id|default:"N/A" }}</span>
+                            <span class="text-zinc-500 dark:text-gray-600">{{ finding.vulnerability_id|default:"N/A" }}</span>
                             {% endif %}
                         </td>
 
                         <td class="px-6 py-3">
-                            <div class="text-gray-300">{{ finding.package_name }}</div>
-                            <div class="text-[10px] text-gray-600 font-mono">{{ finding.package_version }}</div>
+                            <div class="text-zinc-900 dark:text-gray-300">{{ finding.package_name }}</div>
+                            <div class="text-[10px] text-zinc-600 dark:text-gray-600 font-mono">{{ finding.package_version }}</div>
                         </td>
 
                         <!-- Scan Type -->
                         <td class="px-6 py-3">
                             {% load scanners %}
-                            <span class="text-xs text-gray-400 font-mono">
+                            <span class="text-xs text-zinc-600 dark:text-gray-400 font-mono">
                                 {{ finding.scan.scanner_name|get_scanner_type }}
                             </span>
                         </td>
 
-                        <td class="px-6 py-3 font-mono text-emerald-500">{{ finding.fix_version|default:"-" }}</td>
+                        <td class="px-6 py-3 font-mono text-emerald-600 dark:text-emerald-500 font-semibold">{{ finding.fix_version|default:"-" }}</td>
 
                         <!-- Status (Last Column) -->
                         <td class="px-6 py-3">
                             <div class="flex flex-col gap-1">
                                 {% if finding.status == 'FIXED' %}
-                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">✓ FIXED</span>
+                                     <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-500/20 dark:to-emerald-600/20 text-white dark:text-emerald-400 border border-emerald-400 dark:border-emerald-500/30 w-fit shadow-sm">✓ FIXED</span>
                                 {% elif finding.status == 'FALSE_POSITIVE' %}
-                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">∅ FALSE POSITIVE</span>
+                                     <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-100 dark:bg-gray-500/10 text-zinc-700 dark:text-gray-400 border border-zinc-200 dark:border-gray-500/20 w-fit shadow-sm">∅ FALSE POSITIVE</span>
                                 {% elif finding.status == 'RISK_ACCEPTED' %}
-                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 w-fit">⚠ ACCEPTED</span>
+                                     <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-500/20 dark:to-purple-600/20 text-white dark:text-purple-400 border border-purple-400 dark:border-purple-500/30 w-fit shadow-sm">⚠ ACCEPTED</span>
                                 {% elif finding.status == 'DUPLICATE' %}
-                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 w-fit">↻ DUPLICATE</span>
+                                     <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-500/20 dark:to-orange-600/20 text-white dark:text-orange-400 border border-orange-400 dark:border-orange-500/30 w-fit shadow-sm">↻ DUPLICATE</span>
                                 {% elif finding.status == 'ACTIVE' or finding.status == 'OPEN' %}
-                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 w-fit">● ACTIVE</span>
+                                     <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-500/20 dark:to-blue-600/20 text-white dark:text-blue-400 border border-blue-400 dark:border-blue-500/30 w-fit shadow-sm">● ACTIVE</span>
                                 {% else %}
-                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 w-fit">{{ finding.status }}</span>
+                                     <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-100 dark:bg-gray-500/10 text-zinc-700 dark:text-gray-400 border border-zinc-200 dark:border-gray-500/20 w-fit shadow-sm">{{ finding.status }}</span>
                                 {% endif %}
                             </div>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">No vulnerabilities found.</td></tr>
+                    <tr><td colspan="7" class="px-6 py-12 text-center text-zinc-500 dark:text-gray-500">No vulnerabilities found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

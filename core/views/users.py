@@ -5,7 +5,9 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
 
+from core.models import UserProfile
 from core.forms import UserCreateForm, UserEditForm
+from core.services.audit import log_user_action
 from core.models import UserProfile
 
 User = get_user_model()
@@ -58,7 +60,18 @@ def user_create(request):
             if not hasattr(user, 'profile'):
                 UserProfile.objects.create(user=user)
             # Assign roles
-            user.profile.roles.set(form.cleaned_data['roles'])
+            roles = form.cleaned_data['roles']
+            user.profile.roles.set(roles)
+            
+            # Log audit event
+            changes = {
+                'roles': [role.name for role in roles],
+                'email': user.email,
+                'is_staff': user.is_staff,
+                'is_active': user.is_active
+            }
+            log_user_action(request, 'USER_INVITE', user, changes)
+            
             messages.success(request, f'User "{user.username}" created successfully.')
             return redirect('user_list')
     else:
@@ -83,7 +96,31 @@ def user_edit(request, user_id):
     if request.method == 'POST':
         form = UserEditForm(request.POST, instance=user)
         if form.is_valid():
+            # Store old values for audit log
+            old_roles = set(user.profile.roles.all())
+            old_is_staff = user.is_staff
+            old_is_active = user.is_active
+            
             form.save()
+            
+            # Get new values
+            new_roles = set(user.profile.roles.all())
+            
+            # Log audit event
+            changes = {
+                'old': {
+                    'roles': [role.name for role in old_roles],
+                    'is_staff': old_is_staff,
+                    'is_active': old_is_active
+                },
+                'new': {
+                    'roles': [role.name for role in new_roles],
+                    'is_staff': user.is_staff,
+                    'is_active': user.is_active
+                }
+            }
+            log_user_action(request, 'ROLE_UPDATE', user, changes)
+            
             messages.success(request, f'User "{user.username}" updated successfully.')
             return redirect('user_list')
     else:
@@ -109,6 +146,16 @@ def user_delete(request, user_id):
     
     if request.method == 'POST':
         username = user.username
+        user_email = user.email
+        
+        # Log audit event before deletion
+        changes = {
+            'username': username,
+            'email': user_email,
+            'roles': [role.name for role in user.profile.roles.all()] if hasattr(user, 'profile') else []
+        }
+        log_user_action(request, 'USER_DELETE', user, changes)
+        
         user.delete()
         messages.success(request, f'User "{username}" deleted successfully.')
         return redirect('user_list')

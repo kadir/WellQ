@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+
+{% block breadcrumbs %}
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<a href="{% url 'platform_settings' %}" class="hover:text-zinc-900 dark:hover:text-white">Settings</a>
+<span class="text-zinc-500 dark:text-gray-600">/</span>
+<span class="text-emerald-600 dark:text-emerald-400">Audit Log</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    
+    <div class="mb-8 flex justify-between items-start border-b border-zinc-200 dark:border-zinc-800 pb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white mb-1">Audit Log</h1>
+            <p class="text-zinc-600 dark:text-gray-500 text-sm mt-2">Immutable history of all write actions for security audits (SOC2, ISO27001, EU CRA)</p>
+        </div>
+        
+        <div class="flex gap-3">
+            <a href="/api/v1/audit-logs/export/?{% if actor_email %}actor_email={{ actor_email }}&{% endif %}{% if action_filter %}action={{ action_filter }}&{% endif %}{% if resource_type %}resource_type={{ resource_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}format=csv" 
+               class="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-white dark:to-gray-100 text-white dark:text-black text-xs font-bold px-4 py-2 rounded-lg hover:from-zinc-800 hover:to-zinc-700 dark:hover:from-gray-100 dark:hover:to-gray-200 transition-all uppercase tracking-wider flex items-center gap-2 shadow-md">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Export CSV
+            </a>
+            <a href="/api/v1/audit-logs/export/?{% if actor_email %}actor_email={{ actor_email }}&{% endif %}{% if action_filter %}action={{ action_filter }}&{% endif %}{% if resource_type %}resource_type={{ resource_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}format=json" 
+               class="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-white dark:to-gray-100 text-white dark:text-black text-xs font-bold px-4 py-2 rounded-lg hover:from-zinc-800 hover:to-zinc-700 dark:hover:from-gray-100 dark:hover:to-gray-200 transition-all uppercase tracking-wider flex items-center gap-2 shadow-md">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Export JSON
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl p-4 mb-6 shadow-lg dark:shadow-none">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Actor Email</label>
+                <input type="text" name="actor_email" value="{{ actor_email }}" placeholder="Filter by actor..." 
+                       class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white shadow-sm">
+            </div>
+            
+            <div>
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Action Type</label>
+                <select name="action" class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white shadow-sm">
+                    <option value="">All Actions</option>
+                    {% for action in unique_actions %}
+                    <option value="{{ action }}" {% if action_filter == action %}selected{% endif %}>{{ action }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Resource Type</label>
+                <select name="resource_type" class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white shadow-sm">
+                    <option value="">All Resources</option>
+                    {% for rt in unique_resource_types %}
+                    <option value="{{ rt }}" {% if resource_type == rt %}selected{% endif %}>{{ rt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}" 
+                       class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white shadow-sm">
+            </div>
+            
+            <div>
+                <label class="block text-xs text-zinc-500 dark:text-gray-500 mb-1">Date To</label>
+                <input type="date" name="date_to" value="{{ date_to }}" 
+                       class="w-full bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white shadow-sm">
+            </div>
+            
+            <div class="md:col-span-3 lg:col-span-5 flex gap-2">
+                <button type="submit" class="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-white dark:to-gray-100 text-white dark:text-black text-xs font-bold px-4 py-2 rounded-lg hover:from-zinc-800 hover:to-zinc-700 dark:hover:from-gray-100 dark:hover:to-gray-200 transition-all uppercase tracking-wider shadow-md">
+                    Apply Filters
+                </button>
+                <a href="{% url 'audit_logs' %}" class="bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors uppercase tracking-wider shadow-sm">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Audit Logs Table -->
+    <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl overflow-hidden shadow-lg dark:shadow-none">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-gradient-to-r from-zinc-50 to-white dark:from-black dark:to-zinc-900 text-[10px] uppercase font-mono text-zinc-500 dark:text-gray-500 border-b border-zinc-200 dark:border-zinc-800">
+                <tr>
+                    <th class="px-6 py-3 w-48">Timestamp</th>
+                    <th class="px-6 py-3 w-48">Actor</th>
+                    <th class="px-6 py-3 w-32">Action</th>
+                    <th class="px-6 py-3">Target</th>
+                    <th class="px-6 py-3 w-32">IP Address</th>
+                    <th class="px-6 py-3 w-24">Details</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {% for log in logs %}
+                <tr class="hover:bg-gradient-to-r hover:from-zinc-50 hover:to-white dark:hover:bg-zinc-900/50 transition-all">
+                    <td class="px-6 py-3 font-mono text-xs text-zinc-600 dark:text-gray-400">
+                        {{ log.timestamp|date:"Y-m-d H:i:s" }}
+                    </td>
+                    <td class="px-6 py-3">
+                        <div class="flex items-center gap-2">
+                            <div class="h-6 w-6 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 dark:from-emerald-500/20 dark:to-emerald-600/20 border border-emerald-300 dark:border-emerald-500/20 flex items-center justify-center text-white dark:text-emerald-400 font-bold text-xs shadow-sm">
+                                {{ log.actor_email|make_list|first|upper|default:"S" }}
+                            </div>
+                            <span class="text-sm text-zinc-900 dark:text-white">{{ log.actor_email }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-3">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-500/20 dark:to-blue-600/20 text-white dark:text-blue-400 border border-blue-400 dark:border-blue-500/30 shadow-sm">
+                            {{ log.action }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-3">
+                        <div class="text-sm text-zinc-900 dark:text-white font-semibold">{{ log.resource_type }}</div>
+                        <div class="text-xs text-zinc-500 dark:text-gray-500 font-mono">{{ log.resource_id|truncatechars:40 }}</div>
+                    </td>
+                    <td class="px-6 py-3 font-mono text-xs text-zinc-600 dark:text-gray-400">
+                        {{ log.ip_address|default:"—" }}
+                    </td>
+                    <td class="px-6 py-3">
+                        {% if log.changes %}
+                        <button onclick="showChangesModal('{{ log.id }}')" 
+                                data-changes='{{ log.changes|safe }}'
+                                class="text-emerald-600 dark:text-emerald-400 hover:underline text-xs font-semibold">
+                            View Diff
+                        </button>
+                        {% else %}
+                        <span class="text-zinc-400 dark:text-gray-600 text-xs">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center text-zinc-500 dark:text-gray-500">
+                        No audit logs found.
+                        {% if actor_email or action_filter or resource_type or date_from or date_to %}
+                            <a href="{% url 'audit_logs' %}" class="text-emerald-600 dark:text-emerald-400 hover:underline ml-2">Clear filters</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-gradient-to-r from-zinc-50 to-white dark:from-zinc-900/30 dark:to-zinc-900/10 flex justify-between items-center">
+            <form method="get" id="paginationForm" class="flex items-center gap-2 text-xs text-zinc-500 dark:text-gray-500">
+                {% if actor_email %}<input type="hidden" name="actor_email" value="{{ actor_email }}">{% endif %}
+                {% if action_filter %}<input type="hidden" name="action" value="{{ action_filter }}">{% endif %}
+                {% if resource_type %}<input type="hidden" name="resource_type" value="{{ resource_type }}">{% endif %}
+                {% if date_from %}<input type="hidden" name="date_from" value="{{ date_from }}">{% endif %}
+                {% if date_to %}<input type="hidden" name="date_to" value="{{ date_to }}">{% endif %}
+                <span>Show</span>
+                <select name="per_page" onchange="document.getElementById('paginationForm').submit()" 
+                        class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-lg px-2 py-1 outline-none focus:border-emerald-500 shadow-sm">
+                    <option value="20" {% if per_page == '20' %}selected{% endif %}>20</option>
+                    <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
+                </select>
+                <span>of {{ logs.paginator.count }} items</span>
+            </form>
+
+            <div class="flex items-center gap-2">
+                {% if logs.has_previous %}
+                    <a href="?page={{ logs.previous_page_number }}&per_page={{ per_page }}{% if actor_email %}&actor_email={{ actor_email }}{% endif %}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if resource_type %}&resource_type={{ resource_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" 
+                       class="px-3 py-1 bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-700 text-xs transition-colors shadow-sm">
+                        Previous
+                    </a>
+                {% else %}
+                    <span class="px-3 py-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-gray-600 rounded-lg text-xs cursor-not-allowed shadow-sm">Previous</span>
+                {% endif %}
+                <span class="text-xs text-zinc-500 dark:text-gray-500 font-mono">Page {{ logs.number }} / {{ logs.paginator.num_pages }}</span>
+                {% if logs.has_next %}
+                    <a href="?page={{ logs.next_page_number }}&per_page={{ per_page }}{% if actor_email %}&actor_email={{ actor_email }}{% endif %}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if resource_type %}&resource_type={{ resource_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" 
+                       class="px-3 py-1 bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-700 text-xs transition-colors shadow-sm">
+                        Next
+                    </a>
+                {% else %}
+                    <span class="px-3 py-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-gray-600 rounded-lg text-xs cursor-not-allowed shadow-sm">Next</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Changes Modal -->
+<div id="changesModal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm" onclick="closeChangesModal()"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-xl p-6 max-w-2xl w-full shadow-2xl max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-zinc-900 dark:text-white">Change Details</h3>
+                <button onclick="closeChangesModal()" class="text-zinc-500 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <pre id="changesContent" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 text-xs font-mono text-zinc-900 dark:text-white overflow-x-auto"></pre>
+        </div>
+    </div>
+</div>
+
+<script>
+function showChangesModal(logId) {
+    const modal = document.getElementById('changesModal');
+    const content = document.getElementById('changesContent');
+    const button = event.target.closest('button');
+    const changesJson = button.getAttribute('data-changes');
+    let changes;
+    try {
+        changes = JSON.parse(changesJson);
+    } catch(e) {
+        changes = changesJson || '{}';
+    }
+    content.textContent = JSON.stringify(changes, null, 2);
+    modal.classList.remove('hidden');
+}
+
+function closeChangesModal() {
+    document.getElementById('changesModal').classList.add('hidden');
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeChangesModal();
+    }
+});
+</script>
+{% endblock %}
+

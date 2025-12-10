@@ -85,6 +85,9 @@ urlpatterns = [
     # Platform Settings (Admin Only)
     path('settings/platform/', settings.platform_settings, name='platform_settings'),
     path('settings/platform/trigger-enrich/', settings.trigger_enrich_db, name='trigger_enrich_db'),
+    
+    # Audit Logs (Admin and Auditor Only)
+    path('settings/audit-logs/', settings.audit_logs, name='audit_logs'),
 ]
 
 # WhiteNoise handles static files automatically - no need for static() function

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Workspace, Product, Release, Scan, Finding, Artifact, Repository
+from core.models import Workspace, Product, Release, Scan, Finding, Artifact, Repository, AuditLog
 from core.scanners import SCANNER_REGISTRY
 from django.db.models import Count
 
@@ -376,4 +376,19 @@ class SBOMUploadSerializer(serializers.Serializer):
         except Workspace.DoesNotExist:
             raise serializers.ValidationError("Workspace with this ID does not exist.")
         return value
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    """Serializer for AuditLog model (Read-only)"""
+    actor_username = serializers.CharField(source='actor.username', read_only=True)
+    workspace_name = serializers.CharField(source='workspace.name', read_only=True)
+    
+    class Meta:
+        model = AuditLog
+        fields = [
+            'id', 'workspace', 'workspace_name', 'actor', 'actor_username',
+            'actor_email', 'action', 'resource_type', 'resource_id',
+            'changes', 'ip_address', 'user_agent', 'timestamp'
+        ]
+        read_only_fields = '__all__'  # All fields are read-only
 

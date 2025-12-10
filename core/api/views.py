@@ -13,7 +13,7 @@ except ImportError:
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 
-from core.models import Workspace, Product, Release, Scan, Finding, Component, Repository, Artifact
+from core.models import Workspace, Product, Release, Scan, Finding, Component, Repository, Artifact, AuditLog
 
 
 # Custom throttle class for upload endpoints
@@ -26,13 +26,18 @@ class UploadRateThrottle(ScopedRateThrottle):
 from core.api.serializers import (
     WorkspaceSerializer, ProductSerializer, ReleaseSerializer,
     ScanSerializer, FindingSerializer, ScanUploadSerializer, SBOMUploadSerializer,
-    RepositorySerializer, ArtifactSerializer
+    RepositorySerializer, ArtifactSerializer, AuditLogSerializer
 )
 from core.services.scan_engine import process_scan_upload
 from core.services.sbom import digest_sbom
 from core.tasks import process_scan_async, process_sbom_async
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
+from django.core.paginator import Paginator
+from django.utils.dateparse import parse_date
 import base64
+import json
+import csv
 
 
 @extend_schema(
@@ -1208,4 +1213,220 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
         scans = Scan.objects.filter(artifact=artifact).order_by('-started_at')
         serializer = ScanSerializer(scans, many=True)
         return Response(serializer.data)
+
+
+# Audit Log Views
+def has_audit_permission(user):
+    """Check if user has permission to view audit logs (ADMIN or AUDITOR only)"""
+    if not user.is_authenticated:
+        return False
+    
+    # Check if user has ADMINISTRATOR or AUDITOR role
+    if hasattr(user, 'profile'):
+        return user.profile.has_role('ADMINISTRATOR') or user.profile.has_role('AUDITOR')
+    
+    # Fallback: superuser/staff can also access
+    return user.is_superuser or user.is_staff
+
+
+@extend_schema(
+    tags=['Audit Logs'],
+    summary='List audit logs',
+    description='Get a paginated list of audit logs. Restricted to ADMIN and AUDITOR roles only.',
+    parameters=[
+        OpenApiParameter('actor_email', OpenApiTypes.STR, description='Filter by actor email'),
+        OpenApiParameter('action', OpenApiTypes.STR, description='Filter by action type'),
+        OpenApiParameter('resource_type', OpenApiTypes.STR, description='Filter by resource type'),
+        OpenApiParameter('date_from', OpenApiTypes.DATE, description='Filter by start date (YYYY-MM-DD)'),
+        OpenApiParameter('date_to', OpenApiTypes.DATE, description='Filter by end date (YYYY-MM-DD)'),
+        OpenApiParameter('page', OpenApiTypes.INT, description='Page number'),
+        OpenApiParameter('per_page', OpenApiTypes.INT, description='Items per page (20, 50, or 100)'),
+    ],
+    responses={
+        200: AuditLogSerializer(many=True),
+        403: {'description': 'Forbidden - User does not have audit log access'},
+    }
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def audit_logs_list(request):
+    """
+    List audit logs with filtering and pagination.
+    Access restricted to ADMIN and AUDITOR roles only.
+    """
+    # Check permissions
+    if not has_audit_permission(request.user):
+        return Response(
+            {'error': 'You do not have permission to view audit logs. Only ADMIN and AUDITOR roles are allowed.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Get user's workspace (for tenant isolation)
+    # Note: In a multi-tenant system, you might want to filter by workspace
+    # For now, we'll show all logs if user is admin/auditor
+    queryset = AuditLog.objects.all()
+    
+    # Apply filters
+    actor_email = request.GET.get('actor_email')
+    if actor_email:
+        queryset = queryset.filter(actor_email__icontains=actor_email)
+    
+    action_filter = request.GET.get('action')
+    if action_filter:
+        queryset = queryset.filter(action__icontains=action_filter)
+    
+    resource_type = request.GET.get('resource_type')
+    if resource_type:
+        queryset = queryset.filter(resource_type__icontains=resource_type)
+    
+    # Date range filter
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    if date_from:
+        parsed_date = parse_date(date_from)
+        if parsed_date:
+            from datetime import datetime
+            queryset = queryset.filter(timestamp__gte=timezone.make_aware(
+                datetime.combine(parsed_date, datetime.min.time())
+            ))
+    if date_to:
+        parsed_date = parse_date(date_to)
+        if parsed_date:
+            from datetime import datetime
+            queryset = queryset.filter(timestamp__lte=timezone.make_aware(
+                datetime.combine(parsed_date, datetime.max.time())
+            ))
+    
+    # Pagination
+    per_page = int(request.GET.get('per_page', 20))
+    if per_page not in [20, 50, 100]:
+        per_page = 20
+    
+    paginator = Paginator(queryset, per_page)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    serializer = AuditLogSerializer(page_obj, many=True)
+    
+    return Response({
+        'results': serializer.data,
+        'count': paginator.count,
+        'page': page_obj.number,
+        'num_pages': paginator.num_pages,
+        'per_page': per_page,
+    })
+
+
+@extend_schema(
+    tags=['Audit Logs'],
+    summary='Export audit logs',
+    description='Export audit logs as CSV or JSON. Restricted to ADMIN and AUDITOR roles only.',
+    parameters=[
+        OpenApiParameter('format', OpenApiTypes.STR, description='Export format: csv or json', default='csv'),
+        OpenApiParameter('actor_email', OpenApiTypes.STR, description='Filter by actor email'),
+        OpenApiParameter('action', OpenApiTypes.STR, description='Filter by action type'),
+        OpenApiParameter('date_from', OpenApiTypes.DATE, description='Filter by start date'),
+        OpenApiParameter('date_to', OpenApiTypes.DATE, description='Filter by end date'),
+    ],
+    responses={
+        200: {'description': 'CSV or JSON file'},
+        403: {'description': 'Forbidden - User does not have audit log access'},
+    }
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def audit_logs_export(request):
+    """
+    Export audit logs as CSV or JSON.
+    Access restricted to ADMIN and AUDITOR roles only.
+    """
+    # Check permissions
+    if not has_audit_permission(request.user):
+        return Response(
+            {'error': 'You do not have permission to export audit logs. Only ADMIN and AUDITOR roles are allowed.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Get queryset with same filters as list view
+    queryset = AuditLog.objects.all()
+    
+    # Apply filters (same as list view)
+    actor_email = request.GET.get('actor_email')
+    if actor_email:
+        queryset = queryset.filter(actor_email__icontains=actor_email)
+    
+    action_filter = request.GET.get('action')
+    if action_filter:
+        queryset = queryset.filter(action__icontains=action_filter)
+    
+    resource_type = request.GET.get('resource_type')
+    if resource_type:
+        queryset = queryset.filter(resource_type__icontains=resource_type)
+    
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    if date_from:
+        parsed_date = parse_date(date_from)
+        if parsed_date:
+            from datetime import datetime
+            queryset = queryset.filter(timestamp__gte=timezone.make_aware(
+                datetime.combine(parsed_date, datetime.min.time())
+            ))
+    if date_to:
+        parsed_date = parse_date(date_to)
+        if parsed_date:
+            from datetime import datetime
+            queryset = queryset.filter(timestamp__lte=timezone.make_aware(
+                datetime.combine(parsed_date, datetime.max.time())
+            ))
+    
+    # Get export format
+    export_format = request.GET.get('format', 'csv').lower()
+    
+    if export_format == 'json':
+        # JSON export
+        data = []
+        for log in queryset[:10000]:  # Limit to 10k rows to prevent timeout
+            data.append({
+                'id': str(log.id),
+                'timestamp': log.timestamp.isoformat(),
+                'actor_email': log.actor_email,
+                'action': log.action,
+                'resource_type': log.resource_type,
+                'resource_id': log.resource_id,
+                'changes': log.changes,
+                'ip_address': str(log.ip_address) if log.ip_address else None,
+            })
+        
+        response = HttpResponse(
+            json.dumps(data, indent=2),
+            content_type='application/json'
+        )
+        response['Content-Disposition'] = f'attachment; filename="audit_logs_{timezone.now().strftime("%Y%m%d")}.json"'
+        return response
+    
+    else:
+        # CSV export (default)
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="audit_logs_{timezone.now().strftime("%Y%m%d")}.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Timestamp', 'Actor Email', 'Action', 'Resource Type', 'Resource ID',
+            'Changes', 'IP Address'
+        ])
+        
+        # Stream the response to handle large datasets
+        for log in queryset[:10000]:  # Limit to 10k rows
+            writer.writerow([
+                log.timestamp.isoformat(),
+                log.actor_email,
+                log.action,
+                log.resource_type,
+                log.resource_id,
+                json.dumps(log.changes) if log.changes else '',
+                str(log.ip_address) if log.ip_address else '',
+            ])
+        
+        return response
 

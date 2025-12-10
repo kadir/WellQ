@@ -30,6 +30,10 @@ urlpatterns = [
     path('v1/sbom/upload/', views.upload_sbom, name='api-upload-sbom'),
     path('v1/releases/<uuid:release_id>/sbom/export/', views.export_sbom, name='api-export-sbom'),
     
+    # Audit Log endpoints
+    path('v1/audit-logs/', views.audit_logs_list, name='api-audit-logs-list'),
+    path('v1/audit-logs/export/', views.audit_logs_export, name='api-audit-logs-export'),
+    
     # Swagger/OpenAPI documentation
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
     path('swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

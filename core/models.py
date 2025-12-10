@@ -690,3 +690,88 @@ class StatusApprovalRequest(models.Model):
         self.reviewed_at = timezone.now()
         self.review_note = review_note
         self.save()
+
+
+# Audit Log Model (Immutable Event History)
+class AuditLog(models.Model):
+    """
+    Immutable audit log for tracking all write actions (Create/Update/Delete).
+    Critical for security audits (SOC2, ISO27001, EU CRA).
+    
+    This model is READ-ONLY - no API endpoints should allow DELETE or UPDATE.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Tenant isolation
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='audit_logs', db_index=True)
+    
+    # Actor (Who performed the action)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_actions',
+        help_text="User who performed the action (nullable if user is deleted)"
+    )
+    actor_email = models.CharField(
+        max_length=255,
+        db_index=True,
+        help_text="Snapshot of actor's email (preserved even if user is deleted)"
+    )
+    
+    # Action details
+    action = models.CharField(
+        max_length=100,
+        db_index=True,
+        help_text="Verb describing the event (e.g., FINDING_IGNORE, USER_INVITE)"
+    )
+    
+    # Resource details (What was affected)
+    resource_type = models.CharField(
+        max_length=100,
+        help_text="The model affected (e.g., Finding, Release, User)"
+    )
+    resource_id = models.CharField(
+        max_length=255,
+        help_text="ID of the target object (e.g., CVE-2024-1234, UUID)"
+    )
+    
+    # Change tracking
+    changes = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Diff of before/after values (e.g., {'old': 'OPEN', 'new': 'RISK_ACCEPTED'})"
+    )
+    
+    # Request metadata
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text="Origin IP address of the request"
+    )
+    user_agent = models.TextField(
+        blank=True,
+        help_text="User agent string from the request"
+    )
+    
+    # Timestamp
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
+        help_text="When the action occurred"
+    )
+    
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['workspace', 'timestamp']),
+            models.Index(fields=['actor_email']),
+            models.Index(fields=['action']),
+            models.Index(fields=['resource_type', 'resource_id']),
+        ]
+        verbose_name = "Audit Log"
+        verbose_name_plural = "Audit Logs"
+    
+    def __str__(self):
+        return f"{self.action} on {self.resource_type} by {self.actor_email} at {self.timestamp}"

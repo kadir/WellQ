@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from core.models import Workspace, Product, Release, Scan
 from core.forms import ScanIngestForm
 from core.services.scan_engine import process_scan_upload # Using Service
+from core.services.audit import log_scan_upload
 
 @login_required
 def upload_scan(request):
@@ -36,6 +37,9 @@ def upload_scan(request):
 
             # DELEGATE TO SERVICE
             process_scan_upload(scan, json_file)
+            
+            # Log audit event
+            log_scan_upload(request, scan)
 
             return redirect('release_detail', release_id=release.id)
     else:

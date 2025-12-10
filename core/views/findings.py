@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from core.models import Product, Release, Finding, Component, StatusApprovalRequest, Scan
 from core.forms import ReleaseForm
 from core.services.sbom import digest_sbom
+from core.services.audit import log_finding_status_change
 
 @login_required
 def release_create(request, product_id):
@@ -498,6 +499,9 @@ def update_vulnerability_status(request, finding_id):
     
     new_status = mapped_status  # Use mapped status for the rest of the function
     
+    # Store old status for audit logging
+    old_status = finding.status
+    
     # If status is OPEN, update directly (no approval needed)
     if new_status == 'OPEN':
         finding.status = new_status
@@ -506,6 +510,9 @@ def update_vulnerability_status(request, finding_id):
         finding.triage_at = timezone.now()
         finding.risk_accepted_expires_at = None  # Clear expiration when status changes
         finding.save()
+        
+        # Log audit event
+        log_finding_status_change(request, finding, old_status, new_status, triage_note)
         
         return JsonResponse({
             'success': True,
@@ -530,6 +537,9 @@ def update_vulnerability_status(request, finding_id):
             finding.risk_accepted_expires_at = None  # Clear expiration for other statuses
         
         finding.save()
+        
+        # Log audit event
+        log_finding_status_change(request, finding, old_status, new_status, triage_note)
         
         return JsonResponse({
             'success': True,
@@ -618,7 +628,10 @@ def approve_status_request(request, request_id):
     review_note = request.POST.get('review_note', '')
     
     try:
+        old_status = approval_request.finding.status
         approval_request.approve(request.user, review_note)
+        # Log audit event for the status change
+        log_finding_status_change(request, approval_request.finding, old_status, approval_request.requested_status, approval_request.triage_note)
         messages.success(request, f'Status change request approved. Vulnerability status updated to {approval_request.requested_status}.')
     except ValueError as e:
         messages.error(request, f'Error approving request: {str(e)}')

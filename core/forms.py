@@ -377,6 +377,13 @@ class PlatformSettingsForm(forms.ModelForm):
 # Team Form
 class TeamForm(forms.ModelForm):
     """Form for creating/editing teams"""
+    members = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'cra-input', 'size': '5'}),
+        help_text="Select team members (optional)"
+    )
+    
     class Meta:
         model = Team
         fields = ['workspace', 'name', 'description']
@@ -385,6 +392,46 @@ class TeamForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'cra-input'}),
             'description': forms.Textarea(attrs={'class': 'cra-input', 'rows': 4}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter members by workspace if team has a workspace
+        try:
+            if self.instance and self.instance.pk and self.instance.workspace:
+                # Existing team - filter members by workspace
+                # Get users who have a profile with this workspace as current_workspace
+                workspace_users = get_user_model().objects.filter(
+                    profile__current_workspace=self.instance.workspace
+                ).distinct()
+                self.fields['members'].queryset = workspace_users
+                self.fields['members'].initial = self.instance.members.all()
+            elif 'initial' in kwargs and 'workspace' in kwargs['initial']:
+                # New team with workspace in initial data
+                workspace_id = kwargs['initial']['workspace']
+                workspace_users = get_user_model().objects.filter(
+                    profile__current_workspace_id=workspace_id
+                ).distinct()
+                self.fields['members'].queryset = workspace_users
+            else:
+                # No workspace yet - show all users (will be filtered when workspace is selected)
+                self.fields['members'].queryset = get_user_model().objects.all()
+        except Exception:
+            # Fallback to all users if filtering fails
+            self.fields['members'].queryset = get_user_model().objects.all()
+    
+    def save(self, commit=True):
+        # Get members before saving
+        members_data = []
+        if hasattr(self, 'cleaned_data') and self.cleaned_data:
+            members_data = self.cleaned_data.get('members', [])
+        
+        team = super().save(commit=commit)
+        
+        if commit:
+            # Always set members (even if empty list) to ensure M2M is updated
+            team.members.set(members_data)
+        
+        return team
 
 
 # Repository Form

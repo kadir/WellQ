@@ -38,23 +38,62 @@ def team_list(request):
 @login_required
 def team_create(request):
     """Create a new team"""
+    initial = {}
+    workspace_id = request.GET.get('workspace')
+    if workspace_id:
+        initial['workspace'] = workspace_id
+    
     if request.method == 'POST':
-        form = TeamForm(request.POST)
+        form = TeamForm(request.POST, initial=initial)
+        
+        # Filter members by workspace from POST data if provided (before validation)
+        workspace_id = request.POST.get('workspace')
+        if workspace_id:
+            from core.models import UserProfile
+            try:
+                # Update queryset before validation
+                workspace_users = get_user_model().objects.filter(
+                    profile__current_workspace_id=workspace_id
+                ).distinct()
+                form.fields['members'].queryset = workspace_users
+            except (ValueError, TypeError):
+                # Invalid workspace ID, set empty queryset
+                form.fields['members'].queryset = get_user_model().objects.none()
+        else:
+            # No workspace selected, set empty queryset
+            form.fields['members'].queryset = get_user_model().objects.none()
+        
         if form.is_valid():
             team = form.save()
-            log_audit_event(request, 'TEAM_CREATE', team, {'name': team.name})
+            log_audit_event(request, 'TEAM_CREATE', team, {
+                'name': team.name,
+                'members': [member.username for member in team.members.all()]
+            })
             messages.success(request, f'Team "{team.name}" created successfully.')
             return redirect('team_list')
+        else:
+            # If form is invalid, still filter members by workspace if provided
+            if workspace_id:
+                from core.models import UserProfile
+                try:
+                    workspace_users = get_user_model().objects.filter(
+                        profile__current_workspace_id=workspace_id
+                    ).distinct()
+                    form.fields['members'].queryset = workspace_users
+                except (ValueError, TypeError):
+                    form.fields['members'].queryset = get_user_model().objects.none()
     else:
-        form = TeamForm()
-        # Pre-select workspace if provided
-        workspace_id = request.GET.get('workspace')
-        if workspace_id:
+        form = TeamForm(initial=initial)
+        # Filter members by workspace if provided
+        if initial.get('workspace'):
+            from core.models import UserProfile
             try:
-                workspace = Workspace.objects.get(id=workspace_id)
-                form.fields['workspace'].initial = workspace
-            except Workspace.DoesNotExist:
-                pass
+                workspace_users = get_user_model().objects.filter(
+                    profile__current_workspace_id=initial['workspace']
+                ).distinct()
+                form.fields['members'].queryset = workspace_users
+            except (ValueError, TypeError):
+                form.fields['members'].queryset = get_user_model().objects.none()
     
     return render(request, 'teams/team_form.html', {
         'form': form,
@@ -69,16 +108,38 @@ def team_edit(request, team_id):
     
     if request.method == 'POST':
         form = TeamForm(request.POST, instance=team)
+        
+        # Filter members by team's workspace
+        if team.workspace:
+            from core.models import UserProfile
+            workspace_users = get_user_model().objects.filter(
+                profile__current_workspace=team.workspace
+            ).distinct()
+            form.fields['members'].queryset = workspace_users
+        
         if form.is_valid():
             old_name = team.name
+            old_members = set(team.members.all())
             team = form.save()
+            new_members = set(team.members.all())
             log_audit_event(request, 'TEAM_UPDATE', team, {
-                'name': {'old': old_name, 'new': team.name}
+                'name': {'old': old_name, 'new': team.name},
+                'members': {
+                    'old': [m.username for m in old_members],
+                    'new': [m.username for m in new_members]
+                }
             })
             messages.success(request, f'Team "{team.name}" updated successfully.')
             return redirect('team_list')
     else:
         form = TeamForm(instance=team)
+        # Filter members by team's workspace
+        if team.workspace:
+            from core.models import UserProfile
+            workspace_users = get_user_model().objects.filter(
+                profile__current_workspace=team.workspace
+            ).distinct()
+            form.fields['members'].queryset = workspace_users
     
     return render(request, 'teams/team_form.html', {
         'form': form,

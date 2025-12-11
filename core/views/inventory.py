@@ -487,6 +487,12 @@ def product_create(request):
                         form.fields['teams'].queryset = Team.objects.filter(workspace_id=workspace_id)
                     except (ValueError, TypeError):
                         form.fields['teams'].queryset = Team.objects.none()
+                # Log form errors for debugging
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Product form validation errors: {form.errors}")
+                from django.contrib import messages
+                messages.error(request, f"Please correct the errors below: {form.errors}")
         else:
             form = ProductForm(initial=initial)
             # Filter teams by workspace if provided

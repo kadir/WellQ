@@ -19,32 +19,57 @@
         <form method="post" class="space-y-6">
             {% csrf_token %}
             
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+                <ul class="text-red-600 dark:text-red-400 text-sm">
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
             <div>
-                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Owning Workspace</label>
+                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Owning Workspace *</label>
                 {{ form.workspace }}
+                {% if form.workspace.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.workspace.errors.0 }}</p>
+                {% endif %}
                 <p class="text-[10px] text-zinc-500 dark:text-gray-500 mt-1">Select workspace first to see available teams</p>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Product Name</label>
+                    <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Product Name *</label>
                     {{ form.name }}
+                    {% if form.name.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.name.errors.0 }}</p>
+                    {% endif %}
                 </div>
                 
                 <div>
-                    <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Asset Type</label>
+                    <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Asset Type *</label>
                     {{ form.product_type }}
+                    {% if form.product_type.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.product_type.errors.0 }}</p>
+                    {% endif %}
                 </div>
             </div>
 
             <div>
                 <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Description</label>
                 {{ form.description }}
+                {% if form.description.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.description.errors.0 }}</p>
+                {% endif %}
             </div>
 
             <div>
-                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Business Criticality</label>
+                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Business Criticality *</label>
                 {{ form.criticality }}
+                {% if form.criticality.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.criticality.errors.0 }}</p>
+                {% endif %}
                 <p class="text-[10px] text-zinc-600 dark:text-gray-600 mt-2 leading-relaxed">
                     <strong class="text-red-500">Critical:</strong> Core Revenue / PII Data.<br>
                     <strong class="text-orange-500">High:</strong> Internal Business Logic.<br>

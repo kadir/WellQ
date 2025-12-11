@@ -438,10 +438,14 @@ def product_create(request):
     
     try:
         if request.method == 'POST':
+            # Get workspace ID first
+            workspace_id = request.POST.get('workspace')
+            
+            # Create form with POST data
             form = ProductForm(request.POST, initial=initial)
             
-            # Filter teams by workspace from POST data if provided (before validation)
-            workspace_id = request.POST.get('workspace')
+            # IMPORTANT: Filter teams by workspace BEFORE validation
+            # This ensures the teams field can validate against the correct queryset
             if workspace_id:
                 from core.models import Team
                 try:
@@ -450,6 +454,9 @@ def product_create(request):
                 except (ValueError, TypeError):
                     # Invalid workspace ID, set empty queryset
                     form.fields['teams'].queryset = Team.objects.none()
+            else:
+                # No workspace selected, set empty queryset
+                form.fields['teams'].queryset = Team.objects.none()
             
             if form.is_valid():
                 try:

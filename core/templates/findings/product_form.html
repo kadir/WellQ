@@ -53,9 +53,8 @@
                 </p>
             </div>
 
-            {% if form.teams %}
             <div>
-                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Assigned Teams</label>
+                <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Assigned Teams <span class="text-zinc-400 dark:text-gray-600 normal-case">(optional)</span></label>
                 {{ form.teams }}
                 {% if form.teams.help_text %}
                     <p class="text-[10px] text-zinc-500 dark:text-gray-500 mt-1">{{ form.teams.help_text }}</p>
@@ -64,7 +63,6 @@
                     <p class="text-red-500 text-xs mt-1">{{ form.teams.errors.0 }}</p>
                 {% endif %}
             </div>
-            {% endif %}
 
             <div class="pt-4 flex gap-3">
                 <button type="submit" class="flex-1 bg-zinc-900 dark:bg-white text-white dark:text-black font-bold py-2.5 rounded hover:bg-zinc-800 dark:hover:bg-gray-200 transition-colors uppercase tracking-wider text-xs">

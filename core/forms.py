@@ -25,7 +25,7 @@ class ProductForm(forms.ModelForm):
         queryset=Team.objects.none(),  # Start with empty queryset, will be filtered in __init__
         required=False,
         widget=forms.SelectMultiple(attrs={'class': 'cra-input', 'size': '5'}),
-        help_text="Assign teams responsible for this product"
+        help_text="Assign teams responsible for this product (optional)"
     )
     
     class Meta:
@@ -98,16 +98,16 @@ class ProductForm(forms.ModelForm):
         return cleaned_data
     
     def save(self, commit=True):
-        # Get teams before saving (if any)
-        teams_data = self.cleaned_data.get('teams', []) if hasattr(self, 'cleaned_data') and self.cleaned_data else []
+        # Get teams from cleaned_data before saving
+        teams_data = []
+        if hasattr(self, 'cleaned_data') and self.cleaned_data:
+            teams_data = self.cleaned_data.get('teams', [])
         
         product = super().save(commit=commit)
         
         if commit:
-            # Handle teams assignment
-            if teams_data:
-                product.teams.set(teams_data)
-            # Don't clear teams if not provided - let it be empty by default
+            # Always set teams (even if empty list) to ensure M2M is updated
+            product.teams.set(teams_data)
         
         return product
 

@@ -435,42 +435,71 @@ def product_create(request):
     initial = {}
     if request.GET.get('workspace'):
         initial['workspace'] = request.GET.get('workspace')
-        
-    if request.method == 'POST':
-        form = ProductForm(request.POST, initial=initial)
-        # Filter teams by workspace from POST data if provided
-        if form.data.get('workspace'):
-            from core.models import Team
-            try:
-                form.fields['teams'].queryset = Team.objects.filter(workspace_id=form.data.get('workspace'))
-            except Exception:
-                pass
-        
-        if form.is_valid():
-            product = form.save()
-            # Log audit event
-            try:
-                from core.services.audit import log_audit_event
-                log_audit_event(request, 'PRODUCT_CREATE', product, {
-                    'teams': [team.name for team in product.teams.all()]
-                })
-            except Exception:
-                pass  # Don't fail if audit logging fails
-            return redirect('product_detail', product_id=product.id)
-        else:
-            # If form is invalid, still filter teams by workspace if provided
-            if form.data.get('workspace'):
+    
+    try:
+        if request.method == 'POST':
+            form = ProductForm(request.POST, initial=initial)
+            
+            # Filter teams by workspace from POST data if provided (before validation)
+            workspace_id = request.POST.get('workspace')
+            if workspace_id:
                 from core.models import Team
                 try:
-                    form.fields['teams'].queryset = Team.objects.filter(workspace_id=form.data.get('workspace'))
-                except Exception:
-                    pass
-    else:
+                    # Update queryset before validation
+                    form.fields['teams'].queryset = Team.objects.filter(workspace_id=workspace_id)
+                except (ValueError, TypeError):
+                    # Invalid workspace ID, set empty queryset
+                    form.fields['teams'].queryset = Team.objects.none()
+            
+            if form.is_valid():
+                try:
+                    product = form.save()
+                    # Log audit event
+                    try:
+                        from core.services.audit import log_audit_event
+                        log_audit_event(request, 'PRODUCT_CREATE', product, {
+                            'teams': [team.name for team in product.teams.all()]
+                        })
+                    except Exception:
+                        pass  # Don't fail if audit logging fails
+                    return redirect('product_detail', product_id=product.id)
+                except Exception as e:
+                    # Log the error for debugging
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error saving product: {str(e)}", exc_info=True)
+                    # Add error to form
+                    from django.contrib import messages
+                    messages.error(request, f"Error creating product: {str(e)}")
+            else:
+                # If form is invalid, still filter teams by workspace if provided
+                workspace_id = request.POST.get('workspace')
+                if workspace_id:
+                    from core.models import Team
+                    try:
+                        form.fields['teams'].queryset = Team.objects.filter(workspace_id=workspace_id)
+                    except (ValueError, TypeError):
+                        form.fields['teams'].queryset = Team.objects.none()
+        else:
+            form = ProductForm(initial=initial)
+            # Filter teams by workspace if provided
+            if initial.get('workspace'):
+                from core.models import Team
+                try:
+                    form.fields['teams'].queryset = Team.objects.filter(workspace_id=initial['workspace'])
+                except (ValueError, TypeError):
+                    form.fields['teams'].queryset = Team.objects.none()
+    except Exception as e:
+        # Catch any unexpected errors during form initialization
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in product_create view: {str(e)}", exc_info=True)
+        from django.contrib import messages
+        messages.error(request, f"An error occurred: {str(e)}")
+        # Create a basic form to prevent template errors
+        from core.forms import ProductForm
         form = ProductForm(initial=initial)
-        # Filter teams by workspace if provided
-        if initial.get('workspace'):
-            from core.models import Team
-            form.fields['teams'].queryset = Team.objects.filter(workspace_id=initial['workspace'])
+    
     return render(request, 'findings/product_form.html', {'form': form})
 
 @login_required

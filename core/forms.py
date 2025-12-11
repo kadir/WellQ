@@ -22,7 +22,7 @@ class WorkspaceForm(forms.ModelForm):
 # Product Form
 class ProductForm(forms.ModelForm):
     teams = forms.ModelMultipleChoiceField(
-        queryset=Team.objects.all(),
+        queryset=Team.objects.none(),  # Start with empty queryset, will be filtered in __init__
         required=False,
         widget=forms.SelectMultiple(attrs={'class': 'cra-input', 'size': '5'}),
         help_text="Assign teams responsible for this product"
@@ -42,18 +42,27 @@ class ProductForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         initial = kwargs.get('initial', {})
         super().__init__(*args, **kwargs)
-        # Filter teams by workspace
-        if self.instance and self.instance.pk and self.instance.workspace:
-            # Existing product - filter by its workspace
-            self.fields['teams'].queryset = Team.objects.filter(workspace=self.instance.workspace)
-            self.fields['teams'].initial = self.instance.teams.all()
-        elif initial.get('workspace'):
-            # New product with workspace in initial data
-            workspace_id = initial['workspace']
-            self.fields['teams'].queryset = Team.objects.filter(workspace_id=workspace_id)
-        else:
-            # No workspace yet - show all teams (will be filtered when workspace is selected)
-            self.fields['teams'].queryset = Team.objects.all()
+        
+        # Safely filter teams by workspace
+        try:
+            if self.instance and self.instance.pk and self.instance.workspace:
+                # Existing product - filter by its workspace
+                self.fields['teams'].queryset = Team.objects.filter(workspace=self.instance.workspace)
+                self.fields['teams'].initial = self.instance.teams.all()
+            elif initial.get('workspace'):
+                # New product with workspace in initial data
+                workspace_id = initial['workspace']
+                try:
+                    self.fields['teams'].queryset = Team.objects.filter(workspace_id=workspace_id)
+                except (ValueError, TypeError):
+                    # Invalid workspace ID
+                    self.fields['teams'].queryset = Team.objects.none()
+            else:
+                # No workspace yet - show empty queryset (will be populated when workspace is selected)
+                self.fields['teams'].queryset = Team.objects.none()
+        except Exception:
+            # Fallback to empty queryset if anything goes wrong
+            self.fields['teams'].queryset = Team.objects.none()
     
     def clean(self):
         cleaned_data = super().clean()
@@ -61,16 +70,29 @@ class ProductForm(forms.ModelForm):
         workspace = cleaned_data.get('workspace')
         teams = cleaned_data.get('teams', [])
         
-        if workspace and teams:
-            # teams is a queryset from ModelMultipleChoiceField
-            # Ensure all selected teams belong to the selected workspace
+        # Handle empty teams case
+        if not teams:
+            cleaned_data['teams'] = []
+            return cleaned_data
+        
+        # If workspace is not selected but teams are, that's an error
+        if not workspace:
+            cleaned_data['teams'] = []
+            return cleaned_data
+        
+        # teams is a queryset from ModelMultipleChoiceField
+        # Ensure all selected teams belong to the selected workspace
+        try:
             team_ids = [t.id for t in teams]
-            valid_teams = Team.objects.filter(workspace=workspace, id__in=team_ids)
-            if valid_teams.count() != len(team_ids):
-                raise forms.ValidationError("All selected teams must belong to the selected workspace.")
-            cleaned_data['teams'] = list(valid_teams)
-        elif teams and not workspace:
-            # If teams are selected but no workspace, clear teams
+            if team_ids:
+                valid_teams = Team.objects.filter(workspace=workspace, id__in=team_ids)
+                if valid_teams.count() != len(team_ids):
+                    raise forms.ValidationError("All selected teams must belong to the selected workspace.")
+                cleaned_data['teams'] = list(valid_teams)
+            else:
+                cleaned_data['teams'] = []
+        except (AttributeError, TypeError) as e:
+            # If teams is not iterable or has issues, clear it
             cleaned_data['teams'] = []
         
         return cleaned_data

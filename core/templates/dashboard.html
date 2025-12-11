@@ -92,20 +92,28 @@
         </div>
         
         <!-- Heatmap Container - 3 rows of 30 days -->
-        <div class="space-y-2">
+        <div class="space-y-3">
             {% for row in heatmap_data|slice:":3" %}
-            <div class="flex items-center gap-1">
-                {% for day in row %}
-                <div class="flex flex-col items-center gap-1">
+            <div class="flex flex-col gap-1">
+                <!-- Day names row (above squares) -->
+                <div class="flex items-end gap-1 h-4">
+                    {% for day in row %}
+                    <div class="flex flex-col items-center justify-end" style="width: 13px;">
+                        {% if forloop.counter0|divisibleby:7 or forloop.first %}
+                        <div class="text-[8px] text-zinc-600 dark:text-gray-600 font-mono leading-none">{{ day.day_of_week }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <!-- Squares row -->
+                <div class="flex items-center gap-1">
+                    {% for day in row %}
                     <div 
                         class="w-3 h-3 rounded {% if day.is_green %}bg-emerald-600 dark:bg-emerald-500{% else %}bg-zinc-200 dark:bg-zinc-800{% endif %} {% if day.is_green %}hover:bg-emerald-700 dark:hover:bg-emerald-400{% else %}hover:bg-zinc-300 dark:hover:bg-zinc-700{% endif %} transition-colors cursor-pointer border border-zinc-300 dark:border-zinc-900"
                         title="{{ day.date }}: {{ day.fixed_count }} finding{{ day.fixed_count|pluralize }} fixed"
                     ></div>
-                    {% if forloop.counter0|divisibleby:7 or forloop.first %}
-                    <div class="text-[8px] text-zinc-600 dark:text-gray-600 font-mono mt-1">{{ day.day_of_week }}</div>
-                    {% endif %}
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
             {% endfor %}
         </div>

@@ -55,10 +55,38 @@ class ProductForm(forms.ModelForm):
             # No workspace yet - show all teams (will be filtered when workspace is selected)
             self.fields['teams'].queryset = Team.objects.all()
     
+    def clean(self):
+        cleaned_data = super().clean()
+        # Filter teams by the selected workspace to ensure security
+        workspace = cleaned_data.get('workspace')
+        teams = cleaned_data.get('teams', [])
+        
+        if workspace and teams:
+            # teams is a queryset from ModelMultipleChoiceField
+            # Ensure all selected teams belong to the selected workspace
+            team_ids = [t.id for t in teams]
+            valid_teams = Team.objects.filter(workspace=workspace, id__in=team_ids)
+            if valid_teams.count() != len(team_ids):
+                raise forms.ValidationError("All selected teams must belong to the selected workspace.")
+            cleaned_data['teams'] = list(valid_teams)
+        elif teams and not workspace:
+            # If teams are selected but no workspace, clear teams
+            cleaned_data['teams'] = []
+        
+        return cleaned_data
+    
     def save(self, commit=True):
+        # Get teams before saving (if any)
+        teams_data = self.cleaned_data.get('teams', []) if hasattr(self, 'cleaned_data') and self.cleaned_data else []
+        
         product = super().save(commit=commit)
-        if commit and 'teams' in self.cleaned_data:
-            product.teams.set(self.cleaned_data['teams'])
+        
+        if commit:
+            # Handle teams assignment
+            if teams_data:
+                product.teams.set(teams_data)
+            # Don't clear teams if not provided - let it be empty by default
+        
         return product
 
 

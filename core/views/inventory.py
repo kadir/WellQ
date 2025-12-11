@@ -438,14 +438,33 @@ def product_create(request):
         
     if request.method == 'POST':
         form = ProductForm(request.POST, initial=initial)
+        # Filter teams by workspace from POST data if provided
+        if form.data.get('workspace'):
+            from core.models import Team
+            try:
+                form.fields['teams'].queryset = Team.objects.filter(workspace_id=form.data.get('workspace'))
+            except Exception:
+                pass
+        
         if form.is_valid():
             product = form.save()
             # Log audit event
-            from core.services.audit import log_audit_event
-            log_audit_event(request, 'PRODUCT_CREATE', product, {
-                'teams': [team.name for team in product.teams.all()]
-            })
+            try:
+                from core.services.audit import log_audit_event
+                log_audit_event(request, 'PRODUCT_CREATE', product, {
+                    'teams': [team.name for team in product.teams.all()]
+                })
+            except Exception:
+                pass  # Don't fail if audit logging fails
             return redirect('product_detail', product_id=product.id)
+        else:
+            # If form is invalid, still filter teams by workspace if provided
+            if form.data.get('workspace'):
+                from core.models import Team
+                try:
+                    form.fields['teams'].queryset = Team.objects.filter(workspace_id=form.data.get('workspace'))
+                except Exception:
+                    pass
     else:
         form = ProductForm(initial=initial)
         # Filter teams by workspace if provided

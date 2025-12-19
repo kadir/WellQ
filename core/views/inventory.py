@@ -469,6 +469,7 @@ def product_create(request):
                         })
                     except Exception:
                         pass  # Don't fail if audit logging fails
+                    messages.success(request, f'Product "{product.name}" created successfully.')
                     return redirect('product_detail', product_id=product.id)
                 except Exception as e:
                     # Log the error for debugging
@@ -476,8 +477,9 @@ def product_create(request):
                     logger = logging.getLogger(__name__)
                     logger.error(f"Error saving product: {str(e)}", exc_info=True)
                     # Add error to form
-                    from django.contrib import messages
                     messages.error(request, f"Error creating product: {str(e)}")
+                    # Re-raise to show form with errors
+                    raise
             else:
                 # If form is invalid, still filter teams by workspace if provided
                 workspace_id = request.POST.get('workspace')
@@ -491,8 +493,10 @@ def product_create(request):
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(f"Product form validation errors: {form.errors}")
-                from django.contrib import messages
-                messages.error(request, f"Please correct the errors below: {form.errors}")
+                # Show specific field errors
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f"{field}: {error}")
         else:
             form = ProductForm(initial=initial)
             # Filter teams by workspace if provided

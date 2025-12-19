@@ -16,7 +16,17 @@
             <p class="text-xs text-zinc-500 dark:text-gray-500 font-mono mt-1">Define asset governance levels.</p>
         </div>
 
-        <form method="post" class="space-y-6">
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="bg-{% if message.tags == 'error' %}red{% else %}green{% endif %}-50 dark:bg-{% if message.tags == 'error' %}red{% else %}green{% endif %}-900/20 border border-{% if message.tags == 'error' %}red{% else %}green{% endif %}-200 dark:border-{% if message.tags == 'error' %}red{% else %}green{% endif %}-800 rounded-lg p-4">
+                <p class="text-{% if message.tags == 'error' %}red{% else %}green{% endif %}-600 dark:text-{% if message.tags == 'error' %}red{% else %}green{% endif %}-400 text-sm">{{ message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" class="space-y-6" id="productForm">
             {% csrf_token %}
             
             {% if form.non_field_errors %}
@@ -90,7 +100,7 @@
             </div>
 
             <div class="pt-4 flex gap-3">
-                <button type="submit" class="flex-1 bg-zinc-900 dark:bg-white text-white dark:text-black font-bold py-2.5 rounded hover:bg-zinc-800 dark:hover:bg-gray-200 transition-colors uppercase tracking-wider text-xs">
+                <button type="submit" id="submitBtn" class="flex-1 bg-zinc-900 dark:bg-white text-white dark:text-black font-bold py-2.5 rounded hover:bg-zinc-800 dark:hover:bg-gray-200 transition-colors uppercase tracking-wider text-xs">
                     Save Product
                 </button>
                 <a href="{% url 'product_list' %}" class="px-4 py-2.5 rounded border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-500 dark:hover:border-zinc-500 text-xs uppercase font-bold transition-all">
@@ -107,25 +117,46 @@ document.addEventListener('DOMContentLoaded', function() {
     const teamsSelect = document.querySelector('select[name="teams"]');
     
     if (workspaceSelect && teamsSelect) {
-        function loadTeams(workspaceId) {
-            // Clear teams selection but keep the select element structure
-            while (teamsSelect.firstChild) {
-                teamsSelect.removeChild(teamsSelect.firstChild);
+        // Store initially selected teams (if any)
+        const initialSelectedTeams = Array.from(teamsSelect.selectedOptions).map(opt => opt.value);
+        
+        function loadTeams(workspaceId, preserveSelection = false) {
+            // Don't clear if we're preserving selection and there are already options
+            if (!preserveSelection || teamsSelect.options.length === 0) {
+                // Clear teams selection but keep the select element structure
+                while (teamsSelect.firstChild) {
+                    teamsSelect.removeChild(teamsSelect.firstChild);
+                }
             }
             
             if (workspaceId) {
-                // Show loading state
-                const loadingOption = document.createElement('option');
-                loadingOption.value = '';
-                loadingOption.textContent = 'Loading teams...';
-                loadingOption.disabled = true;
-                teamsSelect.appendChild(loadingOption);
+                // Only show loading if we cleared the options
+                if (teamsSelect.options.length === 0) {
+                    const loadingOption = document.createElement('option');
+                    loadingOption.value = '';
+                    loadingOption.textContent = 'Loading teams...';
+                    loadingOption.disabled = true;
+                    teamsSelect.appendChild(loadingOption);
+                }
+                
+                // Get CSRF token for API request
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
                 
                 // Fetch teams for this workspace
-                fetch(`/api/v1/teams/?workspace=${workspaceId}`)
+                fetch(`/api/v1/teams/?workspace=${workspaceId}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': csrfToken || '',
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'same-origin'
+                })
                     .then(response => {
                         if (!response.ok) {
-                            throw new Error('Network response was not ok');
+                            if (response.status === 401 || response.status === 403) {
+                                throw new Error('Authentication required. Please refresh the page.');
+                            }
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                         }
                         return response.json();
                     })
@@ -141,6 +172,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const option = document.createElement('option');
                                 option.value = team.id;
                                 option.textContent = team.name;
+                                // Restore selection if preserving
+                                if (preserveSelection && initialSelectedTeams.includes(team.id)) {
+                                    option.selected = true;
+                                }
                                 teamsSelect.appendChild(option);
                             });
                         } else {
@@ -165,30 +200,42 @@ document.addEventListener('DOMContentLoaded', function() {
                         teamsSelect.appendChild(option);
                     });
             } else {
-                // No workspace selected
-                const option = document.createElement('option');
-                option.value = '';
-                option.textContent = 'Select a workspace first';
-                option.disabled = true;
-                teamsSelect.appendChild(option);
+                // No workspace selected - only clear if not preserving
+                if (!preserveSelection) {
+                    while (teamsSelect.firstChild) {
+                        teamsSelect.removeChild(teamsSelect.firstChild);
+                    }
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'Select a workspace first';
+                    option.disabled = true;
+                    teamsSelect.appendChild(option);
+                }
             }
         }
         
         workspaceSelect.addEventListener('change', function() {
-            loadTeams(this.value);
+            loadTeams(this.value, false); // Don't preserve when user changes workspace
         });
         
-        // Trigger change event if workspace is already selected
-        if (workspaceSelect.value) {
-            loadTeams(workspaceSelect.value);
-        } else {
-            // Show placeholder if no workspace selected
-            const option = document.createElement('option');
-            option.value = '';
-            option.textContent = 'Select a workspace first';
-            option.disabled = true;
-            teamsSelect.appendChild(option);
+        // On initial load, if workspace is already selected, load teams but preserve any existing selections
+        if (workspaceSelect.value && teamsSelect.options.length === 0) {
+            // Only load if teams dropdown is empty (server didn't populate it)
+            loadTeams(workspaceSelect.value, true);
         }
+    }
+    
+    // Add form submission handler to show loading state
+    const form = document.getElementById('productForm');
+    const submitBtn = document.getElementById('submitBtn');
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            // Don't prevent default - let form submit normally
+            // Just show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        });
     }
 });
 </script>

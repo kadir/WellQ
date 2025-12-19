@@ -30,10 +30,13 @@ def team_list(request):
         
         workspaces = Workspace.objects.all().order_by('name')
         
+        # Convert workspace_id to string for template comparison
+        selected_workspace_str = str(workspace_id) if workspace_id else None
+        
         return render(request, 'teams/team_list.html', {
             'teams': teams,
             'workspaces': workspaces,
-            'selected_workspace': workspace_id
+            'selected_workspace': selected_workspace_str
         })
     except Exception as e:
         import logging
@@ -41,9 +44,14 @@ def team_list(request):
         logger.error(f"Error in team_list view: {str(e)}", exc_info=True)
         messages.error(request, f"An error occurred while loading teams: {str(e)}")
         # Return empty context to prevent template errors
+        try:
+            workspaces = Workspace.objects.all().order_by('name')
+        except Exception:
+            workspaces = Workspace.objects.none()
+        
         return render(request, 'teams/team_list.html', {
             'teams': Team.objects.none(),
-            'workspaces': Workspace.objects.all().order_by('name'),
+            'workspaces': workspaces,
             'selected_workspace': None
         })
 

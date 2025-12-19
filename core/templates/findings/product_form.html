@@ -90,7 +90,15 @@
 
             <div>
                 <label class="block text-[10px] font-mono text-zinc-500 dark:text-gray-500 uppercase tracking-widest mb-2">Assigned Teams <span class="text-zinc-400 dark:text-gray-600 normal-case">(optional)</span></label>
-                {{ form.teams }}
+                <select name="teams" id="id_teams" multiple class="cra-input" size="5">
+                    {% if form.teams.field.queryset.count > 0 %}
+                        {% for team in form.teams.field.queryset %}
+                            <option value="{{ team.id }}" {% if team in form.teams.value %}selected{% endif %}>{{ team.name }}</option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="" disabled>Select a workspace first to see available teams</option>
+                    {% endif %}
+                </select>
                 {% if form.teams.help_text %}
                     <p class="text-[10px] text-zinc-500 dark:text-gray-500 mt-1">{{ form.teams.help_text }}</p>
                 {% endif %}
@@ -114,7 +122,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const workspaceSelect = document.querySelector('select[name="workspace"]');
-    const teamsSelect = document.querySelector('select[name="teams"]');
+    const teamsSelect = document.getElementById('id_teams') || document.querySelector('select[name="teams"]');
     
     if (workspaceSelect && teamsSelect) {
         // Store initially selected teams (if any)
@@ -218,10 +226,17 @@ document.addEventListener('DOMContentLoaded', function() {
             loadTeams(this.value, false); // Don't preserve when user changes workspace
         });
         
-        // On initial load, if workspace is already selected, load teams but preserve any existing selections
-        if (workspaceSelect.value && teamsSelect.options.length === 0) {
-            // Only load if teams dropdown is empty (server didn't populate it)
-            loadTeams(workspaceSelect.value, true);
+        // On initial load, if workspace is already selected, load teams
+        if (workspaceSelect && workspaceSelect.value) {
+            // Always load teams when workspace is selected to get latest from API
+            loadTeams(workspaceSelect.value, false);
+        } else if (teamsSelect && teamsSelect.options.length === 0) {
+            // Show placeholder if no workspace selected
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'Select a workspace first';
+            option.disabled = true;
+            teamsSelect.appendChild(option);
         }
     }
     

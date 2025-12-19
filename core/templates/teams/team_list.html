@@ -59,11 +59,11 @@
                         </div>
                     </td>
                     <td class="px-6 py-4">
-                        <span class="text-sm text-zinc-600 dark:text-gray-400">{{ team.workspace.name }}</span>
+                        <span class="text-sm text-zinc-600 dark:text-gray-400">{{ team.workspace.name|default:"—" }}</span>
                     </td>
                     <td class="px-6 py-4">
                         <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-500/20 dark:to-emerald-600/20 text-white dark:text-emerald-400 border border-emerald-400 dark:border-emerald-500/30 shadow-sm">
-                            {{ team.member_count }} member{{ team.member_count|pluralize }}
+                            {{ team.member_count|default:0 }} member{{ team.member_count|default:0|pluralize }}
                         </span>
                     </td>
                     <td class="px-6 py-4">

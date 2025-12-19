@@ -13,26 +13,39 @@ User = get_user_model()
 @login_required
 def team_list(request):
     """List all teams with member counts"""
-    teams = Team.objects.select_related('workspace').prefetch_related('members').annotate(
-        member_count=Count('members')
-    ).order_by('workspace__name', 'name')
-    
-    # Filter by workspace if provided
-    workspace_id = request.GET.get('workspace')
-    if workspace_id:
-        try:
-            workspace = Workspace.objects.get(id=workspace_id)
-            teams = teams.filter(workspace=workspace)
-        except Workspace.DoesNotExist:
-            pass
-    
-    workspaces = Workspace.objects.all().order_by('name')
-    
-    return render(request, 'teams/team_list.html', {
-        'teams': teams,
-        'workspaces': workspaces,
-        'selected_workspace': workspace_id
-    })
+    try:
+        teams = Team.objects.select_related('workspace').prefetch_related('members').annotate(
+            member_count=Count('members')
+        ).order_by('workspace__name', 'name')
+        
+        # Filter by workspace if provided
+        workspace_id = request.GET.get('workspace')
+        if workspace_id:
+            try:
+                workspace = Workspace.objects.get(id=workspace_id)
+                teams = teams.filter(workspace=workspace)
+            except (Workspace.DoesNotExist, ValueError, TypeError):
+                # Invalid workspace ID, just ignore the filter
+                workspace_id = None
+        
+        workspaces = Workspace.objects.all().order_by('name')
+        
+        return render(request, 'teams/team_list.html', {
+            'teams': teams,
+            'workspaces': workspaces,
+            'selected_workspace': workspace_id
+        })
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in team_list view: {str(e)}", exc_info=True)
+        messages.error(request, f"An error occurred while loading teams: {str(e)}")
+        # Return empty context to prevent template errors
+        return render(request, 'teams/team_list.html', {
+            'teams': Team.objects.none(),
+            'workspaces': Workspace.objects.all().order_by('name'),
+            'selected_workspace': None
+        })
 
 
 @login_required

@@ -502,6 +502,17 @@ def product_create(request):
                     form.fields['teams'].queryset = Team.objects.filter(workspace_id=initial['workspace'])
                 except (ValueError, TypeError):
                     form.fields['teams'].queryset = Team.objects.none()
+            else:
+                # If no workspace in initial, try to get user's current workspace
+                if hasattr(request.user, 'profile') and request.user.profile.current_workspace:
+                    from core.models import Team
+                    try:
+                        form.fields['workspace'].initial = request.user.profile.current_workspace
+                        form.fields['teams'].queryset = Team.objects.filter(workspace=request.user.profile.current_workspace)
+                    except Exception:
+                        form.fields['teams'].queryset = Team.objects.none()
+                else:
+                    form.fields['teams'].queryset = Team.objects.none()
     except Exception as e:
         # Catch any unexpected errors during form initialization
         import logging

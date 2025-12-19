@@ -46,3 +46,4 @@ python manage.py migrate
 The `makemigrations` command will automatically detect the model change and create a migration with the correct dependencies.
 
 
+

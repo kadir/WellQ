@@ -144,3 +144,4 @@ def log_scan_upload(request, scan):
     }
     return log_audit_event(request, 'SCAN_UPLOAD', scan, changes)
 
+

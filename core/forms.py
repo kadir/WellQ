@@ -66,24 +66,28 @@ class ProductForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
-        # Filter teams by the selected workspace to ensure security
         workspace = cleaned_data.get('workspace')
         teams = cleaned_data.get('teams', [])
         
-        # Handle empty teams case
-        if not teams:
+        # If no workspace is selected, clear any selected teams and return early
+        if not workspace:
             cleaned_data['teams'] = []
             return cleaned_data
         
-        # If workspace is not selected but teams are, that's an error
-        if not workspace:
+        # Handle empty teams case - this is fine, teams are optional
+        if not teams:
             cleaned_data['teams'] = []
             return cleaned_data
         
         # teams is a queryset from ModelMultipleChoiceField
         # Ensure all selected teams belong to the selected workspace
         try:
-            team_ids = [t.id for t in teams]
+            # Convert queryset to list of IDs
+            if hasattr(teams, '__iter__') and not isinstance(teams, str):
+                team_ids = [t.id if hasattr(t, 'id') else t for t in teams]
+            else:
+                team_ids = []
+            
             if team_ids:
                 valid_teams = Team.objects.filter(workspace=workspace, id__in=team_ids)
                 if valid_teams.count() != len(team_ids):
@@ -91,7 +95,7 @@ class ProductForm(forms.ModelForm):
                 cleaned_data['teams'] = list(valid_teams)
             else:
                 cleaned_data['teams'] = []
-        except (AttributeError, TypeError) as e:
+        except (AttributeError, TypeError, ValueError) as e:
             # If teams is not iterable or has issues, clear it
             cleaned_data['teams'] = []
         

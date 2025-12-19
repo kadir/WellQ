@@ -100,4 +100,96 @@
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const workspaceSelect = document.querySelector('select[name="workspace"]');
+    const teamsSelect = document.querySelector('select[name="teams"]');
+    
+    if (workspaceSelect && teamsSelect) {
+        function loadTeams(workspaceId) {
+            // Clear teams selection but keep the select element structure
+            while (teamsSelect.firstChild) {
+                teamsSelect.removeChild(teamsSelect.firstChild);
+            }
+            
+            if (workspaceId) {
+                // Show loading state
+                const loadingOption = document.createElement('option');
+                loadingOption.value = '';
+                loadingOption.textContent = 'Loading teams...';
+                loadingOption.disabled = true;
+                teamsSelect.appendChild(loadingOption);
+                
+                // Fetch teams for this workspace
+                fetch(`/api/v1/teams/?workspace=${workspaceId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Clear loading option
+                        while (teamsSelect.firstChild) {
+                            teamsSelect.removeChild(teamsSelect.firstChild);
+                        }
+                        
+                        // Populate teams dropdown
+                        if (data.results && data.results.length > 0) {
+                            data.results.forEach(team => {
+                                const option = document.createElement('option');
+                                option.value = team.id;
+                                option.textContent = team.name;
+                                teamsSelect.appendChild(option);
+                            });
+                        } else {
+                            // No teams available - add a placeholder
+                            const option = document.createElement('option');
+                            option.value = '';
+                            option.textContent = 'No teams available for this workspace';
+                            option.disabled = true;
+                            teamsSelect.appendChild(option);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching teams:', error);
+                        // Clear loading option
+                        while (teamsSelect.firstChild) {
+                            teamsSelect.removeChild(teamsSelect.firstChild);
+                        }
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'Error loading teams. Please try again.';
+                        option.disabled = true;
+                        teamsSelect.appendChild(option);
+                    });
+            } else {
+                // No workspace selected
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Select a workspace first';
+                option.disabled = true;
+                teamsSelect.appendChild(option);
+            }
+        }
+        
+        workspaceSelect.addEventListener('change', function() {
+            loadTeams(this.value);
+        });
+        
+        // Trigger change event if workspace is already selected
+        if (workspaceSelect.value) {
+            loadTeams(workspaceSelect.value);
+        } else {
+            // Show placeholder if no workspace selected
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'Select a workspace first';
+            option.disabled = true;
+            teamsSelect.appendChild(option);
+        }
+    }
+});
+</script>
 {% endblock %}

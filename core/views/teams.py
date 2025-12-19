@@ -125,48 +125,89 @@ def team_create(request):
 @login_required
 def team_edit(request, team_id):
     """Edit a team"""
-    team = get_object_or_404(Team, id=team_id)
-    
-    if request.method == 'POST':
-        form = TeamForm(request.POST, instance=team)
+    try:
+        team = get_object_or_404(Team, id=team_id)
         
-        # Filter members by team's workspace
-        if team.workspace:
-            from core.models import UserProfile
-            workspace_users = get_user_model().objects.filter(
-                profile__current_workspace=team.workspace
-            ).distinct()
-            form.fields['members'].queryset = workspace_users
+        if request.method == 'POST':
+            form = TeamForm(request.POST, instance=team)
+            
+            # Filter members by team's workspace
+            if team.workspace:
+                try:
+                    from core.models import UserProfile
+                    workspace_users = get_user_model().objects.filter(
+                        profile__current_workspace=team.workspace
+                    ).distinct()
+                    form.fields['members'].queryset = workspace_users
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error filtering members in team_edit POST: {str(e)}", exc_info=True)
+                    # Fallback to all users if filtering fails
+                    form.fields['members'].queryset = get_user_model().objects.all()
+            
+            if form.is_valid():
+                try:
+                    old_name = team.name
+                    old_members = set(team.members.all())
+                    team = form.save()
+                    new_members = set(team.members.all())
+                    log_audit_event(request, 'TEAM_UPDATE', team, {
+                        'name': {'old': old_name, 'new': team.name},
+                        'members': {
+                            'old': [m.username for m in old_members],
+                            'new': [m.username for m in new_members]
+                        }
+                    })
+                    messages.success(request, f'Team "{team.name}" updated successfully.')
+                    return redirect('team_list')
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error saving team in team_edit: {str(e)}", exc_info=True)
+                    messages.error(request, f"Error updating team: {str(e)}")
+        else:
+            form = TeamForm(instance=team)
+            # Filter members by team's workspace (form.__init__ should handle this, but ensure it's set)
+            if team.workspace:
+                try:
+                    from core.models import UserProfile
+                    workspace_users = get_user_model().objects.filter(
+                        profile__current_workspace=team.workspace
+                    ).distinct()
+                    form.fields['members'].queryset = workspace_users
+                    # Set initial members
+                    form.fields['members'].initial = list(team.members.all())
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error filtering members in team_edit GET: {str(e)}", exc_info=True)
+                    # Fallback to all users if filtering fails
+                    form.fields['members'].queryset = get_user_model().objects.all()
+                    form.fields['members'].initial = list(team.members.all())
         
-        if form.is_valid():
-            old_name = team.name
-            old_members = set(team.members.all())
-            team = form.save()
-            new_members = set(team.members.all())
-            log_audit_event(request, 'TEAM_UPDATE', team, {
-                'name': {'old': old_name, 'new': team.name},
-                'members': {
-                    'old': [m.username for m in old_members],
-                    'new': [m.username for m in new_members]
-                }
-            })
-            messages.success(request, f'Team "{team.name}" updated successfully.')
+        return render(request, 'teams/team_form.html', {
+            'form': form,
+            'team': team,
+            'title': 'Edit Team'
+        })
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in team_edit view: {str(e)}", exc_info=True)
+        messages.error(request, f"An error occurred: {str(e)}")
+        # Try to get the team anyway for the template
+        try:
+            team = get_object_or_404(Team, id=team_id)
+            form = TeamForm(instance=team)
+        except Exception:
             return redirect('team_list')
-    else:
-        form = TeamForm(instance=team)
-        # Filter members by team's workspace
-        if team.workspace:
-            from core.models import UserProfile
-            workspace_users = get_user_model().objects.filter(
-                profile__current_workspace=team.workspace
-            ).distinct()
-            form.fields['members'].queryset = workspace_users
-    
-    return render(request, 'teams/team_form.html', {
-        'form': form,
-        'team': team,
-        'title': 'Edit Team'
-    })
+        
+        return render(request, 'teams/team_form.html', {
+            'form': form,
+            'team': team,
+            'title': 'Edit Team'
+        })
 
 
 @login_required

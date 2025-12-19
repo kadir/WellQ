@@ -401,27 +401,43 @@ class TeamForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Filter members by workspace if team has a workspace
         try:
-            if self.instance and self.instance.pk and self.instance.workspace:
+            if self.instance and self.instance.pk and hasattr(self.instance, 'workspace') and self.instance.workspace:
                 # Existing team - filter members by workspace
                 # Get users who have a profile with this workspace as current_workspace
-                workspace_users = get_user_model().objects.filter(
-                    profile__current_workspace=self.instance.workspace
-                ).distinct()
-                self.fields['members'].queryset = workspace_users
-                self.fields['members'].initial = self.instance.members.all()
+                try:
+                    workspace_users = get_user_model().objects.filter(
+                        profile__current_workspace=self.instance.workspace
+                    ).distinct()
+                    self.fields['members'].queryset = workspace_users
+                    # Set initial members if not already set
+                    if not self.fields['members'].initial:
+                        self.fields['members'].initial = list(self.instance.members.all())
+                except Exception as e:
+                    # If filtering fails, use all users but still set initial members
+                    self.fields['members'].queryset = get_user_model().objects.all()
+                    self.fields['members'].initial = list(self.instance.members.all()) if self.instance.pk else []
             elif 'initial' in kwargs and 'workspace' in kwargs['initial']:
                 # New team with workspace in initial data
                 workspace_id = kwargs['initial']['workspace']
-                workspace_users = get_user_model().objects.filter(
-                    profile__current_workspace_id=workspace_id
-                ).distinct()
-                self.fields['members'].queryset = workspace_users
+                try:
+                    workspace_users = get_user_model().objects.filter(
+                        profile__current_workspace_id=workspace_id
+                    ).distinct()
+                    self.fields['members'].queryset = workspace_users
+                except Exception:
+                    self.fields['members'].queryset = get_user_model().objects.all()
             else:
                 # No workspace yet - show all users (will be filtered when workspace is selected)
                 self.fields['members'].queryset = get_user_model().objects.all()
-        except Exception:
+        except Exception as e:
             # Fallback to all users if filtering fails
             self.fields['members'].queryset = get_user_model().objects.all()
+            # Try to set initial members if we have an instance
+            if self.instance and self.instance.pk:
+                try:
+                    self.fields['members'].initial = list(self.instance.members.all())
+                except Exception:
+                    self.fields['members'].initial = []
     
     def save(self, commit=True):
         # Get members before saving

@@ -522,10 +522,9 @@ def product_create(request):
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Error in product_create view: {str(e)}", exc_info=True)
-        from django.contrib import messages
         messages.error(request, f"An error occurred: {str(e)}")
         # Create a basic form to prevent template errors
-        from core.forms import ProductForm
+        # ProductForm is already imported at the top of the file, so use it directly
         form = ProductForm(initial=initial)
     
     return render(request, 'findings/product_form.html', {'form': form})

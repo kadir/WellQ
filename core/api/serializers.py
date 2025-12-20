@@ -178,9 +178,9 @@ class ScanSerializer(serializers.ModelSerializer):
 
 class FindingSerializer(serializers.ModelSerializer):
     """Serializer for Finding model"""
-    scan_scanner = serializers.CharField(source='scan.scanner_name', read_only=True)
-    release_name = serializers.CharField(source='scan.release.name', read_only=True)
-    product_name = serializers.CharField(source='scan.release.product.name', read_only=True)
+    scan_scanner = serializers.SerializerMethodField()
+    release_name = serializers.SerializerMethodField()
+    product_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Finding
@@ -195,6 +195,22 @@ class FindingSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'id', 'hash_id', 'first_seen', 'last_seen'
         ]
+    
+    def get_scan_scanner(self, obj):
+        """Get scanner name from scan, handling None cases"""
+        return obj.scan.scanner_name if obj.scan else None
+    
+    def get_release_name(self, obj):
+        """Get release name, handling None cases for artifact-based scans"""
+        if obj.scan and obj.scan.release:
+            return obj.scan.release.name
+        return None
+    
+    def get_product_name(self, obj):
+        """Get product name, handling None cases for artifact-based scans"""
+        if obj.scan and obj.scan.release and obj.scan.release.product:
+            return obj.scan.release.product.name
+        return None
 
 
 class ScanUploadSerializer(serializers.Serializer):
@@ -394,7 +410,7 @@ class SBOMUploadSerializer(serializers.Serializer):
 
 class AuditLogSerializer(serializers.ModelSerializer):
     """Serializer for AuditLog model (Read-only)"""
-    actor_username = serializers.CharField(source='actor.username', read_only=True)
+    actor_username = serializers.SerializerMethodField()
     workspace_name = serializers.CharField(source='workspace.name', read_only=True)
     
     class Meta:
@@ -405,6 +421,10 @@ class AuditLogSerializer(serializers.ModelSerializer):
             'changes', 'ip_address', 'user_agent', 'timestamp'
         ]
         read_only_fields = '__all__'  # All fields are read-only
+    
+    def get_actor_username(self, obj):
+        """Get actor username, handling None cases when actor is deleted"""
+        return obj.actor.username if obj.actor else None
 
 
 class TeamMemberSerializer(serializers.ModelSerializer):

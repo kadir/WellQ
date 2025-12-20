@@ -3,7 +3,7 @@
 
 {% block breadcrumbs %}
 <span class="text-zinc-500 dark:text-gray-600">/</span>
-<a href="{% url 'product_detail' release.product.id %}" class="hover:text-zinc-900 dark:hover:text-white">{{ release.product.name|lower }}</a>
+<a href="{% url 'product_detail' release.product.id %}" class="hover:text-zinc-900 dark:hover:text-white transition-colors">{{ release.product.name|lower }}</a>
 <span class="text-zinc-500 dark:text-gray-600">/</span>
 <span class="text-emerald-600 dark:text-emerald-400">{{ release.name }}</span>
 {% endblock %}
@@ -408,39 +408,79 @@
     <div id="tab-sbom" class="hidden animate-fade-in">
         
         <div class="grid grid-cols-3 gap-6 mb-8">
-            <div class="bg-[#09090b] border border-[#27272a] p-5 rounded-lg">
+            <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] p-5 rounded-lg">
                 <div class="flex justify-between items-start">
                     <div>
-                        <div class="text-emerald-500 text-[10px] uppercase font-bold tracking-widest">FOSS</div>
-                        <div class="text-2xl font-bold text-white mt-1">{{ lic_stats.foss }}</div>
-                        <div class="text-xs text-gray-500 mt-1">Open Source</div>
+                        <div class="text-emerald-500 dark:text-emerald-500 text-[10px] uppercase font-bold tracking-widest">FOSS</div>
+                        <div class="text-2xl font-bold text-zinc-900 dark:text-white mt-1">{{ lic_stats.foss }}</div>
+                        <div class="text-xs text-zinc-500 dark:text-gray-500 mt-1">Open Source</div>
                     </div>
-                    <svg class="w-5 h-5 text-emerald-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <svg class="w-5 h-5 text-emerald-500/50 dark:text-emerald-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 </div>
             </div>
-            <div class="bg-[#09090b] border border-[#27272a] p-5 rounded-lg">
+            <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] p-5 rounded-lg">
                 <div class="flex justify-between items-start">
                     <div>
-                        <div class="text-purple-500 text-[10px] uppercase font-bold tracking-widest">COSS</div>
-                        <div class="text-2xl font-bold text-white mt-1">{{ lic_stats.coss }}</div>
-                        <div class="text-xs text-gray-500 mt-1">Commercial / Proprietary</div>
+                        <div class="text-purple-500 dark:text-purple-500 text-[10px] uppercase font-bold tracking-widest">COSS</div>
+                        <div class="text-2xl font-bold text-zinc-900 dark:text-white mt-1">{{ lic_stats.coss }}</div>
+                        <div class="text-xs text-zinc-500 dark:text-gray-500 mt-1">Commercial / Proprietary</div>
                     </div>
-                    <svg class="w-5 h-5 text-purple-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    <svg class="w-5 h-5 text-purple-500/50 dark:text-purple-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 </div>
             </div>
-            <div class="bg-[#09090b] border border-[#27272a] p-5 rounded-lg">
+            <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] p-5 rounded-lg">
                 <div class="flex justify-between items-start">
                     <div>
-                        <div class="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Unidentified</div>
-                        <div class="text-2xl font-bold text-white mt-1">{{ lic_stats.unidentified }}</div>
-                        <div class="text-xs text-gray-500 mt-1">Missing / Unknown</div>
+                        <div class="text-zinc-500 dark:text-gray-500 text-[10px] uppercase font-bold tracking-widest">Unidentified</div>
+                        <div class="text-2xl font-bold text-zinc-900 dark:text-white mt-1">{{ lic_stats.unidentified }}</div>
+                        <div class="text-xs text-zinc-500 dark:text-gray-500 mt-1">Missing / Unknown</div>
                     </div>
-                    <svg class="w-5 h-5 text-gray-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg class="w-5 h-5 text-zinc-500/50 dark:text-gray-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
             </div>
         </div>
 
-        <div class="bg-zinc-900/50 border border-dashed border-zinc-800 rounded-lg p-6 mb-6 hover:border-emerald-500/50 transition-colors">
+        <!-- Filters for SBOM Components -->
+        <div class="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-[#27272a] rounded-lg p-4 mb-6">
+            <form method="get" class="flex flex-wrap items-center gap-4">
+                <input type="hidden" name="tab" value="sbom">
+                <input type="hidden" name="per_page" value="{{ per_page }}">
+                
+                <div class="flex-1 min-w-[200px]">
+                    <input type="text" name="sbom_search" value="{{ request.GET.sbom_search|default:'' }}" placeholder="Search components..." class="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500">
+                </div>
+                
+                <div>
+                    <select name="sbom_license" class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500">
+                        <option value="">All Licenses</option>
+                        {% for license in available_licenses %}
+                        <option value="{{ license }}" {% if request.GET.sbom_license == license %}selected{% endif %}>{{ license }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <select name="sbom_status" class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500">
+                        <option value="">All Status</option>
+                        <option value="NEW" {% if request.GET.sbom_status == 'NEW' %}selected{% endif %}>New</option>
+                        <option value="REMOVED" {% if request.GET.sbom_status == 'REMOVED' %}selected{% endif %}>Removed</option>
+                        <option value="UNCHANGED" {% if request.GET.sbom_status == 'UNCHANGED' %}selected{% endif %}>Unchanged</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-600 transition-colors">
+                    Filter
+                </button>
+                
+                {% if request.GET.sbom_search or request.GET.sbom_license or request.GET.sbom_status %}
+                <a href="?tab=sbom&per_page={{ per_page }}" class="text-xs text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white">
+                    Clear
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="bg-zinc-100 dark:bg-zinc-900/50 border border-dashed border-zinc-300 dark:border-zinc-800 rounded-lg p-6 mb-6 hover:border-emerald-500/50 dark:hover:border-emerald-500/50 transition-colors">
             <div class="flex justify-between items-center">
                 <form method="post" action="{% url 'release_sbom_upload' release.id %}" enctype="multipart/form-data" id="sbomUploadForm" class="flex items-center gap-3 flex-1">
                     {% csrf_token %}
@@ -449,10 +489,10 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                         Upload SBOM
                     </button>
-                    <span id="sbomFileName" class="text-xs text-gray-400"></span>
-                    <span class="text-[10px] text-gray-500 font-mono ml-auto">Accepted: CycloneDX JSON</span>
+                    <span id="sbomFileName" class="text-xs text-zinc-600 dark:text-gray-400"></span>
+                    <span class="text-[10px] text-zinc-500 dark:text-gray-500 font-mono ml-auto">Accepted: CycloneDX JSON</span>
                 </form>
-                <a href="{% url 'release_sbom_export' release.id %}" class="bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded border border-zinc-700 hover:bg-zinc-700 transition-colors flex items-center gap-2 ml-4">
+                <a href="{% url 'release_sbom_export' release.id %}" class="bg-zinc-800 dark:bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded border border-zinc-700 dark:border-zinc-700 hover:bg-zinc-700 dark:hover:bg-zinc-700 transition-colors flex items-center gap-2 ml-4">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Download CycloneDX
                 </a>
@@ -530,13 +570,13 @@
 
                 <div class="flex items-center gap-2">
                     {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 text-xs transition-colors">Previous</a>
+                        <a href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}&tab=sbom{% if request.GET.sbom_search %}&sbom_search={{ request.GET.sbom_search }}{% endif %}{% if request.GET.sbom_license %}&sbom_license={{ request.GET.sbom_license }}{% endif %}{% if request.GET.sbom_status %}&sbom_status={{ request.GET.sbom_status }}{% endif %}" class="px-3 py-1 bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 text-xs transition-colors">Previous</a>
                     {% else %}
                         <span class="px-3 py-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-gray-600 rounded text-xs cursor-not-allowed">Previous</span>
                     {% endif %}
                     <span class="text-xs text-zinc-500 dark:text-gray-500 font-mono">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}&tab=sbom" class="px-3 py-1 bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 text-xs transition-colors">Next</a>
+                        <a href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}&tab=sbom{% if request.GET.sbom_search %}&sbom_search={{ request.GET.sbom_search }}{% endif %}{% if request.GET.sbom_license %}&sbom_license={{ request.GET.sbom_license }}{% endif %}{% if request.GET.sbom_status %}&sbom_status={{ request.GET.sbom_status }}{% endif %}" class="px-3 py-1 bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 text-xs transition-colors">Next</a>
                     {% else %}
                         <span class="px-3 py-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-gray-600 rounded text-xs cursor-not-allowed">Next</span>
                     {% endif %}

@@ -341,6 +341,22 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
     'SCHEMA_PATH_PREFIX': '/api/v1/',
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],  # Allow schema access without auth
+    'SERVE_AUTHENTICATION': None,  # No auth required for schema endpoint
+    'COMPONENT_NO_READ_ONLY_REQUIRED': True,  # Don't require read_only fields in requests
+    'TAGS': [
+        {'name': 'Scan Upload', 'description': 'Upload and process security scan results'},
+        {'name': 'SBOM', 'description': 'Software Bill of Materials operations'},
+        {'name': 'Workspaces', 'description': 'Workspace management'},
+        {'name': 'Products', 'description': 'Product management'},
+        {'name': 'Releases', 'description': 'Release management'},
+        {'name': 'Scans', 'description': 'Scan management'},
+        {'name': 'Findings', 'description': 'Security findings management'},
+        {'name': 'Artifacts', 'description': 'Artifact inventory management'},
+        {'name': 'Repositories', 'description': 'Repository management'},
+        {'name': 'Teams', 'description': 'Team management'},
+        {'name': 'Audit Logs', 'description': 'Audit log access'},
+    ],
 }
 
 # Celery Configuration

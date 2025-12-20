@@ -143,12 +143,35 @@ def release_detail(request, release_id):
     vuln_page_obj = vuln_paginator.get_page(vuln_page_number)
 
     # SBOM Logic
-    all_components = release.components.all().order_by('name')
+    all_components = release.components.all()
+    
+    # Apply filters for SBOM components
+    sbom_search = request.GET.get('sbom_search', '').strip()
+    sbom_license = request.GET.get('sbom_license', '')
+    sbom_status = request.GET.get('sbom_status', '')
+    
+    if sbom_search:
+        all_components = all_components.filter(
+            Q(name__icontains=sbom_search) |
+            Q(version__icontains=sbom_search) |
+            Q(purl__icontains=sbom_search)
+        )
+    
+    if sbom_license:
+        all_components = all_components.filter(license=sbom_license)
+    
+    if sbom_status:
+        all_components = all_components.filter(status=sbom_status)
+    
+    all_components = all_components.order_by('name')
     total_components = all_components.count()
+    
+    # Get available licenses for filter dropdown
+    available_licenses = release.components.exclude(license__isnull=True).exclude(license='').values_list('license', flat=True).distinct().order_by('license')
     
     lic_stats = {'foss': 0, 'coss': 0, 'unidentified': 0}
     foss_keywords = ['MIT', 'Apache', 'GPL', 'BSD', 'MPL', 'CC0', 'LGPL', 'ISC', 'Public Domain']
-    for comp in all_components:
+    for comp in release.components.all():
         lic = comp.license.upper() if comp.license else ""
         if not lic or lic == "UNKNOWN" or lic == "NONE":
             lic_stats['unidentified'] += 1
@@ -181,6 +204,7 @@ def release_detail(request, release_id):
         'per_page': per_page,
         'total_components': total_components,
         'available_scanners': available_scanners,
+        'available_licenses': available_licenses,
         'filters': {
             'status': status_filter,
             'severity': severity_filter,
@@ -230,10 +254,33 @@ def release_sbom_upload(request, release_id):
 def sboms_list(request):
     """List all releases with SBOMs"""
     # Get all releases that have SBOM files
-    releases = Release.objects.filter(sbom_file__isnull=False).exclude(sbom_file='').select_related('product', 'product__workspace').order_by('-created_at')
+    releases = Release.objects.filter(sbom_file__isnull=False).exclude(sbom_file='').select_related('product', 'product__workspace')
+    
+    # Apply search filter
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        releases = releases.filter(
+            Q(product__name__icontains=search_query) |
+            Q(name__icontains=search_query) |
+            Q(product__workspace__name__icontains=search_query)
+        )
+    
+    # Apply license filter (filter by components with specific license)
+    license_filter = request.GET.get('license', '').strip()
+    if license_filter:
+        releases = releases.filter(components__license=license_filter).distinct()
+    
+    # Apply status filter (filter by components with specific status)
+    status_filter = request.GET.get('status', '').strip()
+    if status_filter:
+        releases = releases.filter(components__status=status_filter).distinct()
     
     # Get component counts for each release
-    releases = releases.annotate(component_count=Count('components'))
+    releases = releases.annotate(component_count=Count('components')).order_by('-created_at')
+    
+    # Get available licenses and statuses for filter dropdowns
+    available_licenses = Component.objects.exclude(license__isnull=True).exclude(license='').values_list('license', flat=True).distinct().order_by('license')
+    available_statuses = Component.STATUS_CHOICES
     
     # Pagination
     per_page = request.GET.get('per_page', '50')
@@ -246,7 +293,9 @@ def sboms_list(request):
     return render(request, 'findings/sboms_list.html', {
         'releases': page_obj,
         'per_page': per_page,
-        'total_count': releases.count()
+        'total_count': releases.count(),
+        'available_licenses': available_licenses,
+        'available_statuses': available_statuses,
     })
 
 @login_required

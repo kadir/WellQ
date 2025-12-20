@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework import permissions
+from rest_framework.permissions import AllowAny
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -35,9 +36,9 @@ urlpatterns = [
     path('v1/audit-logs/', views.audit_logs_list, name='api-audit-logs-list'),
     path('v1/audit-logs/export/', views.audit_logs_export, name='api-audit-logs-export'),
     
-    # Swagger/OpenAPI documentation
-    path('schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    # Swagger/OpenAPI documentation (public access for schema)
+    path('schema/', SpectacularAPIView.as_view(permission_classes=[AllowAny]), name='schema'),
+    path('swagger/', SpectacularSwaggerView.as_view(url_name='schema', permission_classes=[AllowAny]), name='swagger-ui'),
+    path('redoc/', SpectacularRedocView.as_view(url_name='schema', permission_classes=[AllowAny]), name='redoc'),
 ]
 

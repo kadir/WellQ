@@ -58,10 +58,10 @@ class RepositorySerializer(serializers.ModelSerializer):
 
 class ArtifactSerializer(serializers.ModelSerializer):
     """Serializer for Artifact model"""
-    repository_name = serializers.CharField(source='repository.name', read_only=True)
+    repository_name = serializers.SerializerMethodField()
     workspace_name = serializers.CharField(source='workspace.name', read_only=True)
     scans_count = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Artifact
         fields = [
@@ -69,7 +69,10 @@ class ArtifactSerializer(serializers.ModelSerializer):
             'name', 'version', 'type', 'created_at', 'scans_count'
         ]
         read_only_fields = ['id', 'created_at']
-    
+
+    def get_repository_name(self, obj):
+        return obj.repository.name if obj.repository else None
+
     def get_scans_count(self, obj):
         """Get count of scans for this artifact"""
         return obj.scan_set.count()

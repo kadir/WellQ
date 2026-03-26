@@ -123,12 +123,12 @@ def release_detail(request, release_id):
     # This is faster than Case/When on large datasets
     findings = findings.order_by(
         Case(
-            When(status='FIXED', then=Value(0)), # Fixed bottom
             When(severity='CRITICAL', then=Value(1)),
             When(severity='HIGH', then=Value(2)),
             When(severity='MEDIUM', then=Value(3)),
             When(severity='LOW', then=Value(4)),
             When(severity='INFO', then=Value(5)),
+            When(status='FIXED', then=Value(10)),  # Fixed goes to bottom
             default=Value(6)
         ),
         '-first_seen'
@@ -381,12 +381,12 @@ def vulnerabilities_list(request):
     # Order by severity and date
     findings = findings.order_by(
         Case(
-            When(status='FIXED', then=Value(0)),  # Fixed bottom
             When(severity='CRITICAL', then=Value(1)),
             When(severity='HIGH', then=Value(2)),
             When(severity='MEDIUM', then=Value(3)),
             When(severity='LOW', then=Value(4)),
             When(severity='INFO', then=Value(5)),
+            When(status='FIXED', then=Value(10)),  # Fixed goes to bottom
             default=Value(6)
         ),
         '-first_seen'

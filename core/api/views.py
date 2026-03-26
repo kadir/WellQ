@@ -820,59 +820,75 @@ class ReleaseViewSet(viewsets.ReadOnlyModelViewSet):
             # Legacy mode: check if release has direct scans
             artifact_count = release.scans.count() or 1
         
-        # Weighting constants
-        W_KEV = 50
-        W_SECRET = 50
-        W_CRITICAL = 10
-        W_HIGH = 2
-        W_MEDIUM = 0.5
-        
         # Calculate finding counts
         kev_count = active_findings.filter(metadata__kev_status=True).count()
         secret_count = active_findings.filter(finding_type='SECRET').count()
         critical_count = active_findings.filter(severity='CRITICAL').count()
         high_count = active_findings.filter(severity='HIGH').count()
         medium_count = active_findings.filter(severity='MEDIUM').count()
-        
-        # Calculate Total Risk Points (TRP)
-        trp = (
-            (kev_count * W_KEV) +
-            (secret_count * W_SECRET) +
-            (critical_count * W_CRITICAL) +
-            (high_count * W_HIGH) +
-            (medium_count * W_MEDIUM)
-        )
-        
-        # Calculate Risk Density
-        risk_density = trp / artifact_count if artifact_count > 0 else trp
-        
-        # Calculate Final Score (Inverse Decay)
-        # Formula: Score = 100 / (1 + Risk Density / 25)
-        sensitivity_factor = 25
-        risk_score = 100 / (1 + (risk_density / sensitivity_factor))
-        risk_score = round(risk_score)
-        
-        # Calculate Health Grade
-        if risk_score >= 90:
-            health_grade = 'A'
-        elif risk_score >= 80:
-            health_grade = 'B'
-        elif risk_score >= 70:
-            health_grade = 'C'
-        else:
-            health_grade = 'F'
-        
-        # Calculate Compliance Status (EU CRA)
-        # Compliant if: KEV count = 0 AND Secret count = 0
-        compliance_status = (kev_count == 0) and (secret_count == 0)
-        compliance_blocking_issues = kev_count + secret_count
-        
+        low_count = active_findings.filter(severity='LOW').count()
+
         # Calculate SLA Breaches (CRITICAL findings >7 days old)
         seven_days_ago = timezone.now() - timedelta(days=7)
         sla_breaches = active_findings.filter(
             severity='CRITICAL',
             first_seen__lt=seven_days_ago
         ).count()
+
+        # Calculate Compliance Status (EU CRA)
+        # Compliant if: KEV count = 0 AND Secret count = 0
+        compliance_status = (kev_count == 0) and (secret_count == 0)
+        compliance_blocking_issues = kev_count + secret_count
+
+        # --- Risk Score Calculation ---
+        # Capped linear penalty system. Each category has a per-issue penalty
+        # and a maximum contribution cap so that a flood of low-severity issues
+        # cannot push the score into the same range as actively-exploited ones.
+        #
+        # KEV / Secrets: 15 pts each, cap 60  → 4+ blockers → near-F territory
+        # Critical:       4 pts each, cap 20  → heavy but bounded
+        # High:         1.5 pts each, cap 12
+        # Medium:       0.3 pts each, cap  6
+        # Low:         0.05 pts each, cap  3
+        # SLA breach:     5 pts each, cap 15  → overdue criticals add urgency
+        kev_penalty      = min(kev_count      * 15,   60)
+        secret_penalty   = min(secret_count   * 15,   60)
+        critical_penalty = min(critical_count *  4,   20)
+        high_penalty     = min(high_count     *  1.5, 12)
+        medium_penalty   = min(medium_count   *  0.3,  6)
+        low_penalty      = min(low_count      *  0.05, 3)
+        sla_penalty      = min(sla_breaches   *  5,   15)
+
+        total_deduction = (
+            kev_penalty + secret_penalty +
+            critical_penalty + high_penalty +
+            medium_penalty + low_penalty +
+            sla_penalty
+        )
+
+        risk_score = max(0, round(100 - total_deduction))
+
+        # Health Grade with +/- modifiers for finer resolution
+        if risk_score >= 93:
+            health_grade = 'A'
+        elif risk_score >= 88:
+            health_grade = 'A-'
+        elif risk_score >= 83:
+            health_grade = 'B+'
+        elif risk_score >= 78:
+            health_grade = 'B'
+        elif risk_score >= 73:
+            health_grade = 'B-'
+        elif risk_score >= 68:
+            health_grade = 'C+'
+        elif risk_score >= 63:
+            health_grade = 'C'
+        elif risk_score >= 58:
+            health_grade = 'C-'
+        elif risk_score >= 50:
+            health_grade = 'D'
+        else:
+            health_grade = 'F'
         
         # Build Kill List (blocking issues: KEVs + Secrets)
         kill_list_findings = active_findings.filter(
